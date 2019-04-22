@@ -47,7 +47,8 @@ extern "C" {
 QNavitQuick::QNavitQuick(QQuickItem* parent)
     : QQuickPaintedItem(parent) {
     setAcceptedMouseButtons(Qt::AllButtons);
-    graphics_priv = NULL;
+//    graphics_priv = qt5_graphics_priv;
+    setGraphicContext(qt5_graphics_priv->GPriv);
 }
 
 void QNavitQuick::setGraphicContext(GraphicsPriv* gp) {
@@ -82,7 +83,7 @@ void QNavitQuick::paint(QPainter* painter) {
         boundingRect().height());
 
     /* color background if any */
-    if (graphics_priv->background_graphics_gc_priv != NULL) {
+    if (graphics_priv->background_graphics_gc_priv != nullptr) {
         painter->setPen(*graphics_priv->background_graphics_gc_priv->pen);
         painter->fillRect(boundingRect(), *graphics_priv->background_graphics_gc_priv->brush);
     }
@@ -100,7 +101,7 @@ void QNavitQuick::keyPressEvent(QKeyEvent* event) {
     dbg(lvl_debug, "enter");
     char key[2];
     int keycode;
-    char* text = NULL;
+    char* text = nullptr;
 
     keycode = event->key();
     key[0] = '\0';
@@ -148,11 +149,11 @@ void QNavitQuick::keyPressEvent(QKeyEvent* event) {
         break;
     default:
         QString str = event->text();
-        if ((str != NULL) && (str.size() != 0)) {
+        if ((str != nullptr) && (str.size() != 0)) {
             text = str.toUtf8().data();
         }
     }
-    if (text != NULL)
+    if (text != nullptr)
         callback_list_call_attr_1(graphics_priv->callbacks, attr_keypress, (void*)text);
     else if (key[0])
         callback_list_call_attr_1(graphics_priv->callbacks, attr_keypress, (void*)key);
@@ -167,22 +168,22 @@ void QNavitQuick::keyReleaseEvent(QKeyEvent* event) {
 void QNavitQuick::geometryChanged(const QRectF& newGeometry, const QRectF& oldGeometry) {
     dbg(lvl_debug, "enter");
     QQuickPaintedItem::geometryChanged(newGeometry, oldGeometry);
-    QPainter* painter = NULL;
-    if (graphics_priv == NULL) {
+    QPainter* painter = nullptr;
+    if (graphics_priv == nullptr) {
         dbg(lvl_debug, "Context not set, aborting");
         return;
     }
-    if (graphics_priv->pixmap != NULL) {
+    if (graphics_priv->pixmap != nullptr) {
         if((width() != graphics_priv->pixmap->width()) || (height() != graphics_priv->pixmap->height())) {
             delete graphics_priv->pixmap;
-            graphics_priv->pixmap = NULL;
+            graphics_priv->pixmap = nullptr;
         }
     }
-    if (graphics_priv->pixmap == NULL) {
+    if (graphics_priv->pixmap == nullptr) {
         graphics_priv->pixmap = new QPixmap(width(), height());
     }
     painter = new QPainter(graphics_priv->pixmap);
-    if (painter != NULL) {
+    if (painter != nullptr) {
         QBrush brush;
         painter->fillRect(0, 0, width(), height(), brush);
         delete painter;

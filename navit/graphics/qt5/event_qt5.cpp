@@ -58,9 +58,9 @@ static void event_qt5_remove_timeout(struct event_timeout* to);
 
 qt5_navit_timer::qt5_navit_timer(QObject* parent)
     : QObject(parent) {
-    timer_type = g_hash_table_new(NULL, NULL);
-    timer_callback = g_hash_table_new(NULL, NULL);
-    watches = g_hash_table_new(NULL, NULL);
+    timer_type = g_hash_table_new(nullptr, nullptr);
+    timer_callback = g_hash_table_new(nullptr, nullptr);
+    watches = g_hash_table_new(nullptr, nullptr);
     dbg(lvl_debug, "qt5_navit_timer object created");
 }
 
@@ -75,13 +75,13 @@ void qt5_navit_timer::watchEvent(int id) {
 
 void qt5_navit_timer::timerEvent(QTimerEvent* event) {
     int id = event->timerId();
-    void* multi = NULL;
+    void* multi = nullptr;
     //        dbg(lvl_debug, "TimerEvent (%d)", id);
     struct callback* cb = (struct callback*)g_hash_table_lookup(timer_callback, (void*)(long)id);
     if (cb)
         callback_call_0(cb);
     /* remove timer if it was oneshot timer */
-    if (g_hash_table_lookup_extended(timer_type, (void*)(long)id, NULL, &multi)) {
+    if (g_hash_table_lookup_extended(timer_type, (void*)(long)id, nullptr, &multi)) {
         /* it's still in the list */
         if (((int)(long)multi) == 0)
             event_qt5_remove_timeout((struct event_timeout*)(long)id);
@@ -89,13 +89,13 @@ void qt5_navit_timer::timerEvent(QTimerEvent* event) {
     //        dbg(lvl_debug, "TimerEvent (%d) leave", id);
 }
 
-qt5_navit_timer* qt5_timer = NULL;
+qt5_navit_timer* qt5_timer = nullptr;
 
 static void event_qt5_main_loop_run(void) {
 
     dbg(lvl_debug, "enter");
-    if (navit_app != NULL)
-        navit_app->exec();
+//    if (navit_app != nullptr)
+//        navit_app->exec();
 }
 
 static void event_qt5_main_loop_quit(void) {
@@ -166,8 +166,8 @@ static struct event_methods event_qt5_methods = {
 
 static struct event_priv* event_qt5_new(struct event_methods* meth) {
     *meth = event_qt5_methods;
-    qt5_timer = new qt5_navit_timer(NULL);
-    return NULL;
+    qt5_timer = new qt5_navit_timer(nullptr);
+    return nullptr;
 }
 
 void qt5_event_init(void) {

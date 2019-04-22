@@ -171,6 +171,7 @@ static void gui_qml_keypress(void* data, char* key) {
     return;
 }
 
+static Backend * backend;
 static int gui_qt5_qml_set_graphics(struct gui_priv* gui_priv, struct graphics* gra) {
     struct transformation* trans;
     dbg(lvl_debug, "enter");
@@ -199,34 +200,17 @@ static int gui_qt5_qml_set_graphics(struct gui_priv* gui_priv, struct graphics* 
     gui_priv->resize_cb = callback_new_attr_1(callback_cast(gui_qt5_qml_resize), attr_resize, gui_priv);
     graphics_add_callback(gra, gui_priv->resize_cb);
 
-    /* get main navit window */
-    gui_priv->win = (struct window*)graphics_get_data(gra, "window");
-    if (!gui_priv->win) {
-        dbg(lvl_error, "failed to obtain window from graphics plugin, cannot set graphics");
-        return 1;
-    }
-
-    /* expect to have qt5 graphics. So get the qml engine prepared by graphics */
-    gui_priv->engine = (QQmlApplicationEngine*)graphics_get_data(gra, "engine");
-    if (gui_priv->engine == NULL) {
-        dbg(lvl_error, "Graphics doesn't seem to be qt5, or doesn't have QML. Cannot set graphics");
-        return 1;
-    }
-
     gui_priv->backend = new Backend();
     gui_priv->backend->set_navit(gui_priv->nav);
-    gui_priv->backend->set_engine(gui_priv->engine);
 
-    gui_priv->engine->rootContext()->setContextProperty("backend", gui_priv->backend);
-    // gui_priv->engine->rootContext()->setContextProperty("myModel", QVariant::fromValue(dataList));
+    backend = gui_priv->backend;
 
-    /* find the loader component */
-    gui_priv->loader = gui_priv->engine->rootObjects().value(0)->findChild<QObject*>("navit_loader");
-    if (gui_priv->loader != NULL) {
-        dbg(lvl_debug, "navit_loader found");
-        /* load our root window into the loader component */
-        gui_priv->loader->setProperty("source", "qrc:///skins/modern/main.qml");
-    }
+    qmlRegisterSingletonType<Backend>("com.navit.gui", 1, 0, "NavitGUI", [](QQmlEngine *engine, QJSEngine *scriptEngine) -> QObject * {
+        Q_UNUSED(engine)
+        Q_UNUSED(scriptEngine)
+
+        return backend;
+    });
 
     transform_get_size(trans, &gui_priv->w, &gui_priv->h);
     dbg(lvl_debug, "navit provided geometry: (%d, %d)", gui_priv->w, gui_priv->h);

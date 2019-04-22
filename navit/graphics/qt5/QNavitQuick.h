@@ -25,12 +25,13 @@ class QNavitQuick;
 
 #include "graphics_qt5.h"
 
+class GraphicsPriv;
+
 class QNavitQuick : public QQuickPaintedItem {
     Q_OBJECT
 public:
     void paint(QPainter* painter);
     QNavitQuick(QQuickItem* parent = 0);
-
 
     Q_INVOKABLE void setGraphicContext(GraphicsPriv* gp);
 

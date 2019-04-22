@@ -37,7 +37,7 @@
 #if USE_QML
 #include <QObject>
 #include <QQmlApplicationEngine>
-#include <QQuickWindow>
+#include "QNavitQuick.h"
 #endif
 #if USE_QWIDGET
 #include "QNavitWidget.h"
@@ -74,9 +74,8 @@ signals:
 
 struct graphics_priv {
 #if USE_QML
-    QQmlApplicationEngine* engine;
     GraphicsPriv* GPriv;
-    QQuickWindow* window;
+    QNavitQuick *qmlNavit;
 #endif
 #if USE_QWIDGET
     QNavitWidget* widget;
@@ -111,9 +110,9 @@ struct graphics_gc_priv {
     QPen* pen;
     QBrush* brush;
 };
-/* central exported application info */
-extern QGuiApplication* navit_app;
 
 void resize_callback(struct graphics_priv* gr, int w, int h);
+
+extern struct graphics_priv *qt5_graphics_priv;
 
 #endif

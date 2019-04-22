@@ -53,6 +53,7 @@ extern "C" {
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
+#include <QDebug>
 #endif
 #if USE_QWIDGET
 #include "QNavitWidget.h"
@@ -75,8 +76,6 @@ void GraphicsPriv::emit_update() {
 }
 #endif
 
-QGuiApplication* navit_app = NULL;
-
 struct graphics_font_priv {
     QFont* font;
 };
@@ -91,31 +90,31 @@ static void graphics_destroy(struct graphics_priv* gr) {
     gr->freetype_methods.destroy();
 #endif
     /* destroy painter */
-    if (gr->painter != NULL)
+    if (gr->painter != nullptr)
         delete (gr->painter);
     /* destroy pixmap */
-    if (gr->pixmap != NULL)
+    if (gr->pixmap != nullptr)
         delete (gr->pixmap);
     /* destroy widget if root window*/
     if (gr->root) {
 #if USE_QWIDGET
-        if (gr->widget != NULL)
+        if (gr->widget != nullptr)
             delete (gr->widget);
 #endif
 #if USE_QML
-        if (gr->GPriv != NULL)
+        if (gr->GPriv != nullptr)
             delete (gr->GPriv);
 #endif
     }
     /* unregister from parent, if any */
-    if (gr->parent != NULL) {
+    if (gr->parent != nullptr) {
         g_hash_table_remove(gr->parent->overlays, gr);
     }
 #ifdef SAILFISH_OS
-    if (gr->display_on_ev != NULL) {
+    if (gr->display_on_ev != nullptr) {
         event_remove_timeout(gr->display_on_ev);
     }
-    if (gr->display_on_cb != NULL) {
+    if (gr->display_on_cb != nullptr) {
         g_free(gr->display_on_cb);
     }
 #endif
@@ -123,14 +122,10 @@ static void graphics_destroy(struct graphics_priv* gr) {
     g_hash_table_destroy(gr->overlays);
     /* destroy global application if destroying the last */
     if (gr->root) {
-        if (navit_app != NULL) {
-            delete (navit_app);
-        }
-        navit_app = NULL;
         /* destroy argv if any */
         while (gr->argc > 0) {
             gr->argc--;
-            if (gr->argv[gr->argc] != NULL)
+            if (gr->argv[gr->argc] != nullptr)
                 g_free(gr->argv[gr->argc]);
         }
     }
@@ -140,7 +135,7 @@ static void graphics_destroy(struct graphics_priv* gr) {
 
 static void font_destroy(struct graphics_font_priv* font) {
     //        dbg(lvl_debug,"enter");
-    if (font->font != NULL)
+    if (font->font != nullptr)
         delete (font->font);
     g_free(font);
 }
@@ -164,7 +159,7 @@ static const char* fontfamilies[] = {
     "luximbi",
     "FreeSans",
     "DejaVu Sans",
-    NULL,
+    nullptr,
 };
 
 /**
@@ -186,10 +181,10 @@ static struct graphics_font_priv* font_new(struct graphics_priv* gr, struct grap
     dbg(lvl_debug, "enter (font %s, %d, 0x%x)", font, size, flags);
     font_priv = g_new0(struct graphics_font_priv, 1);
     font_priv->font = new QFont(fontfamilies[0]);
-    if (font != NULL)
+    if (font != nullptr)
         font_priv->font->setFamily(font);
     /* search for exact font match */
-    while ((!font_priv->font->exactMatch()) && (fontfamilies[a] != NULL)) {
+    while ((!font_priv->font->exactMatch()) && (fontfamilies[a] != nullptr)) {
         font_priv->font->setFamily(fontfamilies[a]);
         a++;
     }
@@ -197,7 +192,7 @@ static struct graphics_font_priv* font_new(struct graphics_priv* gr, struct grap
         dbg(lvl_debug, "Exactly matching font: %s", font_priv->font->family().toUtf8().data());
     } else {
         /* set any font*/
-        if (font != NULL) {
+        if (font != nullptr) {
             font_priv->font->setFamily(font);
         } else {
             font_priv->font->setFamily(fontfamilies[0]);
@@ -273,7 +268,7 @@ static struct graphics_gc_methods gc_methods = {
 };
 
 static struct graphics_gc_priv* gc_new(struct graphics_priv* gr, struct graphics_gc_methods* meth) {
-    struct graphics_gc_priv* graphics_gc_priv = NULL;
+    struct graphics_gc_priv* graphics_gc_priv = nullptr;
     //        dbg(lvl_debug,"enter gr==%p", gr);
     graphics_gc_priv = g_new0(struct graphics_gc_priv, 1);
     graphics_gc_priv->graphics_priv = gr;
@@ -286,7 +281,7 @@ static struct graphics_gc_priv* gc_new(struct graphics_priv* gr, struct graphics
 
 static void image_destroy(struct graphics_image_priv* img) {
     //    dbg(lvl_debug, "enter");
-    if (img->pixmap != NULL)
+    if (img->pixmap != nullptr)
         delete (img->pixmap);
     g_free(img);
 }
@@ -301,7 +296,7 @@ static struct graphics_image_priv* image_new(struct graphics_priv* gr, struct gr
     //        dbg(lvl_debug,"enter %s, %d %d", path, *w, *h);
     if (path[0] == 0) {
         dbg(lvl_debug, "Refuse to load image without path");
-        return NULL;
+        return nullptr;
     }
     QString key(path);
     QString renderer_key(key);
@@ -318,7 +313,7 @@ static struct graphics_image_priv* image_new(struct graphics_priv* gr, struct gr
         if (extension != "") {
             /*file doesn't exist. give up */
             dbg(lvl_debug, "File %s does not exist", path);
-            return NULL;
+            return nullptr;
         } else {
             /* add ".svg" for renderer to try .svg file first in renderer */
             dbg(lvl_debug, "Guess extension on %s", path);
@@ -346,16 +341,16 @@ static struct graphics_image_priv* image_new(struct graphics_priv* gr, struct gr
         }
     }
 
-    if (image_priv->pixmap == NULL) {
+    if (image_priv->pixmap == nullptr) {
         /*cannot be rendered. try to load it */
         dbg(lvl_debug, "cannot render %s", path);
         image_priv->pixmap = new QPixmap(key);
     }
 
     /* check if we got image */
-    if ((image_priv->pixmap == NULL) || (image_priv->pixmap->isNull())) {
+    if ((image_priv->pixmap == nullptr) || (image_priv->pixmap->isNull())) {
         g_free(image_priv);
-        return NULL;
+        return nullptr;
     } else {
         /* check if we need to scale this */
         if ((*w > 0) && (*h > 0)) {
@@ -384,7 +379,7 @@ static void draw_lines(struct graphics_priv* gr, struct graphics_gc_priv* gc, st
     int i;
     QPolygon polygon;
     //        dbg(lvl_debug,"enter gr=%p, gc=%p, (%d, %d)", gr, gc, p->x, p->y);
-    if (gr->painter == NULL)
+    if (gr->painter == nullptr)
         return;
 
     for (i = 0; i < count; i++)
@@ -397,7 +392,7 @@ static void draw_polygon(struct graphics_priv* gr, struct graphics_gc_priv* gc, 
     int i;
     QPolygon polygon;
     //        dbg(lvl_debug,"enter gr=%p, gc=%p, (%d, %d)", gr, gc, p->x, p->y);
-    if (gr->painter == NULL)
+    if (gr->painter == nullptr)
         return;
 
     for (i = 0; i < count; i++)
@@ -416,7 +411,7 @@ static void draw_polygon(struct graphics_priv* gr, struct graphics_gc_priv* gc, 
 
 static void draw_rectangle(struct graphics_priv* gr, struct graphics_gc_priv* gc, struct point* p, int w, int h) {
     //	dbg(lvl_debug,"gr=%p gc=%p %d,%d,%d,%d", gr, gc, p->x, p->y, w, h);
-    if (gr->painter == NULL)
+    if (gr->painter == nullptr)
         return;
     /* if the rectangle is transparent, we need to clear it first */
     if (!gc->brush->isOpaque()) {
@@ -430,7 +425,7 @@ static void draw_rectangle(struct graphics_priv* gr, struct graphics_gc_priv* gc
 
 static void draw_circle(struct graphics_priv* gr, struct graphics_gc_priv* gc, struct point* p, int r) {
     //        dbg(lvl_debug,"enter gr=%p, gc=%p, (%d,%d) r=%d", gr, gc, p->x, p->y, r);
-    if (gr->painter == NULL)
+    if (gr->painter == nullptr)
         return;
     gr->painter->setPen(*gc->pen);
     gr->painter->drawArc(p->x - r / 2, p->y - r / 2, r, r, 0, 360 * 16);
@@ -453,7 +448,7 @@ static void draw_text(struct graphics_priv* gr, struct graphics_gc_priv* fg, str
                       struct graphics_font_priv* font, char* text, struct point* p, int dx, int dy) {
     dbg(lvl_debug, "enter gc=%p, fg=%p, bg=%p pos(%d,%d) d(%d, %d) %s", gr, fg, bg, p->x, p->y, dx, dy, text);
     QPainter* painter = gr->painter;
-    if (painter == NULL)
+    if (painter == nullptr)
         return;
 #if HAVE_FREETYPE
     struct font_freetype_text* t;
@@ -472,7 +467,7 @@ static void draw_text(struct graphics_priv* gr, struct graphics_gc_priv* fg, str
     fgc.g = fg->pen->color().green() << 8;
     fgc.b = fg->pen->color().blue() << 8;
     fgc.a = fg->pen->color().alpha() << 8;
-    if (bg != NULL) {
+    if (bg != nullptr) {
         bgc.r = bg->pen->color().red() << 8;
         bgc.g = bg->pen->color().green() << 8;
         bgc.b = bg->pen->color().blue() << 8;
@@ -544,7 +539,7 @@ static void draw_text(struct graphics_priv* gr, struct graphics_gc_priv* fg, str
 static void draw_image(struct graphics_priv* gr, struct graphics_gc_priv* fg, struct point* p,
                        struct graphics_image_priv* img) {
     //        dbg(lvl_debug,"enter");
-    if (gr->painter != NULL)
+    if (gr->painter != nullptr)
         gr->painter->drawPixmap(p->x, p->y, *img->pixmap);
     else
         dbg(lvl_debug, "Try to draw image, but no painter");
@@ -553,20 +548,20 @@ static void draw_image(struct graphics_priv* gr, struct graphics_gc_priv* fg, st
 /**
  * @brief	Drag layer.
  * @param   gr private handle
- * @param	p	vector the bitmap is moved from base, or NULL to indicate 0:0 vector
+ * @param	p	vector the bitmap is moved from base, or nullptr to indicate 0:0 vector
  *
  * Move layer to new position. If drag_bitmap is enabled this may also be
  * called for root layer. There the content of the root layer is to be moved
- * by given vector. On root layer, NULL indicates the end of a drag.
+ * by given vector. On root layer, nullptr indicates the end of a drag.
  */
 static void draw_drag(struct graphics_priv* gr, struct point* p) {
     struct point vector;
 
-    if (p != NULL) {
+    if (p != nullptr) {
         dbg(lvl_debug, "enter %p (%d,%d)", gr, p->x, p->y);
         vector = *p;
     } else {
-        dbg(lvl_debug, "enter %p (NULL)", gr);
+        dbg(lvl_debug, "enter %p (nullptr)", gr);
         vector.x = 0;
         vector.y = 0;
     }
@@ -574,22 +569,13 @@ static void draw_drag(struct graphics_priv* gr, struct point* p) {
         gr->scroll_x = vector.x;
         gr->scroll_y = vector.y;
     } else {
-#if USE_QWIDGET
-        int damage_x = gr->x;
-        int damage_y = gr->y;
-        int damage_w = gr->pixmap->width();
-        int damage_h = gr->pixmap->height();
-#endif
+
         gr->x = vector.x;
         gr->y = vector.y;
-#if USE_QWIDGET
-        /* call repaint on widget for stale area. */
-        if (gr->widget != NULL)
-            gr->widget->repaint(damage_x, damage_y, damage_w, damage_h);
-#endif
+
 #if USE_QML
 // No need to emit update, as QNavitQuic always repaints everything.
-//    if (gr->GPriv != NULL)
+//    if (gr->GPriv != nullptr)
 //        gr->GPriv->emit_update();
 #endif
     }
@@ -605,7 +591,7 @@ static void draw_mode(struct graphics_priv* gr, enum draw_mode_num mode) {
     case draw_mode_begin:
         dbg(lvl_debug, "Begin drawing on context %p (use == %d)", gr, gr->use_count);
         gr->use_count++;
-        if (gr->painter == NULL)
+        if (gr->painter == nullptr)
             gr->painter = new QPainter(gr->pixmap);
         else
             dbg(lvl_debug, "drawing on %p already active", gr);
@@ -617,20 +603,16 @@ static void draw_mode(struct graphics_priv* gr, enum draw_mode_num mode) {
             gr->use_count = 0;
         if (gr->use_count > 0) {
             dbg(lvl_debug, "drawing on %p still in use", gr);
-        } else if (gr->painter != NULL) {
+        } else if (gr->painter != nullptr) {
             gr->painter->end();
             delete (gr->painter);
-            gr->painter = NULL;
+            gr->painter = nullptr;
         } else {
             dbg(lvl_debug, "Context %p not active!", gr)
         }
-#if USE_QWIDGET
-        /* call repaint on widget */
-        if (gr->widget != NULL)
-            gr->widget->repaint(gr->x, gr->y, gr->pixmap->width(), gr->pixmap->height());
-#endif
+
 #if USE_QML
-        if (gr->GPriv != NULL)
+        if (gr->GPriv != nullptr)
             gr->GPriv->emit_update();
 
 #endif
@@ -655,21 +637,15 @@ static int graphics_qt5_fullscreen(struct window* w, int on) {
     //        dbg(lvl_debug,"enter");
     gr = (struct graphics_priv*)w->priv;
 #if USE_QML
-    if (gr->window != NULL) {
-        if (on)
-            gr->window->setWindowState(Qt::WindowFullScreen);
-        else
-            gr->window->setWindowState(Qt::WindowMaximized);
+    if (on) {
+        dbg(lvl_debug,"enter fullScreen");
+//            gr->window->setWindowState(Qt::WindowFullScreen);
+    } else {
+        dbg(lvl_debug,"exit fullScreen");
+//            gr->window->setWindowState(Qt::WindowMaximized);
     }
 #endif
-#if USE_QWIDGET
-    if (gr->widget != NULL) {
-        if (on)
-            gr->widget->setWindowState(Qt::WindowFullScreen);
-        else
-            gr->widget->setWindowState(Qt::WindowMaximized);
-    }
-#endif
+
     return 1;
 }
 
@@ -708,11 +684,8 @@ static void* get_data(struct graphics_priv* this_priv, char const* type) {
         resize_callback(this_priv, this_priv->pixmap->width(), this_priv->pixmap->height());
         return win;
     }
-    if (strcmp(type, "engine") == 0) {
-        dbg(lvl_debug, "Hand over QQmlApplicationEngine");
-        return (this_priv->engine);
-    }
-    return NULL;
+
+    return nullptr;
 }
 
 static void image_free(struct graphics_priv* gr, struct graphics_image_priv* priv) {
@@ -770,13 +743,9 @@ static void get_text_bbox(struct graphics_priv* gr, struct graphics_font_priv* f
 static void overlay_disable(struct graphics_priv* gr, int disable) {
     //dbg(lvl_error,"enter gr=%p, %d", gr, disable);
     gr->disable = disable;
-#if USE_QWIDGET
-    /* call repaint on widget */
-    if (gr->widget != NULL)
-        gr->widget->repaint(gr->x, gr->y, gr->pixmap->width(), gr->pixmap->height());
-#endif
+
 #if USE_QML
-    if (gr->GPriv != NULL)
+    if (gr->GPriv != nullptr)
         gr->GPriv->emit_update();
 
 #endif
@@ -786,7 +755,7 @@ static void overlay_resize(struct graphics_priv* gr, struct point* p, int w, int
     //        dbg(lvl_debug,"enter %d %d %d %d %d", p->x, p->y, w, h, wraparound);
     gr->x = p->x;
     gr->y = p->y;
-    if (gr->painter != NULL) {
+    if (gr->painter != nullptr) {
         delete (gr->painter);
     }
     /* replacing the pixmap clears the content. Only neccesary if size actually changes */
@@ -795,15 +764,11 @@ static void overlay_resize(struct graphics_priv* gr, struct point* p, int w, int
         gr->pixmap = new QPixmap(w, h);
         gr->pixmap->fill(Qt::transparent);
     }
-    if (gr->painter != NULL)
+    if (gr->painter != nullptr)
         gr->painter = new QPainter(gr->pixmap);
-#if USE_QWIDGET
-    /* call repaint on widget */
-    if (gr->widget != NULL)
-        gr->widget->repaint(gr->x, gr->y, gr->pixmap->width(), gr->pixmap->height());
-#endif
+
 #if USE_QML
-    if (gr->GPriv != NULL)
+    if (gr->GPriv != nullptr)
         gr->GPriv->emit_update();
 
 #endif
@@ -818,7 +783,7 @@ static struct graphics_methods graphics_methods = {
     draw_circle,
     draw_text,
     draw_image,
-    NULL,
+    nullptr,
     draw_drag,
     font_new,
     gc_new,
@@ -835,7 +800,7 @@ static struct graphics_methods graphics_methods = {
 /* create new graphics context on given context */
 static struct graphics_priv* overlay_new(struct graphics_priv* gr, struct graphics_methods* meth, struct point* p,
         int w, int h, int wraparound) {
-    struct graphics_priv* graphics_priv = NULL;
+    struct graphics_priv* graphics_priv = nullptr;
     graphics_priv = g_new0(struct graphics_priv, 1);
     *meth = graphics_methods;
 #if HAVE_FREETYPE
@@ -849,27 +814,24 @@ static struct graphics_priv* overlay_new(struct graphics_priv* gr, struct graphi
     }
 #endif
 #if USE_QML
-    graphics_priv->window = gr->window;
     graphics_priv->GPriv = gr->GPriv;
 #endif
-#if USE_QWIDGET
-    graphics_priv->widget = gr->widget;
-#endif
+
     graphics_priv->x = p->x;
     graphics_priv->y = p->y;
     graphics_priv->disable = false;
     graphics_priv->callbacks = gr->callbacks;
     graphics_priv->pixmap = new QPixmap(w, h);
     graphics_priv->pixmap->fill(Qt::transparent);
-    graphics_priv->painter = NULL;
+    graphics_priv->painter = nullptr;
     graphics_priv->use_count = 0;
     graphics_priv->parent = gr;
-    graphics_priv->overlays = g_hash_table_new(NULL, NULL);
+    graphics_priv->overlays = g_hash_table_new(nullptr, nullptr);
     graphics_priv->scroll_x = 0;
     graphics_priv->scroll_y = 0;
     graphics_priv->root = false;
     graphics_priv->argc = 0;
-    graphics_priv->argv[0] = NULL;
+    graphics_priv->argv[0] = nullptr;
     /* register on parent */
     g_hash_table_insert(gr->overlays, graphics_priv, graphics_priv);
     //        dbg(lvl_debug,"New overlay: %p", graphics_priv);
@@ -877,21 +839,23 @@ static struct graphics_priv* overlay_new(struct graphics_priv* gr, struct graphi
     return graphics_priv;
 }
 
+struct graphics_priv *qt5_graphics_priv = nullptr;
+
 /* create application and initial graphics context */
 static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics_methods* meth, struct attr** attrs,
         struct callback_list* cbl) {
-    struct graphics_priv* graphics_priv = NULL;
-    struct attr* event_loop_system = NULL;
-    struct attr* platform = NULL;
-    struct attr* fullscreen = NULL;
-    struct attr* attr_widget = NULL;
+    struct graphics_priv* graphics_priv = nullptr;
+    struct attr* event_loop_system = nullptr;
+    struct attr* platform = nullptr;
+    struct attr* fullscreen = nullptr;
+    struct attr* attr_widget = nullptr;
     bool use_qml = USE_QML;
     bool use_qwidget = USE_QWIDGET;
 
     //dbg(lvl_debug,"enter");
 
     /* get qt widget attr */
-    if ((attr_widget = attr_search(attrs, NULL, attr_qt5_widget))) {
+    if ((attr_widget = attr_search(attrs, nullptr, attr_qt5_widget))) {
         /* check if we shall use qml */
         if (strcmp(attr_widget->u.str, "qwidget") == 0) {
             use_qml = false;
@@ -910,15 +874,15 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
     *meth = graphics_methods;
 
     /* get event loop from config and request event loop*/
-    event_loop_system = attr_search(attrs, NULL, attr_event_loop_system);
+    event_loop_system = attr_search(attrs, nullptr, attr_event_loop_system);
     if (event_loop_system && event_loop_system->u.str) {
         //dbg(lvl_debug, "event_system is %s", event_loop_system->u.str);
         if (!event_request_system(event_loop_system->u.str, "graphics_qt5"))
-            return NULL;
+            return nullptr;
     } else {
         /* no event system requested by config. Default to our own */
         if (!event_request_system("qt5", "graphics_qt5"))
-            return NULL;
+            return nullptr;
     }
 
 #if HAVE_FREETYPE
@@ -927,31 +891,26 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
     font_freetype_new = (struct font_priv * (*)(void*))plugin_get_category_font("freetype");
     if (!font_freetype_new) {
         dbg(lvl_error, "no freetype");
-        return NULL;
+        return nullptr;
     }
 #endif
 
     /* create root graphics layer */
     graphics_priv = g_new0(struct graphics_priv, 1);
+
+    qt5_graphics_priv = graphics_priv;
     /* Prepare argc and argv to call Qt application*/
     graphics_priv->root = true;
     graphics_priv->argc = 0;
     graphics_priv->argv[graphics_priv->argc] = g_strdup("navit");
     graphics_priv->argc++;
     /* Get qt platform from config */
-    if ((platform = attr_search(attrs, NULL, attr_qt5_platform))) {
+    if ((platform = attr_search(attrs, nullptr, attr_qt5_platform))) {
         graphics_priv->argv[graphics_priv->argc] = g_strdup("-platform");
         graphics_priv->argc++;
         graphics_priv->argv[graphics_priv->argc] = g_strdup(platform->u.str);
         graphics_priv->argc++;
     }
-    /* create surrounding application */
-#if USE_QWIDGET
-    QApplication* internal_app = new QApplication(graphics_priv->argc, graphics_priv->argv);
-    navit_app = internal_app;
-#else
-    navit_app = new QGuiApplication(graphics_priv->argc, graphics_priv->argv);
-#endif
 
 #if HAVE_FREETYPE
     graphics_priv->font_freetype_new = font_freetype_new;
@@ -962,112 +921,45 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
                                     int))graphics_priv->freetype_methods.get_text_bbox;
 #endif
     graphics_priv->callbacks = cbl;
-    graphics_priv->pixmap = NULL;
+    graphics_priv->pixmap = nullptr;
     graphics_priv->use_count = 0;
-    graphics_priv->painter = NULL;
-    graphics_priv->parent = NULL;
-    graphics_priv->overlays = g_hash_table_new(NULL, NULL);
+    graphics_priv->painter = nullptr;
+    graphics_priv->parent = nullptr;
+    graphics_priv->overlays = g_hash_table_new(nullptr, nullptr);
     graphics_priv->x = 0;
     graphics_priv->y = 0;
     graphics_priv->disable = 0;
     graphics_priv->scroll_x = 0;
     graphics_priv->scroll_y = 0;
 #if USE_QML
-    graphics_priv->engine = NULL;
-    graphics_priv->window = NULL;
-    graphics_priv->GPriv = NULL;
+
+    graphics_priv->GPriv = nullptr;
+
     if (use_qml) {
+
+        graphics_priv->GPriv = new GraphicsPriv(graphics_priv);
+
+//        graphics_priv->qmlNavit = dynamic_cast<QNavitQuick *>(example_qobject_singletontype_provider(nullptr, nullptr));
+//        graphics_priv->qmlNavit->setGraphicContext(dynamic_cast<GraphicsPriv *>(graphics_priv->GPriv));
+//        qmlRegisterSingletonType<QNavitQuick>("com.navit.graphics_qt5", 1, 0, "QNavitQuick", example_qobject_singletontype_provider);
+
         /* register our QtQuick widget to allow it's usage within QML */
         qmlRegisterType<QNavitQuick>("com.navit.graphics_qt5", 1, 0, "QNavitQuick");
         /* get our qml application from embedded resources. May be replaced by the
              * QtQuick gui component if enabled */
-        graphics_priv->engine = new QQmlApplicationEngine();
-        if (graphics_priv->engine != NULL) {
-            graphics_priv->GPriv = new GraphicsPriv(graphics_priv);
-            QQmlContext* context = graphics_priv->engine->rootContext();
-            context->setContextProperty("graphics_qt5_context", graphics_priv->GPriv);
-            graphics_priv->engine->load(QUrl("qrc:///loader.qml"));
-            /* Get the engine's root window (for resizing) */
-            QObject* toplevel = graphics_priv->engine->rootObjects().value(0);
-            graphics_priv->window = qobject_cast<QQuickWindow*>(toplevel);
-        }
+
+        //            setContextProperty("graphics_qt5_context", graphics_priv->GPriv);
     }
 #endif
-#if USE_QWIDGET
-    graphics_priv->widget = NULL;
-    if (use_qwidget) {
-        graphics_priv->widget = new QNavitWidget(graphics_priv, NULL, Qt::Window);
-    }
-#endif
-    if ((fullscreen = attr_search(attrs, NULL, attr_fullscreen)) && (fullscreen->u.num)) {
-        /* show this maximized */
-#if USE_QML
-        if (graphics_priv->window != NULL)
-            graphics_priv->window->setWindowState(Qt::WindowFullScreen);
-#endif
-#if USE_QWIDGET
-        if (graphics_priv->widget != NULL)
-            graphics_priv->widget->setWindowState(Qt::WindowFullScreen);
-#endif
-    } else {
-        /* not maximized. Check what size to use then */
-        struct attr* w = NULL;
-        struct attr* h = NULL;
-        /* default to desktop size if nothing else is given */
-        QRect geomet;
-        geomet.setHeight(100);
-        geomet.setWidth(100);
-        /* get desktop size */
-        QScreen* primary = navit_app->primaryScreen();
-        if (primary != NULL) {
-            geomet = primary->availableGeometry();
-        }
-        /* check for height */
-        if ((h = attr_search(attrs, NULL, attr_h)) && (h->u.num > 100))
-            geomet.setHeight(h->u.num);
-        /* check for width */
-        if ((w = attr_search(attrs, NULL, attr_w)) && (w->u.num > 100))
-            geomet.setWidth(w->u.num);
-#if USE_QML
-        if (graphics_priv->window != NULL) {
-            graphics_priv->window->resize(geomet.width(), geomet.height());
-            //graphics_priv->window->setFixedSize(geomet.width(), geomet.height());
-        }
-#endif
-#if USE_QWIDGET
-        if (graphics_priv->widget != NULL) {
-            graphics_priv->widget->resize(geomet.width(), geomet.height());
-            //graphics_priv->widget->setFixedSize(geomet.width(), geomet.height());
-        }
-#endif
-    }
-    /* generate initial pixmap same size as window */
-    if (graphics_priv->pixmap == NULL) {
-#if USE_QML
-        if (graphics_priv->window != NULL)
-            graphics_priv->pixmap = new QPixmap(graphics_priv->window->size());
-#endif
-#if USE_QWIDGET
-        if (graphics_priv->widget != NULL)
-            graphics_priv->pixmap = new QPixmap(graphics_priv->widget->size());
-#endif
-        if (graphics_priv->pixmap == NULL)
-            graphics_priv->pixmap = new QPixmap(100, 100);
+
+    /* generate initial pixmap 500px X 500px */
+    if (graphics_priv->pixmap == nullptr) {
+        graphics_priv->pixmap = new QPixmap(800, 800);
         graphics_priv->pixmap->fill(Qt::black);
     }
 
     /* tell Navit our geometry */
     resize_callback(graphics_priv, graphics_priv->pixmap->width(), graphics_priv->pixmap->height());
-
-    /* show our window */
-#if USE_QML
-    if (graphics_priv->window != NULL)
-        graphics_priv->window->show();
-#endif
-#if USE_QWIDGET
-    if (graphics_priv->widget != NULL)
-        graphics_priv->widget->show();
-#endif
 
     return graphics_priv;
 }
