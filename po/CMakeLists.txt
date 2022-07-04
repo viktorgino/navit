@@ -10,19 +10,6 @@ set(POTFILES
 	${PROJECT_SOURCE_DIR}/navit/route.c
 	${PROJECT_SOURCE_DIR}/navit/vehicle.c
 	${PROJECT_SOURCE_DIR}/navit/bookmarks.c
-	${PROJECT_SOURCE_DIR}/navit/gui/gtk/destination.c
-	${PROJECT_SOURCE_DIR}/navit/gui/gtk/gui_gtk_action.c
-	${PROJECT_SOURCE_DIR}/navit/gui/gtk/gui_gtk_poi.c
-	${PROJECT_SOURCE_DIR}/navit/gui/gtk/gui_gtk_statusbar.c
-	${PROJECT_SOURCE_DIR}/navit/gui/internal/gui_internal.c
-	${PROJECT_SOURCE_DIR}/navit/gui/internal/gui_internal_bookmark.c
-	${PROJECT_SOURCE_DIR}/navit/gui/internal/gui_internal_command.c
-	${PROJECT_SOURCE_DIR}/navit/gui/internal/gui_internal_html.c
-	${PROJECT_SOURCE_DIR}/navit/gui/internal/gui_internal_menu.c
-	${PROJECT_SOURCE_DIR}/navit/gui/internal/gui_internal_poi.c
-	${PROJECT_SOURCE_DIR}/navit/gui/internal/gui_internal_search.c
-	${PROJECT_SOURCE_DIR}/navit/gui/internal/gui_internal_widget.c
-	${PROJECT_SOURCE_DIR}/navit/osd/core/osd_core.c
 	${CMAKE_CURRENT_BINARY_DIR}/navit_shipped.c
 	${CMAKE_CURRENT_BINARY_DIR}/strings_xml.c
 	)
@@ -34,15 +21,6 @@ ADD_CUSTOM_COMMAND(
 	DEPENDS ${PROJECT_SOURCE_DIR}/navit/navit_shipped.xml
 	COMMAND ${CMAKE_COMMAND} -D SRC=${PROJECT_SOURCE_DIR}/navit/navit_shipped.xml -D DST=${CMAKE_CURRENT_BINARY_DIR}/navit_shipped.c
 	-P ${PROJECT_SOURCE_DIR}/cmake/navit_xml_parser.cmake
-	)
-
-# Trick gettext to get translateable strings out of android strings.xml
-
-ADD_CUSTOM_COMMAND(
-	OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/strings_xml.c
-	DEPENDS ${PROJECT_SOURCE_DIR}/navit/android/res/values/strings.xml
-	COMMAND ${CMAKE_COMMAND} -D SRC=${PROJECT_SOURCE_DIR}/navit/android/res/values/strings.xml -D DST=${CMAKE_CURRENT_BINARY_DIR}/strings_xml.c
-	-P ${PROJECT_SOURCE_DIR}/cmake/strings_xml_parser.cmake
 	)
 
 

@@ -1,5 +1,0 @@
-<resources>
-    <style name="NavitTheme" parent="android:Theme.DeviceDefault.NoActionBar">
-        <!-- API 19 theme customizations can go here. -->
-    </style>
-</resources>

@@ -1,1 +1,0 @@
-module_add_library(traffic_traff_android traffic_traff_android.c)

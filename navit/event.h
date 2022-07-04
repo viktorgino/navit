@@ -17,6 +17,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#ifndef NAVIT_EVENT_H
+#define NAVIT_EVENT_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -69,4 +72,5 @@ int event_request_system(const char *system, const char *requestor);
 /* end of prototypes */
 #ifdef __cplusplus
 }
+#endif
 #endif
