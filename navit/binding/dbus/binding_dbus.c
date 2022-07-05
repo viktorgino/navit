@@ -152,12 +152,6 @@ static void *resolve_object(const char *opath, char *type) {
             }
             return NULL;
         }
-        if (!strncmp(oprefix,def_gui,strlen(def_gui))) {
-            if (navit_get_attr(navit.u.navit, attr_gui, &attr, NULL)) {
-                return attr.u.gui;
-            }
-            return NULL;
-        }
         if (!strncmp(oprefix,def_vehicleprofile,strlen(def_vehicleprofile))) {
             if (navit_get_attr(navit.u.navit, attr_vehicleprofile, &attr, NULL)) {
                 return attr.u.vehicleprofile;

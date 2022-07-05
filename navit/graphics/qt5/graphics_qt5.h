@@ -20,13 +20,6 @@
 #ifndef __graphics_qt_h
 #define __graphics_qt_h
 
-#ifndef USE_QWIDGET
-#define USE_QWIDGET 1
-#endif
-
-#ifndef USE_QML
-#define USE_QML 0
-#endif
 
 #include <QBrush>
 #include <QGuiApplication>
@@ -34,22 +27,13 @@
 #include <QPen>
 #include <QPixmap>
 #include <glib.h>
-#if USE_QML
 #include <QObject>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include "navitinstance.h"
-#endif
-#if USE_QWIDGET
-#include "QNavitWidget.h"
-#endif
 
 #ifndef HAVE_FREETYPE
 #define HAVE_FREETYPE 0
-#endif
-
-#ifndef SAILFISH_OS
-#define SAILFISH_OS 1
 #endif
 
 #if HAVE_FREETYPE
@@ -59,7 +43,6 @@
 struct graphics_gc_priv;
 struct graphics_priv;
 
-#if USE_QML
 class GraphicsPriv : public QObject {
     Q_OBJECT
 public:
@@ -72,18 +55,12 @@ public:
 signals:
     void update();
 };
-#endif
 
 struct graphics_priv {
-#if USE_QML
     QQmlApplicationEngine* engine;
     GraphicsPriv* GPriv;
     QQuickWindow* window;
     NavitInstance *navitInstance;
-#endif
-#if USE_QWIDGET
-    QNavitWidget* widget;
-#endif
     QPixmap* pixmap;
     QPainter* painter;
     int use_count;
@@ -96,10 +73,6 @@ struct graphics_priv {
 #if HAVE_FREETYPE
     struct font_priv* (*font_freetype_new)(void* meth);
     struct font_freetype_methods freetype_methods;
-#endif
-#ifdef SAILFISH_OS
-    struct callback* display_on_cb;
-    struct event_timeout* display_on_ev;
 #endif
     struct callback_list* callbacks;
     GHashTable* overlays;

@@ -114,7 +114,6 @@ struct navit {
     struct attr self;
     GList *mapsets;
     GList *layouts;
-    struct gui *gui;
     char *default_layout_name;	/*!< The default layout indicated by the config file (if any) */
     struct layout *layout_current;	/*!< The current layout theme used to display the map */
     struct graphics *gra;
@@ -1534,21 +1533,6 @@ navit_new(struct attr *parent, struct attr **attrs) {
     return this_;
 }
 
-static int navit_set_gui(struct navit *this_, struct gui *gui) {
-    if (this_->gui)
-        return 0;
-    this_->gui=gui;
-    if (gui_has_main_loop(this_->gui)) {
-        if (! main_loop_gui) {
-            main_loop_gui=this_->gui;
-        } else {
-            dbg(lvl_error,"gui with main loop already active, ignoring this instance");
-            return 0;
-        }
-    }
-    return 1;
-}
-
 void navit_add_message(struct navit *this_, const char *message) {
     message_new(this_->messages, message);
 }
@@ -2068,14 +2052,15 @@ void navit_window_roadbook_destroy(struct navit *this_) {
     this_->roadbook_callback=NULL;
 }
 void navit_window_roadbook_new(struct navit *this_) {
-    if (!this_->gui || this_->roadbook_callback || this_->roadbook_window) {
+    if (this_->roadbook_callback || this_->roadbook_window) {
         return;
     }
 
     this_->roadbook_callback=callback_new_1(callback_cast(navit_window_roadbook_update), this_);
     navigation_register_callback(this_->navigation, attr_navigation_long, this_->roadbook_callback);
-    this_->roadbook_window=gui_datawindow_new(this_->gui, _("Roadbook"), NULL,
-                           callback_new_1(callback_cast(navit_window_roadbook_destroy), this_));
+    // this_->roadbook_window=gui_datawindow_new(this_->gui, _("Roadbook"), NULL,
+    //                        callback_new_1(callback_cast(navit_window_roadbook_destroy), this_));
+    // TODO : Fix data windows
     navit_window_roadbook_update(this_);
 }
 
@@ -2088,26 +2073,13 @@ int navit_init(struct navit *this_) {
     struct attr *attr;
     struct traffic * traffic;
 
-    dbg(lvl_info,"enter gui %p graphics %p",this_->gui,this_->gra);
+    dbg(lvl_info,"enter graphics %p",this_->gra);
 
-    if (!this_->gui && !(this_->flags & 2)) {
-        dbg(lvl_error,"FATAL: No GUI available.");
-        exit(1);
-    }
     if (!this_->gra && !(this_->flags & 1)) {
         dbg(lvl_error,"FATAL: No graphics subsystem available.");
         exit(1);
     }
-    dbg(lvl_info,"Connecting gui to graphics");
-    if (this_->gui && this_->gra && gui_set_graphics(this_->gui, this_->gra)) {
-        struct attr attr_type_gui, attr_type_graphics;
-        gui_get_attr(this_->gui, attr_type, &attr_type_gui, NULL);
-        graphics_get_attr(this_->gra, attr_type, &attr_type_graphics, NULL);
-        dbg(lvl_error,"FATAL: Failed to connect graphics '%s' to gui '%s'", attr_type_graphics.u.str, attr_type_gui.u.str);
-        dbg(lvl_error,"Please see http://wiki.navit-project.org/index.php/Failed_to_connect_graphics_to_gui "
-            "for explanations and solutions\n");
-        exit(1);
-    }
+
     if (this_->speech && this_->navigation) {
         struct attr speech;
         speech.type=attr_speech;
@@ -2848,8 +2820,6 @@ int navit_get_attr(struct navit *this_, enum attr_type type, struct attr *attr, 
         ret=(attr->u.graphics != NULL);
         break;
     case attr_gui:
-        attr->u.gui=this_->gui;
-        ret=(attr->u.gui != NULL);
         break;
     case attr_layer:
         ret=attr_generic_get_attr(this_->attrs, NULL, type, attr, iter?(struct attr_iter *)&iter->iter:NULL);
@@ -3089,7 +3059,6 @@ int navit_add_attr(struct navit *this_, struct attr *attr) {
         ret=navit_add_log(this_, attr->u.log);
         break;
     case attr_gui:
-        ret=navit_set_gui(this_, attr->u.gui);
         break;
     case attr_graphics:
         ret=navit_set_graphics(this_, attr->u.graphics);
@@ -3282,9 +3251,6 @@ static void navit_vehicle_update_position(struct navit *this_, struct navit_vehi
     callback_list_call_attr_0(this_->attr_cbl, attr_position);
     navit_textfile_debug_log(this_, "type=trackpoint_tracked");
     if (this_->ready == 3) {
-        if (this_->gui && nv->speed > 2)
-            navit_disable_suspend();
-
         transform(this_->trans_cursor, pro, &nv->coord, &cursor_pnt, 1, 0, 0, NULL);
         if (this_->button_pressed != 1 && this_->follow_cursor && nv->follow_curr <= nv->follow &&
                 (nv->follow_curr == 1 || !transform_within_border(this_->trans_cursor, &cursor_pnt, this_->border)))
@@ -3468,7 +3434,7 @@ static int navit_add_vehicle(struct navit *this_, struct vehicle *v) {
 
 struct gui *
 navit_get_gui(struct navit *this_) {
-    return this_->gui;
+    return NULL;
 }
 
 struct transformation *
@@ -3685,11 +3651,6 @@ int navit_set_layout_by_name(struct navit *n,const char *name) {
 
     iter.u.list=g_list_first(iter.u.list);
     return 0;
-}
-
-void navit_disable_suspend() {
-    gui_disable_suspend(global_navit->gui);
-    callback_list_call_attr_0(global_navit->attr_cbl,attr_unsuspend);
 }
 
 /**

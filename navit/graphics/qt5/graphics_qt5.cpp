@@ -49,23 +49,29 @@ extern "C" {
 #include <QPixmap>
 #include <QScreen>
 #include <QSvgRenderer>
-#if USE_QML
+
 #include "QNavitQuick.h"
 #include "QNavitQuick_2.h"
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
 #include <QElapsedTimer>
-#endif
-#if USE_QWIDGET
-#include "QNavitWidget.h"
-#include <QApplication>
-#endif
+
+
 #if defined(WINDOWS) || defined(WIN32) || defined(HAVE_API_WIN32_CE)
 #include <windows.h>
 #endif
 
-#if USE_QML
+#include "gui/navitpoimodel.h"
+#include "gui/navitrecentsmodel.h"
+#include "gui/navitfavouritesmodel.h"
+#include "gui/navitsearchmodel.h"
+#include "gui/navitroute.h"
+#include "gui/navitlayoutsmodel.h"
+#include "gui/navitlayersmodel.h"
+#include "gui/navitvehiclesmodel.h"
+#include "gui/navitmapsmodel.h"
+
 GraphicsPriv::GraphicsPriv(struct graphics_priv* gp) {
     this->gp = gp;
 }
@@ -76,7 +82,6 @@ GraphicsPriv::~GraphicsPriv() {
 void GraphicsPriv::emit_update() {
     emit update();
 }
-#endif
 
 QGuiApplication* navit_app = NULL;
 
@@ -101,27 +106,13 @@ static void graphics_destroy(struct graphics_priv* gr) {
         delete (gr->pixmap);
     /* destroy widget if root window*/
     if (gr->root) {
-#if USE_QWIDGET
-        if (gr->widget != NULL)
-            delete (gr->widget);
-#endif
-#if USE_QML
         if (gr->navitInstance != NULL)
             delete (gr->navitInstance);
-#endif
     }
     /* unregister from parent, if any */
     if (gr->parent != NULL) {
         g_hash_table_remove(gr->parent->overlays, gr);
     }
-#ifdef SAILFISH_OS
-    if (gr->display_on_ev != NULL) {
-        event_remove_timeout(gr->display_on_ev);
-    }
-    if (gr->display_on_cb != NULL) {
-        g_free(gr->display_on_cb);
-    }
-#endif
     /* destroy overlays hash */
     g_hash_table_destroy(gr->overlays);
     /* destroy global application if destroying the last */
@@ -619,12 +610,6 @@ static void draw_drag(struct graphics_priv* gr, struct point* p) {
         gr->scroll_x = vector.x;
         gr->scroll_y = vector.y;
     } else {
-#if USE_QWIDGET
-        int damage_x = gr->x;
-        int damage_y = gr->y;
-        int damage_w = gr->pixmap->width();
-        int damage_h = gr->pixmap->height();
-#endif
         gr->x = vector.x;
         gr->y = vector.y;
     }
@@ -662,16 +647,8 @@ static void draw_mode(struct graphics_priv* gr, enum draw_mode_num mode) {
         } else {
             dbg(lvl_debug, "Context %p not active!", gr)
         }
-#if USE_QWIDGET
-        /* call repaint on widget */
-        if (gr->widget != NULL)
-            gr->widget->repaint(gr->x, gr->y, gr->pixmap->width(), gr->pixmap->height());
-#endif
-#if USE_QML
         if (gr->navitInstance != NULL)
             gr->navitInstance->emit_update();
-
-#endif
 
         dbg(lvl_debug, "qt5 draw took : %lld milliseconds to complete", elapsedTimer.elapsed())
         break;
@@ -693,46 +670,17 @@ static int graphics_qt5_fullscreen(struct window* w, int on) {
     struct graphics_priv* gr;
     //        dbg(lvl_debug,"enter");
     gr = (struct graphics_priv*)w->priv;
-#if USE_QML
     if (gr->window != NULL) {
         if (on)
             gr->window->setWindowState(Qt::WindowFullScreen);
         else
             gr->window->setWindowState(Qt::WindowMaximized);
     }
-#endif
-#if USE_QWIDGET
-    if (gr->widget != NULL) {
-        if (on)
-            gr->widget->setWindowState(Qt::WindowFullScreen);
-        else
-            gr->widget->setWindowState(Qt::WindowMaximized);
-    }
-#endif
     return 1;
 }
 
-#ifdef SAILFISH_OS
-static void keep_display_on(struct graphics_priv* priv) {
-    //        dbg(lvl_debug,"enter");
-    QDBusConnection system = QDBusConnection::connectToBus(QDBusConnection::SystemBus, "system");
-    QDBusInterface interface("com.nokia.mce", "/com/nokia/mce/request", "com.nokia.mce.request", system);
-
-    interface.call(QLatin1String("req_display_blanking_pause"));
-}
-#endif
-
 static void graphics_qt5_disable_suspend(struct window* w) {
 //        dbg(lvl_debug,"enter");
-#ifdef SAILFISH_OS
-    struct graphics_priv* gr;
-    gr = (struct graphics_priv*)w->priv;
-    keep_display_on(gr);
-    /* to keep display on, d-bus trigger must be called at least once per second.
-         * to cope with fuzz, trigger it once per 30 seconds */
-    gr->display_on_cb = callback_new_1(callback_cast(keep_display_on), gr);
-    gr->display_on_ev = event_add_timeout(30000, 1, gr->display_on_cb);
-#endif
 }
 
 static void* get_data(struct graphics_priv* this_priv, char const* type) {
@@ -826,16 +774,8 @@ static void overlay_resize(struct graphics_priv* gr, struct point* p, int w, int
     }
     if (gr->painter != NULL)
         gr->painter = new QPainter(gr->pixmap);
-#if USE_QWIDGET
-    /* call repaint on widget */
-    if (gr->widget != NULL)
-        gr->widget->repaint(gr->x, gr->y, gr->pixmap->width(), gr->pixmap->height());
-#endif
-#if USE_QML
     if (gr->navitInstance != NULL)
         gr->navitInstance->emit_update();
-
-#endif
 }
 
 /**
@@ -896,13 +836,10 @@ static struct graphics_priv* overlay_new(struct graphics_priv* gr, struct graphi
                                         int))graphics_priv->freetype_methods.get_text_bbox;
     }
 #endif
-#if USE_QML
+
     graphics_priv->window = gr->window;
     graphics_priv->navitInstance = gr->navitInstance;
-#endif
-#if USE_QWIDGET
-    graphics_priv->widget = gr->widget;
-#endif
+
     graphics_priv->x = p->x;
     graphics_priv->y = p->y;
     graphics_priv->disable = false;
@@ -942,26 +879,6 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
     struct attr* platform = NULL;
     struct attr* fullscreen = NULL;
     struct attr* attr_widget = NULL;
-    bool use_qml = USE_QML;
-    bool use_qwidget = USE_QWIDGET;
-
-    //dbg(lvl_debug,"enter");
-
-    /* get qt widget attr */
-    if ((attr_widget = attr_search(attrs, attr_qt5_widget))) {
-        /* check if we shall use qml */
-        if (strcmp(attr_widget->u.str, "qwidget") == 0) {
-            use_qml = false;
-        }
-        /* check if we shall use qwidget */
-        if (strcmp(attr_widget->u.str, "qml") == 0) {
-            use_qwidget = false;
-        }
-    }
-    if (use_qml && use_qwidget) {
-        /* both are possible, default to QML */
-        use_qwidget = false;
-    }
 
     /*register graphic methods by copying in our predefined ones */
     *meth = graphics_methods;
@@ -1003,13 +920,9 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
         graphics_priv->argc++;
     }
     /* create surrounding application */
-#if USE_QWIDGET
-    QApplication* internal_app = new QApplication(graphics_priv->argc, graphics_priv->argv);
-    navit_app = internal_app;
-#else
+
     navit_app = new QGuiApplication(graphics_priv->argc, graphics_priv->argv);
     navit_app->setAttribute(Qt::AA_UseHighDpiPixmaps);
-#endif
 
 #if HAVE_FREETYPE
     graphics_priv->font_freetype_new = font_freetype_new;
@@ -1030,49 +943,52 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
     graphics_priv->disable = 0;
     graphics_priv->scroll_x = 0;
     graphics_priv->scroll_y = 0;
-#if USE_QML
     graphics_priv->engine = NULL;
     graphics_priv->window = NULL;
     graphics_priv->GPriv = NULL;
-    if (use_qml) {
-        /* register our QtQuick widget to allow it's usage within QML */
-        qmlRegisterType<QNavitQuick>("Navit.Graphics", 1, 0, "NavitMap");
-        qmlRegisterType<QNavitQuick_2>("Navit.Graphics", 2, 0, "NavitMap");
 
-        graphics_priv->navitInstance = new NavitInstance(nav, graphics_priv);
-        navitInst = graphics_priv->navitInstance;
+    /* register our QtQuick widget to allow it's usage within QML */
+    qmlRegisterType<QNavitQuick>("Navit.Graphics", 1, 0, "NavitMap");
+    qmlRegisterType<QNavitQuick_2>("Navit.Graphics", 2, 0, "NavitMap");
 
-        qmlRegisterSingletonType<NavitInstance>("Navit", 1, 0, "Navit", navit_singletontype_provider);
+    qmlRegisterType<NavitPOIModel>("Navit.POI", 1, 0, "NavitPOIModel");
+    qmlRegisterType<NavitRecentsModel>("Navit.Recents", 1, 0, "NavitRecentsModel");
+    qmlRegisterType<NavitFavouritesModel>("Navit.Favourites", 1, 0, "NavitFavouritesModel");
+    qmlRegisterType<NavitSearchModel>("Navit.Search", 1, 0, "NavitSearchModel");
+    qmlRegisterType<NavitRoute>("Navit.Route", 1, 0, "NavitRoute");
+    qmlRegisterType<NavitLayoutsModel>("Navit.Layouts", 1, 0, "NavitLayouts");
+    qmlRegisterType<NavitLayersModel>("Navit.Layers", 1, 0, "NavitLayers");
+    qmlRegisterType<NavitVehiclesModel>("Navit.Vehicles", 1, 0, "NavitVehicles");
+    qmlRegisterType<NavitMapsModel>("Navit.Maps", 1, 0, "NavitMaps");
 
-        /* get our qml application from embedded resources. May be replaced by the
-             * QtQuick gui component if enabled */
-        graphics_priv->engine = new QQmlApplicationEngine();
-        if (graphics_priv->engine != NULL) {
-            QQmlContext* context = graphics_priv->engine->rootContext();
+    graphics_priv->navitInstance = new NavitInstance(nav, graphics_priv);
+    navitInst = graphics_priv->navitInstance;
 
-            graphics_priv->engine->load(QUrl("qrc:///loader.qml"));
-            /* Get the engine's root window (for resizing) */
-            QObject* toplevel = graphics_priv->engine->rootObjects().value(0);
-            graphics_priv->window = qobject_cast<QQuickWindow*>(toplevel);
+    qmlRegisterSingletonType<NavitInstance>("Navit", 1, 0, "Navit", navit_singletontype_provider);
+
+    /* get our qml application from embedded resources. May be replaced by the
+            * QtQuick gui component if enabled */
+    graphics_priv->engine = new QQmlApplicationEngine();
+    if (graphics_priv->engine != NULL) {
+        QQmlContext* context = graphics_priv->engine->rootContext();
+
+        graphics_priv->engine->load(QUrl("qrc:///loader.qml"));
+        /* Get the engine's root window (for resizing) */
+        QObject* toplevel = graphics_priv->engine->rootObjects().value(0);
+        graphics_priv->window = qobject_cast<QQuickWindow*>(toplevel);
+
+        QObject* loader = toplevel->findChild<QObject*>("navit_loader");
+        if (loader != NULL) {
+            dbg(lvl_debug, "navit_loader found");
+            /* load our root window into the loader component */
+//            loader->setProperty("source", "qrc:/themes/Levy/MainLayout.qml");
         }
     }
-#endif
-#if USE_QWIDGET
-    graphics_priv->widget = NULL;
-    if (use_qwidget) {
-        graphics_priv->widget = new QNavitWidget(graphics_priv, NULL, Qt::Window);
-    }
-#endif
+
     if ((fullscreen = attr_search(attrs, attr_fullscreen)) && (fullscreen->u.num)) {
         /* show this maximized */
-#if USE_QML
         if (graphics_priv->window != NULL)
             graphics_priv->window->setWindowState(Qt::WindowFullScreen);
-#endif
-#if USE_QWIDGET
-        if (graphics_priv->widget != NULL)
-            graphics_priv->widget->setWindowState(Qt::WindowFullScreen);
-#endif
     } else {
         /* not maximized. Check what size to use then */
         struct attr* w = NULL;
@@ -1092,29 +1008,15 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
         /* check for width */
         if ((w = attr_search(attrs, attr_w)) && (w->u.num > 100))
             geomet.setWidth(w->u.num);
-#if USE_QML
         if (graphics_priv->window != NULL) {
             graphics_priv->window->resize(geomet.width(), geomet.height());
             //graphics_priv->window->setFixedSize(geomet.width(), geomet.height());
         }
-#endif
-#if USE_QWIDGET
-        if (graphics_priv->widget != NULL) {
-            graphics_priv->widget->resize(geomet.width(), geomet.height());
-            //graphics_priv->widget->setFixedSize(geomet.width(), geomet.height());
-        }
-#endif
     }
     /* generate initial pixmap same size as window */
     if (graphics_priv->pixmap == NULL) {
-#if USE_QML
         if (graphics_priv->window != NULL)
             graphics_priv->pixmap = new QPixmap(graphics_priv->window->size());
-#endif
-#if USE_QWIDGET
-        if (graphics_priv->widget != NULL)
-            graphics_priv->pixmap = new QPixmap(graphics_priv->widget->size());
-#endif
         if (graphics_priv->pixmap == NULL)
             graphics_priv->pixmap = new QPixmap(100, 100);
         graphics_priv->pixmap->fill(Qt::black);
@@ -1124,22 +1026,15 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
     resize_callback(graphics_priv, graphics_priv->pixmap->width(), graphics_priv->pixmap->height());
 
     /* show our window */
-#if USE_QML
     if (graphics_priv->window != NULL)
         graphics_priv->window->show();
-#endif
-#if USE_QWIDGET
-    if (graphics_priv->widget != NULL)
-        graphics_priv->widget->show();
-#endif
 
+    navit_draw(nav);
     return graphics_priv;
 }
 
 void plugin_init(void) {
-#if USE_QML
     Q_INIT_RESOURCE(graphics_qt5);
-#endif
     //        dbg(lvl_debug,"enter");
     plugin_register_category_graphics("qt5", graphics_qt5_new);
     qt5_event_init();

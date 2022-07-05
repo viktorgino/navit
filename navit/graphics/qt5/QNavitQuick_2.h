@@ -37,7 +37,7 @@ extern "C" {
 
 #include "graphics_qt5.h"
 #include "navitinstance.h"
-#include "navithelper.h"
+#include "gui/navithelper.h"
 #include "qt5graphicsworker.h"
 
 class QNavitQuick_2 : public QQuickPaintedItem {

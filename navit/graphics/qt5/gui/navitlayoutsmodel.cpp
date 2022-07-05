@@ -68,6 +68,11 @@ void NavitLayoutsModel::update() {
 
         iter=navit_attr_iter_new(nullptr);
         navit_get_attr(m_navitInstance->getNavit(), attr_layout, &attr, nullptr);
+
+        if(!attr.u.layout) {
+            return;
+        }
+
         QString activeLayout = QString::fromLocal8Bit(attr.u.layout->name);
         while(navit_get_attr(m_navitInstance->getNavit(), attr_layout, &attr, iter)) {
             QVariantMap layouts;

@@ -83,8 +83,6 @@ endif(EXTRA_LIBDIR)
 add_feature(INTERNAL_ESPEAK_COMPLETE "build complete internal libespeak" FALSE)
 add_module(font/freetype "freetype not found" FALSE)
 add_module(graphics/qt5 "Qt5 libraries not found" FALSE)
-add_module(gui/qml "Qt Declarative not found" FALSE)
-add_module(gui/qt5_qml "Qt5 Declarative not found" FALSE)
 add_module(vehicle/gpsd "gpsd lib not found" FALSE)
 add_module(binding/win32 "Default" FALSE)
 add_module(binding/dbus "dbus-glib-1 not found" FALSE)
@@ -292,10 +290,6 @@ if (QT_FOUND)
 	if (QT_QTCORE_FOUND AND QT_QTGUI_FOUND AND FREETYPE_FOUND)
                 include(${QT_USE_FILE})
 
-		if (QT_QTDECLARATIVE_FOUND AND QT_QTXML_FOUND)
-			set_with_reason(gui/qml "Qt Declarative found" TRUE ${QT_LIBRARIES})
-		endif()
-
 		if (QT_QTSVG_FOUND)
 			set(HAVE_QT_SVG 1)
                 else(QT_QTSVG_FOUND)
@@ -316,9 +310,6 @@ if (Qt5Widgets_FOUND OR Qt5Quick_FOUND)
 		if(USE_QML)
                         set(Qt5_ADDITIONAL_LIBRARIES ${Qt5_ADDITIONAL_LIBRARIES} ${Qt5Quick_LIBRARIES})
 		endif()
-		set_with_reason(gui/qt5_qml "Qt5 found" TRUE
-			${Qt5Quick_LIBRARIES})
-
 	endif()
 	set_with_reason(graphics/qt5 "Qt5 found" TRUE
 		${Qt5_ADDITIONAL_LIBRARIES}
