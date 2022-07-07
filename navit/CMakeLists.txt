@@ -21,12 +21,7 @@ if (${HAVE_GLIB})
 	list(APPEND NAVIT_SRC event_glib.c)
 endif()
 
-if(ANDROID)
-	list(APPEND NAVIT_SRC android.c)
-	set(NAVIT_LIBNAME navit)
-else()
-	set(NAVIT_LIBNAME navit_core)
-endif()
+set(NAVIT_LIBNAME navit_core)
 
 
 foreach ( PLUGIN_PATH ${ALL_PLUGINS})
@@ -67,33 +62,23 @@ endforeach()
 
 add_subdirectory (fib-1.1)
 
-set(NAVIT_START_SRC start.c)
-if(WIN32 OR WINCE AND NOT WIN_OMIT_RESOURCES)
-        list(APPEND NAVIT_START_SRC ${CMAKE_CURRENT_SOURCE_DIR}/gui/win32/resources/resource.rc)
-else()
-        if (APPLE)
-                set(NAVIT_START_SRC start_apple.m)
-        endif()
-endif()
-if (BUILD_BUNDLE)
-        list(APPEND NAVIT_START_SRC resources/share resources/Icon.png resources/Default.png)
-        add_custom_command(OUTPUT resources/Icon.png COMMAND convert -scale 79x79 -crop 60x60+8+19 ${CMAKE_CURRENT_SOURCE_DIR}/icons/desktop_icons/128x128/navit.png resources/Icon.png)
-        add_custom_command(OUTPUT resources/Default.png COMMAND convert -scale 79x79 -crop 60x60+8+19 ${CMAKE_CURRENT_SOURCE_DIR}/icons/desktop_icons/128x128/navit.png resources/Default.png)
-endif()
-add_executable(navit ${NAVIT_START_SRC})
-target_link_libraries (navit ${NAVIT_LIBNAME})
+
+# START QT
+find_package(Qt5 COMPONENTS Core Quick REQUIRED)
+
+set(NAVIT_START_SRC start.cpp)
+
+qt5_add_resources(NAVIT_QRC "navit.qrc")
+
+add_executable(navit ${NAVIT_START_SRC} ${NAVIT_QRC})
+
+target_link_libraries (navit ${NAVIT_LIBNAME} Qt5::Core Qt5::Gui Qt5::Quick)
+
 if(DEFINED NAVIT_BINARY)
         set_target_properties(navit PROPERTIES OUTPUT_NAME ${NAVIT_BINARY})
 endif(DEFINED NAVIT_BINARY)
-if (BUILD_BUNDLE)
-        add_custom_command(OUTPUT resources/share COMMAND mkdir -p resources/share)
-        set_source_files_properties(resources/share resources/Icon.png resources/Default.png PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-        set_target_properties(navit PROPERTIES MACOSX_BUNDLE TRUE)
-        set_target_properties(navit PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
-        add_dependencies(navit navit_config_xml_resource)
-        add_dependencies(navit images_resource)
-        add_dependencies(navit locale_resource)
-endif()
+
+# END QT
 
 if (SHARED_LIBNAVIT)
 	add_library (${NAVIT_LIBNAME} SHARED ${NAVIT_SRC} )
@@ -105,6 +90,7 @@ if(NOT MSVC)
 	SET(NAVIT_LIBS ${NAVIT_LIBS} m)
 endif(NOT MSVC)
 target_link_libraries(${NAVIT_LIBNAME} ${MODULES_NAME} ${NAVIT_SUPPORT_LIBS} fib ${NAVIT_LIBS} )
+
 set_target_properties(${NAVIT_LIBNAME} PROPERTIES COMPILE_DEFINITIONS "MODULE=navit;LIBDIR=\"${CMAKE_INSTALL_PREFIX}/${LIB_DIR}\";PREFIX=\"${CMAKE_INSTALL_PREFIX}\"")
 if (DEFINED NAVIT_COMPILE_FLAGS)
 	set_target_properties(${NAVIT_LIBNAME} PROPERTIES COMPILE_FLAGS "${NAVIT_COMPILE_FLAGS}")
@@ -176,9 +162,6 @@ add_subdirectory (maptool)
 add_subdirectory (icons)
 add_subdirectory (textures)
 add_subdirectory (maps)
-if(ANDROID)
-	add_subdirectory (android)
-endif()
 
 install(TARGETS navit
 	DESTINATION ${BIN_DIR}

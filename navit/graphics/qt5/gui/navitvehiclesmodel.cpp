@@ -78,7 +78,7 @@ void NavitVehiclesModel::update() {
             vehicles.insert("name",vehicle);
             vehicles.insert("action", "setVehicle");
             if(activeVehicle == vehicle){
-                vehicles.insert("imageUrl", "qrc:/themes/Levy/assets/ionicons/md-checkmark-circle-outline.svg");
+                vehicles.insert("imageUrl", "qrc:/Navit/assets/ionicons/md-checkmark-circle-outline.svg");
             } else {
                 vehicles.insert("imageUrl", "");
             }

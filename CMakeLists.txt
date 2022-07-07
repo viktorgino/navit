@@ -1,15 +1,16 @@
 cmake_minimum_required(VERSION 3.2)
 
 message(STATUS "Building with CMake V${CMAKE_VERSION}")
-project(navit C)
+project(navit C CXX)
 
-# Workaround for CMake issue 8345 / 9220, see http://trac.navit-project.org/ticket/1041
-if(DEFINED CMAKE_CXX_COMPILER AND CMAKE_CXX_COMPILER MATCHES "^$")
-	set(CMAKE_CXX_COMPILER CMAKE_CXX_COMPILER-NOTFOUND)
-endif(DEFINED CMAKE_CXX_COMPILER AND CMAKE_CXX_COMPILER MATCHES "^$")
-if (NOT DISABLE_CXX)
-	enable_language(CXX OPTIONAL)
-endif(NOT DISABLE_CXX)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(NAVIT_VERSION_MAJOR "0")
 set(NAVIT_VERSION_MINOR "5")
@@ -20,6 +21,7 @@ set(PACKAGE "navit" CACHE STRING "Navit package name")
 set(PACKAGE_STRING "${PACKAGE} ${PACKAGE_VERSION}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+
 include("${PROJECT_SOURCE_DIR}/cmake/navit_macros.cmake")
 
 IF(NOT CMAKE_BUILD_TYPE)

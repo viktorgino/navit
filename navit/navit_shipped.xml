@@ -46,33 +46,9 @@
 		If you don't like the internal gui, set enabled=yes for the following tag and enabled=no for the gui internal tag
 		-->
 		<graphics type="qt5"/>
-		<!--
-		In case of the internal GUI, you can even influence the size of the text and of the icons in the toolbar and the viewport.
-		Here's an example for a freerunner:
-		<gui type="internal" font_size="350" icon_xs="32" icon_s="96" icon_l="96"/>
-		-->
-
-		<!--
-		The action that appears on map click is configurable with the attribute "on_map_click".
-		To get the previous behaviour of showing the map point menu use on_map_click='menu("#Map Point")'
-		-->
-		<gui type="qt5_qml" enabled="yes" />
 		
 		<!-- for a debug log -->
 		<log enabled="no" type="textfile_debug" data="debug_%Y%m%d-%i.txt" flush_size="1000" flush_time="30"/>
-		<!-- osd items allow to position display and control items directly on top of the map.
-		You can find a list of all the available OSDs items here:
-		http://wiki.navit-project.org/index.php/OSD -->
-		<osd enabled="no" type="compass"/>
-		<osd enabled="no" type="navigation_next_turn"/>
-
-		<!-- Commands include gui_internal_menu, gui_internal_fullscreen, zoom_in and zoom_out.
-			Usage of negative values change the button origins. x="0" y="0" specifies the top left, x="-0" y="-0" the bottom right corner.
-			It's always the top left corner of the icon, so you need to consider the icon's size when you enter the values. -->
-		<osd enabled="no" type="button" x="0" y="0" command="gui.fullscreen=!gui.fullscreen" src="toggle_fullscreen.png"/>
-		<osd enabled="no" type="button" x="-96" y="0" command="gui.menu(1)" src="menu.png"/>
-		<osd enabled="no" type="button" x="-96" y="-96" command="zoom_in()" src="zoom_in.png"/>
-		<osd enabled="no" type="button" x="0" y="-96" command="zoom_out()" src="zoom_out.png"/>
 
 		<!-- Traffic -->
 		<traffic type="null"/>

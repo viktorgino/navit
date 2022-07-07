@@ -430,7 +430,7 @@ Item {
                                 height: parent.height * 0.75
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.verticalCenter: parent.verticalCenter
-                                source: "qrc:/themes/Levy/assets/ionicons/md-more.svg"
+                                source: "qrc:/Navit/assets/ionicons/md-more.svg"
                                 fillMode: Image.PreserveAspectFit
                                 mipmap: true
                             }

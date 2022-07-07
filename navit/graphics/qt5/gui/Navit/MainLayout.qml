@@ -347,7 +347,7 @@ Item {
             height: width
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            source: "qrc:/themes/Levy/assets/ionicons/md-locate.svg"
+            source: "qrc:/Navit/assets/ionicons/md-locate.svg"
             fillMode: Image.PreserveAspectFit
             mipmap: true
         }

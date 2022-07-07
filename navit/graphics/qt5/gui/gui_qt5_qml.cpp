@@ -70,7 +70,7 @@
 //    if (loader != NULL) {
 //        dbg(lvl_debug, "navit_loader found");
 //        /* load our root window into the loader component */
-//        loader->setProperty("source", "qrc:/themes/Levy/MainLayout.qml");
+//        loader->setProperty("source", "qrc:/Navit/MainLayout.qml");
 //    }
 
 //    navit_draw(nav);

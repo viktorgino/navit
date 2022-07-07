@@ -69,7 +69,8 @@ static void print_usage(void) {
 extern void builtin_init(void);
 #endif /* USE_PLUGINS*/
 
-int main_real(int argc, char * const* argv) {
+
+int navit_enter(int argc, char * const* argv) {
     xmlerror *error = NULL;
     char *config_file = NULL, *command=NULL, *startup_file=NULL;
     int opt;
@@ -88,7 +89,7 @@ int main_real(int argc, char * const* argv) {
     atom_init();
     main_init(argv[0]);
     navit_nls_main_init();
-    debug_init(argv[0]);
+//    debug_init(argv[0]);
 
     cp = getenv("NAVIT_LOGFILE");
     if (cp) {
@@ -228,14 +229,16 @@ int main_real(int argc, char * const* argv) {
     if (command) {
         command_evaluate(&conf, command);
     }
-    event_main_loop_run();
 
+    return 0;
+}
+
+void navit_exit() {
     /* TODO: Android actually has no event loop, so we can't free all allocated resources here. Have to find better place to
      *  free all allocations on program exit. And don't forget to free all the stuff allocated in the code above.
      */
-#ifndef HAVE_API_ANDROID
-    linguistics_free();
-    debug_finished();
-#endif
-    return 0;
+    #ifndef HAVE_API_ANDROID
+        linguistics_free();
+        debug_finished();
+    #endif
 }

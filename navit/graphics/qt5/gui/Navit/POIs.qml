@@ -11,27 +11,27 @@ Item {
         property var poiTypeList : [
             {
                 "name": "Petrol Station",
-                "icon": "qrc:/themes/Levy/assets/osmic/transport/fuel-14.svg",
+                "icon": "qrc:/Navit/assets/osmic/transport/fuel-14.svg",
                 "action" : "poi_fuel"
             },
             {
                 "name": "Car Park",
-                "icon": "qrc:/themes/Levy/assets/osmic/transport/parking-car-14.svg",
+                "icon": "qrc:/Navit/assets/osmic/transport/parking-car-14.svg",
                 "action" : "poi_car_parking"
             },
             {
                 "name": "Hotel",
-                "icon": "qrc:/themes/Levy/assets/osmic/accommodation/hotel-14.svg",
+                "icon": "qrc:/Navit/assets/osmic/accommodation/hotel-14.svg",
                 "action" : "poi_hotel"
             },
             {
                 "name": "Restaurant",
-                "icon": "qrc:/themes/Levy/assets/osmic/eat-drink/restaurant-14.svg",
+                "icon": "qrc:/Navit/assets/osmic/eat-drink/restaurant-14.svg",
                 "action" : "poi_restaurant"
             },
             {
                 "name": "Others",
-                "icon": "qrc:/themes/Levy/assets/ionicons/md-more.svg",
+                "icon": "qrc:/Navit/assets/ionicons/md-more.svg",
                 "action" : "others"
             }
         ]

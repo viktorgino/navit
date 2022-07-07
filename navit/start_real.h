@@ -19,7 +19,14 @@
 
 #ifndef NAVIT_MAIN_REAL_H
 #define NAVIT_MAIN_REAL_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-int main_real(int argc, char * const* argv);
+int navit_enter(int argc, char * const* argv);
+void navit_exit();
 
+#ifdef __cplusplus
+}
+#endif
 #endif

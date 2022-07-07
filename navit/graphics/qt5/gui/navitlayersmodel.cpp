@@ -76,7 +76,7 @@ void NavitLayersModel::update() {
             layerMap.insert("name", layer->name);
             layerMap.insert("action", "toggleLayer");
             if(layer->active){
-                layerMap.insert("imageUrl", "qrc:/themes/Levy/assets/ionicons/md-checkmark-circle-outline.svg");
+                layerMap.insert("imageUrl", "qrc:/Navit/assets/ionicons/md-checkmark-circle-outline.svg");
             } else {
                 layerMap.insert("imageUrl", "");
             }

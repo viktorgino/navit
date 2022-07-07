@@ -1,0 +1,19 @@
+module Navit
+DestinationBar 1.0 DestinationBar.qml
+DestinationDetailsBar 1.0 DestinationDetailsBar.qml
+Instructions 1.0 Instructions.qml
+MainLayout 1.0 MainLayout.qml
+MapControls 1.0 MapControls.qml
+MapNavigationBar 1.0 MapNavigationBar.qml
+MapPinpointPopup 1.0 MapPinpointPopup.qml
+MenuDrawer 1.0 MenuDrawer.qml
+NavitMain 1.0 NavitMain.qml
+POIs 1.0 POIs.qml
+SearchDrawer 1.0 SearchDrawer.qml
+SearchDrawerBreadcrumbs 1.0 SearchDrawerBreadcrumbs.qml
+SearchDrawerContextMenu 1.0 SearchDrawerContextMenu.qml
+SearchDrawerFavouritesList 1.0 SearchDrawerFavouritesList.qml
+SearchDrawerMain 1.0 SearchDrawerMain.qml
+SearchDrawerRecentsList 1.0 SearchDrawerRecentsList.qml
+SearchDrawerSearchResults 1.0 SearchDrawerSearchResults.qml
+SpeedGauge 1.0 SpeedGauge.qml

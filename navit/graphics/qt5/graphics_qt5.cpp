@@ -83,7 +83,7 @@ void GraphicsPriv::emit_update() {
     emit update();
 }
 
-QGuiApplication* navit_app = NULL;
+//QGuiApplication* navit_app = NULL;
 
 struct graphics_font_priv {
     QFont* font;
@@ -117,10 +117,6 @@ static void graphics_destroy(struct graphics_priv* gr) {
     g_hash_table_destroy(gr->overlays);
     /* destroy global application if destroying the last */
     if (gr->root) {
-        if (navit_app != NULL) {
-            delete (navit_app);
-        }
-        navit_app = NULL;
         /* destroy argv if any */
         while (gr->argc > 0) {
             gr->argc--;
@@ -785,10 +781,10 @@ static void overlay_resize(struct graphics_priv* gr, struct point* p, int w, int
  */
 static navit_float get_dpi(struct graphics_priv * gr) {
     qreal dpi = 96;
-    QScreen* primary = navit_app->primaryScreen();
-    if (primary != NULL) {
-        dpi = primary->physicalDotsPerInch();
-    }
+//    QScreen* primary = navit_app->primaryScreen();
+//    if (primary != NULL) {
+//        dpi = primary->physicalDotsPerInch();
+//    }
     return (navit_float)dpi;
 }
 
@@ -921,8 +917,8 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
     }
     /* create surrounding application */
 
-    navit_app = new QGuiApplication(graphics_priv->argc, graphics_priv->argv);
-    navit_app->setAttribute(Qt::AA_UseHighDpiPixmaps);
+//    navit_app = new QGuiApplication(graphics_priv->argc, graphics_priv->argv);
+//    navit_app->setAttribute(Qt::AA_UseHighDpiPixmaps);
 
 #if HAVE_FREETYPE
     graphics_priv->font_freetype_new = font_freetype_new;
@@ -968,51 +964,51 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
 
     /* get our qml application from embedded resources. May be replaced by the
             * QtQuick gui component if enabled */
-    graphics_priv->engine = new QQmlApplicationEngine();
-    if (graphics_priv->engine != NULL) {
-        QQmlContext* context = graphics_priv->engine->rootContext();
+//    graphics_priv->engine = new QQmlApplicationEngine();
+//    if (graphics_priv->engine != NULL) {
+//        QQmlContext* context = graphics_priv->engine->rootContext();
 
-        graphics_priv->engine->load(QUrl("qrc:///loader.qml"));
-        /* Get the engine's root window (for resizing) */
-        QObject* toplevel = graphics_priv->engine->rootObjects().value(0);
-        graphics_priv->window = qobject_cast<QQuickWindow*>(toplevel);
+//        graphics_priv->engine->load(QUrl("qrc:///loader.qml"));
+//        /* Get the engine's root window (for resizing) */
+//        QObject* toplevel = graphics_priv->engine->rootObjects().value(0);
+//        graphics_priv->window = qobject_cast<QQuickWindow*>(toplevel);
 
-        QObject* loader = toplevel->findChild<QObject*>("navit_loader");
-        if (loader != NULL) {
-            dbg(lvl_debug, "navit_loader found");
-            /* load our root window into the loader component */
-//            loader->setProperty("source", "qrc:/themes/Levy/MainLayout.qml");
-        }
-    }
+//        QObject* loader = toplevel->findChild<QObject*>("navit_loader");
+//        if (loader != NULL) {
+//            dbg(lvl_debug, "navit_loader found");
+//            /* load our root window into the loader component */
+//            loader->setProperty("source", "qrc:/Navit/MainLayout.qml");
+//        }
+//    }
 
-    if ((fullscreen = attr_search(attrs, attr_fullscreen)) && (fullscreen->u.num)) {
-        /* show this maximized */
-        if (graphics_priv->window != NULL)
-            graphics_priv->window->setWindowState(Qt::WindowFullScreen);
-    } else {
-        /* not maximized. Check what size to use then */
-        struct attr* w = NULL;
-        struct attr* h = NULL;
-        /* default to desktop size if nothing else is given */
-        QRect geomet;
-        geomet.setHeight(100);
-        geomet.setWidth(100);
-        /* get desktop size */
-        QScreen* primary = navit_app->primaryScreen();
-        if (primary != NULL) {
-            geomet = primary->availableGeometry();
-        }
-        /* check for height */
-        if ((h = attr_search(attrs, attr_h)) && (h->u.num > 100))
-            geomet.setHeight(h->u.num);
-        /* check for width */
-        if ((w = attr_search(attrs, attr_w)) && (w->u.num > 100))
-            geomet.setWidth(w->u.num);
-        if (graphics_priv->window != NULL) {
-            graphics_priv->window->resize(geomet.width(), geomet.height());
-            //graphics_priv->window->setFixedSize(geomet.width(), geomet.height());
-        }
-    }
+//    if ((fullscreen = attr_search(attrs, attr_fullscreen)) && (fullscreen->u.num)) {
+//        /* show this maximized */
+//        if (graphics_priv->window != NULL)
+//            graphics_priv->window->setWindowState(Qt::WindowFullScreen);
+//    } else {
+//        /* not maximized. Check what size to use then */
+//        struct attr* w = NULL;
+//        struct attr* h = NULL;
+//        /* default to desktop size if nothing else is given */
+//        QRect geomet;
+//        geomet.setHeight(100);
+//        geomet.setWidth(100);
+//        /* get desktop size */
+//        QScreen* primary = navit_app->primaryScreen();
+//        if (primary != NULL) {
+//            geomet = primary->availableGeometry();
+//        }
+//        /* check for height */
+//        if ((h = attr_search(attrs, attr_h)) && (h->u.num > 100))
+//            geomet.setHeight(h->u.num);
+//        /* check for width */
+//        if ((w = attr_search(attrs, attr_w)) && (w->u.num > 100))
+//            geomet.setWidth(w->u.num);
+//        if (graphics_priv->window != NULL) {
+//            graphics_priv->window->resize(geomet.width(), geomet.height());
+//            //graphics_priv->window->setFixedSize(geomet.width(), geomet.height());
+//        }
+//    }
     /* generate initial pixmap same size as window */
     if (graphics_priv->pixmap == NULL) {
         if (graphics_priv->window != NULL)
@@ -1022,12 +1018,12 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
         graphics_priv->pixmap->fill(Qt::black);
     }
 
-    /* tell Navit our geometry */
-    resize_callback(graphics_priv, graphics_priv->pixmap->width(), graphics_priv->pixmap->height());
+//    /* tell Navit our geometry */
+//    resize_callback(graphics_priv, 500, 500);
 
-    /* show our window */
-    if (graphics_priv->window != NULL)
-        graphics_priv->window->show();
+//    /* show our window */
+//    if (graphics_priv->window != NULL)
+//        graphics_priv->window->show();
 
     navit_draw(nav);
     return graphics_priv;

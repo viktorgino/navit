@@ -18,7 +18,29 @@
  */
 
 #include "start_real.h"
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QThread>
+#include <QDebug>
 
 int main(int argc, char **argv) {
-    return main_real(argc, argv);
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#endif
+    QGuiApplication app(argc, argv);
+
+    navit_enter(argc, argv);
+
+    QQmlApplicationEngine engine;
+
+    engine.load(QUrl(QStringLiteral("qrc:/loader.qml")));
+    if (engine.rootObjects().isEmpty())
+        return -1;
+
+    qDebug() << "Loading QML";
+    int ret = app.exec();
+    navit_exit();
+    qDebug() << "Finished with : " << ret;
+    return ret;
 }

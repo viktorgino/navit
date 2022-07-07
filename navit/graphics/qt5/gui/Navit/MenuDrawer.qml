@@ -107,7 +107,7 @@ Item {
                     height: parent.height * 0.8
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.left: parent.left
-                    source: "qrc:/themes/Levy/assets/ionicons/md-arrow-back.svg"
+                    source: "qrc:/Navit/assets/ionicons/md-arrow-back.svg"
                     mipmap: true
 
                     MouseArea {
@@ -135,7 +135,7 @@ Item {
                         anchors.fill: parent
                         onClicked: __root.closeMenu()
                     }
-                    source: "qrc:/themes/Levy/assets/ionicons/md-close.svg"
+                    source: "qrc:/Navit/assets/ionicons/md-close.svg"
                     anchors.verticalCenter: parent.verticalCenter
                     mipmap: true
                 }
@@ -193,7 +193,7 @@ Item {
         ListElement {
             name: "Cancel Route"
             action: "cancelRoute"
-            imageUrl: "qrc:/themes/Levy/assets/ionicons/md-close-circle-outline.svg"
+            imageUrl: "qrc:/Navit/assets/ionicons/md-close-circle-outline.svg"
         }
 
         ListElement {
@@ -217,18 +217,18 @@ Item {
         ListElement {
             name: "Map Rules"
             action: "mapRules"
-            imageUrl: "qrc:/themes/Levy/assets/ionicons/md-map.svg"
+            imageUrl: "qrc:/Navit/assets/ionicons/md-map.svg"
         }
 
         ListElement {
             name: "Display Settings"
             action: "display"
-            imageUrl: "qrc:/themes/Levy/assets/ionicons/md-desktop.svg"
+            imageUrl: "qrc:/Navit/assets/ionicons/md-desktop.svg"
         }
         ListElement {
             name: "Settings"
             action: "settings"
-            imageUrl: "qrc:/themes/Levy/assets/ionicons/md-settings.svg"
+            imageUrl: "qrc:/Navit/assets/ionicons/md-settings.svg"
         }
     }
     ListModel {

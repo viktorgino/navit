@@ -73,7 +73,7 @@ Popup {
                     width: parent.width * 0.4
                     height: width
                     fillMode: Image.PreserveAspectFit
-                    source: "qrc:/themes/Levy/assets/corner-arrow.svg"
+                    source: "qrc:/Navit/assets/corner-arrow.svg"
                 }
             }
         }
