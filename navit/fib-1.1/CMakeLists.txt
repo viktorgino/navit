@@ -1,2 +1,3 @@
-supportlib_add_library(fib fib.c)
+project(fib)
 
+add_library(${PROJECT_NAME} fib.c)

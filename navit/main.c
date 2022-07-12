@@ -90,9 +90,9 @@ void setenv(char *var, char *val, int overwrite) {
 */
 
 static char *environment_vars[][6]= {
-    {"NAVIT_LIBDIR",      ":",          ":/"LIB_DIR,     ":\\lib",      ":/lib",        ":\\lib"},
-    {"NAVIT_SHAREDIR",    ":",          ":/"SHARE_DIR,   ":",           ":/share",      ":"},
-    {"NAVIT_LOCALEDIR",   ":/../locale",":/"LOCALE_DIR,  ":\\locale",   ":/locale",     ":\\locale"},
+    {"NAVIT_LIBDIR",      ":",          ":/",     ":\\lib",      ":/lib",        ":\\lib"},
+    {"NAVIT_SHAREDIR",    ":",          ":/",   ":",           ":/share",      ":"},
+    {"NAVIT_LOCALEDIR",   ":/../locale",":/",  ":\\locale",   ":/locale",     ":\\locale"},
     {"NAVIT_USER_DATADIR",":",          "~/.navit",      ":\\data",     ":/home",       "~\\navit"},
     {"NAVIT_LOGFILE",     NULL,         NULL,            ":\\navit.log",NULL,           ":\\navit.log"},
     {"NAVIT_LIBPREFIX",   "*/.libs/",   NULL,            NULL,          NULL,           NULL},

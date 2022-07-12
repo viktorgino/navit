@@ -1,195 +1,60 @@
-include_directories( "${PROJECT_BINARY_DIR}")
-include_directories( "${PROJECT_SOURCE_DIR}")
-include_directories( "${CMAKE_CURRENT_SOURCE_DIR}")
-include_directories( "${CMAKE_CURRENT_BINARY_DIR}")
-include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/support")
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/THIS_IS_THE_NAVIT_WORKING_DIR "\r\nThis File should never appear on binary distributions\r\n" )
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/THIS_IS_THE_NAVIT_WORKING_DIR "\r\nOnly Devs should ever see this file" )
+cmake_minimum_required(VERSION 3.14)
 
-# navit core
-set(NAVIT_SRC announcement.c atom.c attr.c cache.c callback.c command.c config_.c coord.c country.c data_window.c debug.c
-	event.c file.c geom.c graphics.c gui.c item.c layout.c log.c main.c map.c maps.c
-	linguistics.c mapset.c maptype.c menu.c messages.c bookmarks.c navit.c navit_nls.c navigation.c osd.c param.c phrase.c plugin.c popup.c
-	profile.c profile_option.c projection.c roadprofile.c route.c script.c search.c speech.c start_real.c sunriset.c transform.c track.c
-	search_houseno_interpol.c traffic.c util.c vehicle.c vehicleprofile.c xmlconfig.c )
+project(navit VERSION 0.1 LANGUAGES C CXX)
 
-if(NOT USE_PLUGINS)
-	list(APPEND NAVIT_SRC  ${CMAKE_CURRENT_BINARY_DIR}/builtin.c)
-endif(NOT USE_PLUGINS)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-if (${HAVE_GLIB})
-	list(APPEND NAVIT_SRC event_glib.c)
-endif()
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
-set(NAVIT_LIBNAME navit_core)
-
-
-foreach ( PLUGIN_PATH ${ALL_PLUGINS})
-	if (${PLUGIN_PATH})
-		include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/${PLUGIN_PATH}")
-
-		string(REPLACE "/" "_" MODULE_INC ${PLUGIN_PATH})
-		list(APPEND NAVIT_SUPPORT_LIBS ${MODULE_INC})
-	endif()
-endforeach()
-
-foreach ( MODULE_PATH ${ALL_MODULES})
-	if ( ${MODULE_PATH} )
-		include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE_PATH}")
-
-		string(REPLACE "/" "_" MODULE_INC ${MODULE_PATH})
-		list(APPEND MODULES_PROTOTYPE "\nvoid\tmodule_${MODULE_INC}_init(void)")
-		list(APPEND MODULES_FUNC "\nmodule_${MODULE_INC}_init()")
-
-		if (NOT USE_PLUGINS)
-			list(APPEND MODULES_NAME ${MODULE_INC})
-		else()
-			string(REGEX REPLACE "(^[^/]*)/.*" "\\1" ${MODULE_INC}_TYPE ${MODULE_PATH})
-		endif()
-	endif()
-endforeach()
-
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/builtin.c.in ${CMAKE_CURRENT_BINARY_DIR}/builtin.c)
-
-include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/fib-1.1")
-
-# Add module paths
-foreach (CURRENT_MODULE ${ALL_PLUGINS} ${ALL_MODULE_PLUGINS} ${ALL_MODULES})
-	if (${CURRENT_MODULE})
-		add_subdirectory( "${CMAKE_CURRENT_SOURCE_DIR}/${CURRENT_MODULE}")
-	endif()
-endforeach()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory (fib-1.1)
+add_subdirectory (graphics)
+
+find_package(PkgConfig REQUIRED)
+find_package(Qt5 REQUIRED COMPONENTS Core Quick)
 
 
-# START QT
-find_package(Qt5 COMPONENTS Core Quick REQUIRED)
+pkg_check_modules(GMODULE REQUIRED IMPORTED_TARGET gmodule-2.0)
+pkg_check_modules(GLIB2 REQUIRED IMPORTED_TARGET glib-2.0>=2.10)
+pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig>=2.2.0)
+pkg_check_modules(DBUS REQUIRED IMPORTED_TARGET dbus-1>=1.4)
+pkg_check_modules(DBUSGLIB REQUIRED IMPORTED_TARGET dbus-glib-1)
+pkg_check_modules(ZLIB REQUIRED IMPORTED_TARGET zlib)
 
-set(NAVIT_START_SRC start.cpp)
+set(QT_LIBS Qt5::Core Qt5::Quick PkgConfig::GMODULE PkgConfig::GLIB2 ${GLIB_LIBRARIES} PkgConfig::FONTCONFIG PkgConfig::DBUS PkgConfig::DBUSGLIB PkgConfig::ZLIB fib)
+
+add_library (navit_core SHARED announcement.c atom.c attr.c cache.c callback.c command.c config_.c coord.c country.c data_window.c debug.c
+event.c file.c geom.c graphics.c gui.c item.c layout.c log.c main.c map.c maps.c
+linguistics.c mapset.c maptype.c menu.c messages.c bookmarks.c navit.c navit_nls.c navigation.c osd.c param.c phrase.c plugin.c popup.c
+profile.c profile_option.c projection.c roadprofile.c route.c script.c search.c speech.c start_real.c sunriset.c transform.c track.c
+search_houseno_interpol.c traffic.c util.c vehicle.c vehicleprofile.c xmlconfig.c)
+
+target_compile_definitions(navit_core PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>)
+target_link_libraries(navit_core ${QT_LIBS})
+target_link_libraries(navit_graphics ${QT_LIBS})
+target_include_directories(navit_core PRIVATE ${GLIB_INCLUDE_DIRS})
+link_directories (${GTK2_LIBRARY_DIRS})
+add_definitions (${GTK2_CFLAGS_OTHER})
+
+# target_link_libraries(navit_core INTERFACE ${GLIB_LDFLAGS})
+
+set_target_properties(navit_core PROPERTIES COMPILE_DEFINITIONS "MODULE=navit;LIBDIR=\"${CMAKE_INSTALL_PREFIX}/${LIB_DIR}\";PREFIX=\"${CMAKE_INSTALL_PREFIX}\"")
+set_target_properties(navit_core PROPERTIES COMPILE_DEFINITIONS "MODULE=navit;LIBDIR=\"${CMAKE_INSTALL_PREFIX}/${LIB_DIR}\";PREFIX=\"${CMAKE_INSTALL_PREFIX}\"")
+
+set(XMLCFG_ALL_FILE_PREFIXES "navit;navit_layout_car;navit_layout_car_dark;navit_layout_car_android;navit_layout_car_simple;navit_layout_bike;navit_layout_th")
+set(XML_FILES "")
+foreach(XMLFILE_PREFIX ${XMLCFG_ALL_FILE_PREFIXES})
+    set(XML_FILES ${XML_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/configs/${XMLFILE_PREFIX}.xml)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/configs/${XMLFILE_PREFIX}.xml DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/${XMLFILE_PREFIX}.xml)
+endforeach()
+add_custom_target(navit_config_xml ALL COMMAND cp ${XML_FILES} ${CMAKE_BINARY_DIR})
 
 qt5_add_resources(NAVIT_QRC "navit.qrc")
 
-add_executable(navit ${NAVIT_START_SRC} ${NAVIT_QRC})
+add_executable(navit start.cpp ${NAVIT_QRC})
 
-target_link_libraries (navit ${NAVIT_LIBNAME} Qt5::Core Qt5::Gui Qt5::Quick)
-
-if(DEFINED NAVIT_BINARY)
-        set_target_properties(navit PROPERTIES OUTPUT_NAME ${NAVIT_BINARY})
-endif(DEFINED NAVIT_BINARY)
-
-# END QT
-
-if (SHARED_LIBNAVIT)
-	add_library (${NAVIT_LIBNAME} SHARED ${NAVIT_SRC} )
-else(SHARED_LIBNAVIT)
-	add_library (${NAVIT_LIBNAME} STATIC ${NAVIT_SRC} )
-endif(SHARED_LIBNAVIT)
-
-if(NOT MSVC)
-	SET(NAVIT_LIBS ${NAVIT_LIBS} m)
-endif(NOT MSVC)
-target_link_libraries(${NAVIT_LIBNAME} ${MODULES_NAME} ${NAVIT_SUPPORT_LIBS} fib ${NAVIT_LIBS} )
-
-set_target_properties(${NAVIT_LIBNAME} PROPERTIES COMPILE_DEFINITIONS "MODULE=navit;LIBDIR=\"${CMAKE_INSTALL_PREFIX}/${LIB_DIR}\";PREFIX=\"${CMAKE_INSTALL_PREFIX}\"")
-if (DEFINED NAVIT_COMPILE_FLAGS)
-	set_target_properties(${NAVIT_LIBNAME} PROPERTIES COMPILE_FLAGS "${NAVIT_COMPILE_FLAGS}")
-endif()
-
-add_custom_command(
-	OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/navit.dtd"
-	COMMENT "Copy navit.dtd to ${CMAKE_CURRENT_BINARY_DIR}/navit.dtd"
-	COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/navit/navit.dtd" "${CMAKE_CURRENT_BINARY_DIR}/navit.dtd"
-	)
-
-# additional parameter are passed to the stylesheet processor as parameter
-macro(process_xslt SRC_DIR SRC_XML DEST_DIR DEST_XML)
-	set(TMPFOLDER "${DEST_DIR}/${DEST_XML}")
-	# Create a unique temporary name based on the PATH and filename of the target xml file
-	string(REPLACE "/" "_" TMPFOLDER ${TMPFOLDER})
-	string(REPLACE ":" "_" TMPFOLDER ${TMPFOLDER})
-	string(REPLACE "\\" "_" TMPFOLDER ${TMPFOLDER})
-	# Create this unique temporary directory inside ${CMAKE_CURRENT_BINARY_DIR}. This is where we will store our intermediate xml file (called ${SRC_XML}.temp after each xslt pass
-	set(TMPDIR "${CMAKE_CURRENT_BINARY_DIR}/${TMPFOLDER}")
-	set(XSLT_COMMANDS COMMAND ${CMAKE_COMMAND} -E make_directory "${TMPDIR}")
-	list(APPEND XSLT_COMMANDS COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/navit/${SRC_XML}" "${TMPDIR}/${SRC_XML}.temp")
-	# Also copy the dtd file in the same directory as the xml file (required by the xslt processor)
-	list(APPEND XSLT_COMMANDS COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/navit/navit.dtd" "${TMPDIR}/" )
-	if(XSL_PROCESSING)
-		if(NOT XSLTS STREQUAL "")
-			string(REPLACE "," ";" XSLTS "${XSLTS}")
-			foreach(tmp ${XSLTS})
-				# We will run this loop below for each xslt file provided in the XSLTS variable
-				set(XSLT_FILE "${PROJECT_SOURCE_DIR}/navit/xslt/${tmp}.xslt")
-				list(APPEND XSLT_FILES "${XSLT_FILE}")
-				list(APPEND XSLT_COMMANDS COMMAND ${CMAKE_COMMAND} -E echo  Applying ${tmp}.xslt)
-				compose_xslt_transform_command(CMD "${XSLT_FILE}" "${TMPDIR}/${SRC_XML}.temp" "${TMPDIR}/${SRC_XML}.output" "${ARGN}")
-				list(APPEND XSLT_COMMANDS ${CMD})
-				list(APPEND XSLT_COMMANDS COMMAND ${CMAKE_COMMAND} -E rename "${TMPDIR}/${SRC_XML}.output" "${TMPDIR}/${SRC_XML}.temp")
-			endforeach()
-		endif()
-	endif(XSL_PROCESSING)
-	# Move the final resulting xml file to the target filename and directory (provided in arguments)
-	list(APPEND XSLT_COMMANDS COMMAND ${CMAKE_COMMAND} -E make_directory ${DEST_DIR})
-	list(APPEND XSLT_COMMANDS COMMAND ${CMAKE_COMMAND} -E rename "${TMPDIR}/${SRC_XML}.temp" "${DEST_DIR}/${DEST_XML}")
-	list(APPEND XSLT_COMMANDS COMMAND ${CMAKE_COMMAND} -E remove "${TMPDIR}/navit.dtd")
-	list(APPEND XSLT_COMMANDS COMMAND ${CMAKE_COMMAND} -E remove_directory "${TMPDIR}")
-	# Depend on all XSLT files, because the main XSLT file may pull in other files.
-	# Ideally we'd parse the main XSLT file for includes, but that is tricky to do reliably.
-	# Note that this list of files is only updated when (re)running CMake, so if files are
-	# added/deleted, CMake must be re-run manually.
-	file(GLOB ALL_XSLT_FILES "${PROJECT_SOURCE_DIR}/navit/xslt/*.xslt")
-	#message(FATAL_ERROR ${CMAKE_CURRENT_BINARY_DIR}/${DEST_XML})
-	ADD_CUSTOM_COMMAND(
-		OUTPUT ${DEST_DIR}/${DEST_XML}
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/navit/xslt/
-		DEPENDS "${SRC_DIR}/${SRC_XML}" "${CMAKE_CURRENT_BINARY_DIR}/navit.dtd" ${ALL_XSLT_FILES}
-		${XSLT_COMMANDS}
-		)
-endmacro()
-
-# Give instructions on how to build all navit_*.xml navit_layout_*.xml files, obtained applying relevant xslt tranformation on the source navit_shipped_*.xml files
-# The following XMLCFG_ALL_FILE_PREFIXES variable below lists all xml config files, semicolon is the delimiter
-# For example, it contains layout_navit_car, that will then be used to guess the source filename navit_layout_car_shipped.xml, installed as navit_layout_car.xml (or on android DPI-related files like navit_layout_car_xxxhdpi.xml)
-set(XMLCFG_ALL_FILE_PREFIXES "navit;navit_layout_car;navit_layout_car_dark;navit_layout_car_modern;navit_layout_car_android;navit_layout_car_simple;navit_layout_bike;navit_layout_th")
-
-if (USE_LIBGNUINTL AND NOT HAVE_GLIB)
-	ADD_DEPENDENCIES(support_glib support_gettext_intl)
-endif()
-
-
-add_subdirectory (maptool)
-add_subdirectory (icons)
-add_subdirectory (textures)
-add_subdirectory (maps)
-
-install(TARGETS navit
-	DESTINATION ${BIN_DIR}
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/navit.xml
-	DESTINATION ${SHARE_DIR}
-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
-
-foreach(XMLCFG_INSTALLED_PATH ${XMLCFG_INSTALLED_PATH_LIST})
-	install(FILES ${XMLCFG_INSTALLED_PATH}
-		DESTINATION ${SHARE_DIR}
-		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
-endforeach()
-
-get_directory_property(INCLUDE_DIRECTORIES INCLUDE_DIRECTORIES)
-WRITE_FILE("cmake_plugin_settings.txt"
-	"set(APPLE ${APPLE} CACHE BOOL init)\n"
-	"set(ANDROID ${ANDROID} CACHE BOOL init)\n"
-	"set(USE_PLUGINS ${USE_PLUGINS} CACHE BOOL init)\n"
-	"set(MODULE_BUILD_TYPE \"${MODULE_BUILD_TYPE}\" CACHE STRING init)\n"
-	"set(NAVIT_COMPILE_FLAGS \"${NAVIT_COMPILE_FLAGS}\" CACHE STRING init)\n"
-	"set(navit_SOURCE_DIR \"${navit_SOURCE_DIR}\" CACHE STRING init)\n"
-	"set(NAVIT_LIBNAME \"${NAVIT_LIBNAME}\" CACHE STRING init)\n"
-	"set(ANDROID_API_VERSION \"${ANDROID_API_VERSION}\" CACHE STRING init)\n"
-	"set(ANDROID_NDK_API_VERSION \"${ANDROID_NDK_API_VERSION}\" CACHE STRING init)\n"
-	"set(CMAKE_TOOLCHAIN_FILE \"${CMAKE_TOOLCHAIN_FILE}\" CACHE STRING init)\n"
-	"set(INCLUDE_DIRECTORIES \"${INCLUDE_DIRECTORIES}\" CACHE STRING init)\n"
-	"set(LIB_DIR \"${LIB_DIR}\" CACHE STRING init)\n"
-	"set(CMAKE_INSTALL_PREFIX \"${CMAKE_INSTALL_PREFIX}\" CACHE STRING init)\n"
-	)
+target_link_libraries (navit navit_core Qt5::Core Qt5::Gui Qt5::Quick)

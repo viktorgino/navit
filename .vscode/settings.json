@@ -1,6 +1,7 @@
 {
     "cmake.configureOnOpen": true,
     "files.associations": {
-        "xmlconfig.h": "c"
+        "xmlconfig.h": "c",
+        "fib.h": "c"
     }
 }

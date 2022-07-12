@@ -47,7 +47,7 @@
 #include "xmlconfig.h"
 #include "traffic.h"
 #include "plugin.h"
-#include "fib.h"
+#include "fib-1.1/fib.h"
 #include "event.h"
 #include "callback.h"
 #include "vehicleprofile.h"

@@ -22,7 +22,7 @@
 #include <unistd.h>
 #endif
 extern "C" {
-#include "config.h"
+#include "../config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 
 #include "callback.h"

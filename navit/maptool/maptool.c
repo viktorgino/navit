@@ -926,7 +926,7 @@ int main(int argc, char **argv) {
     int option_index=0;
     main_init(argv[0]);
 #ifndef HAVE_GLIB
-    _g_slice_thread_init_nomessage();
+    // _g_slice_thread_init_nomessage();
 #endif
     linguistics_init();
 

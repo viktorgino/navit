@@ -40,14 +40,6 @@
 	For other formats see http://wiki.navit-project.org/index.php/Coordinate_format.
 	-->
 	<navit center="11.5666 48.1333" zoom="256" tracking="1" orientation="-1" recent_dest="250" drag_bitmap="0" default_layout="Car">
-		<!--
-		The following line let you select which graphical user interface you'd like to use.
-		Options include internal (optimized for touch screen devices), gtk (useful for desktop computers).
-		If you don't like the internal gui, set enabled=yes for the following tag and enabled=no for the gui internal tag
-		-->
-		<graphics type="qt5"/>
-		
-		<!-- for a debug log -->
 		<log enabled="no" type="textfile_debug" data="debug_%Y%m%d-%i.txt" flush_size="1000" flush_time="30"/>
 
 		<!-- Traffic -->
