@@ -1018,7 +1018,7 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
     }
 
 //    /* tell Navit our geometry */
-   resize_callback(graphics_priv, 200, 200);
+   resize_callback(graphics_priv, graphics_priv->pixmap->width(), graphics_priv->pixmap->height());
 
 //    /* show our window */
 //    if (graphics_priv->window != NULL)

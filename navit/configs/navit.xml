@@ -22,6 +22,7 @@
 
 	<!-- The global debug level (like using command line option "-d"). Ignored if option -d is used. -->
 	<!-- Possible debug levels: error, warning, info, debug. -->
+	<debug name="graphics_qt5" dbg_level="debug"/>
 	<debug name="global" dbg_level="error"/>
 	<!-- Example of setting the debug level for a single function.  -->
 	<debug name="navit:do_draw" dbg_level="error"/>
@@ -44,8 +45,10 @@
 	last position (in center.txt).
 	Center coordinates format: "Long Lat" in decimal degrees (WGS 84).
 	For other formats see http://wiki.navit-project.org/index.php/Coordinate_format.
+
+	# "5175 N 12570 W" 
 	-->
-	<navit center="5150.74 N 12.78 W" zoom="256" tracking="1" orientation="-1" recent_dest="250" drag_bitmap="0" default_layout="Car Modern">
+	<navit center="5150 N 75 W" zoom="256" tracking="1" orientation="-1" recent_dest="250" drag_bitmap="0" default_layout="Car-Modern">
 		<graphics type="qt5"/>
 		<log enabled="no" type="textfile_debug" data="debug_%Y%m%d-%i.txt" flush_size="1000" flush_time="30"/>
 
@@ -268,11 +271,7 @@
 
 		<!-- If you dont want to use the sample map, either set enabled="no" in the next line or remove the xml file from the maps directory -->
 		<mapset enabled="yes">
-			<!-- <xi:include href="$NAVIT_SHAREDIR/maps/*.xml"/> -->
-			<!-- <xi:include href="$NAVIT_USER_DATADIR/maps/*.xml"/> -->
-			<map type="binfile" enabled="yes" data="/home/viktorgino/.navit/maps/osm_bbox_-7.8,48.9,2.4,56.1.bin"/>
-
-			<!-- <map type="binfile" enabled="yes" data="C:/Navit/osm_bbox_-9.7,49.6,2.2,61.2.bin"/> -->
+			<xi:include href="$NAVIT_USER_DATADIR/maps/*.xml"/>
 		</mapset>
 
 		<!--
@@ -282,8 +281,8 @@
 		If two layouts with the same name are included, the first one takes precedence.
 		In the list below, we use the user-defined layouts first (in $NAVIT_USER_DATADIR), they take precedence. Being next in the list, the default layouts (in $NAVIT_SHAREDIR) will only be used if there is no user-defined layout that was already defined with the same name.
 		-->
-		<!-- <xi:include href="$NAVIT_USER_DATADIR/navit_layout_*.xml"/> -->
-		<!-- <xi:include href="$NAVIT_SHAREDIR/navit_layout_*.xml"/> -->
+		<xi:include href="navit_layout_*.xml"/>
+		
 		<layout name="Route">
 			<layer name="streets">
 				<itemgra item_types="street_route_occluded" order="0-">

@@ -52,7 +52,7 @@ target_include_directories(navit_core PUBLIC "./graphics/")
 
 set_target_properties(navit_core PROPERTIES COMPILE_DEFINITIONS "MODULE=navit;LIBDIR=\"${CMAKE_INSTALL_PREFIX}/${LIB_DIR}\";PREFIX=\"${CMAKE_INSTALL_PREFIX}\"")
 
-set(XMLCFG_ALL_FILE_PREFIXES "navit;navit_layout_car;navit_layout_car_dark;navit_layout_car_android;navit_layout_car_simple;navit_layout_bike;navit_layout_th")
+set(XMLCFG_ALL_FILE_PREFIXES "navit;navit_layout_car;navit_layout_car_dark;navit_layout_car_android;navit_layout_car_simple;navit_layout_bike;navit_layout_th;navit_layout_car_modern")
 set(XML_FILES "")
 foreach(XMLFILE_PREFIX ${XMLCFG_ALL_FILE_PREFIXES})
     set(XML_FILES ${XML_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/configs/${XMLFILE_PREFIX}.xml)
