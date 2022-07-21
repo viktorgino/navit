@@ -70,7 +70,7 @@ void Qt5GraphicsWorker::resizeEvent(NavitInstance *navitInstance, int width, int
 }
 void Qt5GraphicsWorker::mapMove(NavitInstance *navitInstance, struct point *origin, struct point *destination){
     if(navitInstance){
-        qDebug() << "Map move thread : " << QThread::currentThread();
+        // qDebug() << "Map move thread : " << QThread::currentThread();
         navit_drag_map(navitInstance->getNavit(), origin, destination);
     }
 }

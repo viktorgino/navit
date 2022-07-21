@@ -280,50 +280,50 @@ void NavitSearchModel::search(){
 }
 
 void NavitSearchModel::search_list_set_default_country() {
-    struct attr search_attr, country_name, country_iso2, *country_attr;
-    struct item *item;
-    struct country_search *cs;
-    struct tracking *tracking;
-    struct search_list_result *res;
+//     struct attr search_attr, country_name, country_iso2, *country_attr;
+//     struct item *item;
+//     struct country_search *cs;
+//     struct tracking *tracking;
+//     struct search_list_result *res;
 
-    country_attr=country_default();
-    tracking=navit_get_tracking(m_navitInstance->getNavit());
-    if (tracking && tracking_get_attr(tracking, attr_country_id, &search_attr, nullptr))
-        country_attr=&search_attr;
-    if (country_attr) {
-        cs=country_search_new(country_attr, 0);
-        item=country_search_get_item(cs);
-        if (item && item_attr_get(item, attr_country_name, &country_name)) {
-            search_attr.type=attr_country_all;
-            qDebug() << "country " << country_name.u.str;
-            search_attr.u.str=country_name.u.str;
-            search_list_search(m_searchResultList, &search_attr, 0);
-            while((res=search_list_get_result(m_searchResultList)));
-            if(m_country_iso2) {
-                g_free(m_country_iso2);
-                this->m_country_iso2=nullptr;
-            }
-            if (item_attr_get(item, attr_country_iso2, &country_iso2))
-                this->m_country_iso2=g_strdup(country_iso2.u.str);
-        }
-        country_search_destroy(cs);
-    } else {
-        qWarning() << "warning: no default country found";
-        if (m_country_iso2) {
-            qDebug() << "attempting to use country" << m_country_iso2;
-            search_attr.type=attr_country_iso2;
-            search_attr.u.str=m_country_iso2;
-            search_list_search(m_searchResultList, &search_attr, 0);
-            while((res=search_list_get_result(m_searchResultList)));
-        }
-    }
-//    search_list_select(m_searchResultList, attr_country_all, 0, 0);
+//     country_attr=country_default();
+//     tracking=navit_get_tracking(m_navitInstance->getNavit());
+//     if (tracking && tracking_get_attr(tracking, attr_country_id, &search_attr, nullptr))
+//         country_attr=&search_attr;
+//     if (country_attr) {
+//         cs=country_search_new(country_attr, 0);
+//         item=country_search_get_item(cs);
+//         if (item && item_attr_get(item, attr_country_name, &country_name)) {
+//             search_attr.type=attr_country_all;
+//             qDebug() << "country " << country_name.u.str;
+//             search_attr.u.str=country_name.u.str;
+//             search_list_search(m_searchResultList, &search_attr, 0);
+//             while((res=search_list_get_result(m_searchResultList)));
+//             if(m_country_iso2) {
+//                 g_free(m_country_iso2);
+//                 this->m_country_iso2=nullptr;
+//             }
+//             if (item_attr_get(item, attr_country_iso2, &country_iso2))
+//                 this->m_country_iso2=g_strdup(country_iso2.u.str);
+//         }
+//         country_search_destroy(cs);
+//     } else {
+//         qWarning() << "warning: no default country found";
+//         if (m_country_iso2) {
+//             qDebug() << "attempting to use country" << m_country_iso2;
+//             search_attr.type=attr_country_iso2;
+//             search_attr.u.str=m_country_iso2;
+//             search_list_search(m_searchResultList, &search_attr, 0);
+//             while((res=search_list_get_result(m_searchResultList)));
+//         }
+//     }
+// //    search_list_select(m_searchResultList, attr_country_all, 0, 0);
 
-    m_address.address.country = search_attr.u.str;
-    emit addressChanged();
+//     m_address.address.country = search_attr.u.str;
+//     emit addressChanged();
 
-    m_search_type = SearchTown;
-    searchTypeChanged();
+//     m_search_type = SearchTown;
+//     searchTypeChanged();
 }
 
 

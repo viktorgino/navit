@@ -91,5 +91,4 @@ struct graphics_gc_priv {
 extern QGuiApplication* navit_app;
 
 void resize_callback(struct graphics_priv* gr, int w, int h);
-
 #endif

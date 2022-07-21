@@ -8,7 +8,13 @@
   SYSTEM "navit.dtd">
 <config xmlns:xi="http://www.w3.org/2001/XInclude">
 	<plugins>
-		<plugin path="$NAVIT_LIBDIR/*/${NAVIT_LIBPREFIX}lib*.so" ondemand="yes"/>
+		<!-- <plugin path="./graphics/lib*.so" ondemand="yes"/> -->
+		<plugin path="./*/lib*.so" ondemand="yes"/>
+		<plugin path="./map/binfile/libmap_binfile.so" ondemand="yes"/>
+		<plugin path="./map/textfile/libmap_textfile.so" ondemand="yes"/>
+		<plugin path="./vehicle/demo/libvehicle_demo.so" ondemand="yes"/>
+		<plugin path="$NAVIT_LIBDIR/*/lib*.a" ondemand="yes"/>
+		<plugin path="$NAVIT_LIBDIR/*/*/lib*.a" ondemand="yes"/>
 		<plugin path="$NAVIT_LIBDIR/autoload/${NAVIT_LIBPREFIX}lib*.so"/>
 		<plugin path="$NAVIT_LIBDIR/*/${NAVIT_LIBPREFIX}libbinding_dbus.so" active="no"/>
 		<plugin path="$NAVIT_LIBDIR/*/${NAVIT_LIBPREFIX}libgraphics_null.so" active="no"/>
@@ -30,8 +36,8 @@
 	<debug name="timestamps" level="0"/>
 
 	<!-- <debug name="gui_qt5_qml" dbg_level="debug"/> -->
-	<!-- <debug name="graphics_qt5" dbg_level="debug"/> -->
-	<!-- <debug name="event_qt5" dbg_level="debug"/> -->
+	<debug name="graphics_qt5" dbg_level="info"/>
+	<debug name="event_qt5" dbg_level="debug"/>
 	<!--
 	center= defines which map location Navit will show after first start.
 	It will only be used for the first start; subsequent starts will remember the
@@ -39,11 +45,12 @@
 	Center coordinates format: "Long Lat" in decimal degrees (WGS 84).
 	For other formats see http://wiki.navit-project.org/index.php/Coordinate_format.
 	-->
-	<navit center="11.5666 48.1333" zoom="256" tracking="1" orientation="-1" recent_dest="250" drag_bitmap="0" default_layout="Car">
+	<navit center="5150.74 N 12.78 W" zoom="256" tracking="1" orientation="-1" recent_dest="250" drag_bitmap="0" default_layout="Car Modern">
+		<graphics type="qt5"/>
 		<log enabled="no" type="textfile_debug" data="debug_%Y%m%d-%i.txt" flush_size="1000" flush_time="30"/>
 
 		<!-- Traffic -->
-		<traffic type="null"/>
+		<!-- <traffic type="null"/> -->
 
 		<!-- Vehicle with GPS enabled for gpsd on unix -->
 		<vehicle name="Local GPS" profilename="car" enabled="no" source="gpsd://localhost" gpsd_query="w+xj">
@@ -247,7 +254,7 @@
 		If you have a speech synthesizer like festival lite installed, you can get turn by turn directions out of navit. Please set the "cps"-value to how many characters your tts engine approximately speaks per second.
 		The default is text output to the shell
 		-->
-		<speech type="cmdline" data="echo 'Fix the speech tag in navit.xml to let navit say:' '%s'" cps="15"/>
+		<!-- <speech type="cmdline" data="echo 'Fix the speech tag in navit.xml to let navit say:' '%s'" cps="15"/> -->
 		<!--
 		Instead of using a speech synthesizer, navit can also play pre-recorded samples for each word.
 		See http://wiki.navit-project.org/index.php/Configuration for details.
@@ -259,36 +266,14 @@
 
 		<!-- You can only have enabled only one mapset at time, but with as much maps enabled as you want -->
 
-		<!-- If you have the reiseplaner maps installed, set enabled="yes" in the next line and set the path correctly -->
-		<mapset enabled="no">
-			<map type="mg" enabled="yes" data="/opt/reiseplaner/travel/DE.map"/>
-			<map type="mg" enabled="yes" data="/opt/reiseplaner/travel/DE.map/smp1.smp"/>
-			<map type="mg" enabled="yes" data="/opt/reiseplaner/travel/DE.map/smp2.smp"/>
-			<map type="mg" enabled="yes" data="/opt/reiseplaner/travel/DE.map/smp3.smp"/>
-			<map type="mg" enabled="yes" data="/opt/reiseplaner/travel/DE.map/smp4.smp"/>
-			<map type="mg" enabled="yes" data="/opt/reiseplaner/travel/DE.map/smp5.smp"/>
-		</mapset>
-
 		<!-- If you dont want to use the sample map, either set enabled="no" in the next line or remove the xml file from the maps directory -->
 		<mapset enabled="yes">
-			<xi:include href="$NAVIT_SHAREDIR/maps/*.xml"/>
-		</mapset>
+			<!-- <xi:include href="$NAVIT_SHAREDIR/maps/*.xml"/> -->
+			<!-- <xi:include href="$NAVIT_USER_DATADIR/maps/*.xml"/> -->
+			<map type="binfile" enabled="yes" data="/home/viktorgino/.navit/maps/osm_bbox_-7.8,48.9,2.4,56.1.bin"/>
 
-		<!-- Mapset template for OpenStreetMap -->
-		<mapset enabled="no">
-			<map type="binfile" enabled="yes" data="/media/mmc2/MapsNavit/osm_europe.bin"/>
+			<!-- <map type="binfile" enabled="yes" data="C:/Navit/osm_bbox_-9.7,49.6,2.2,61.2.bin"/> -->
 		</mapset>
-
-		<!-- Mapset template for garmin maps -->
-		<mapset enabled="no">
-			<map type="garmin" enabled="yes" data="/path/to/img" debug="4"/>
-		</mapset>
-
-		<layer name="Found items" order="0-">
-			<itemgra item_types="found_item">
-				<circle color="#008080" radius="24" width="2" text_size="12"/>
-			</itemgra>
-		</layer>
 
 		<!--
 		Layouts are defined in their own specific XML files and are included below (one file per layout, all files matching the wildcard expression below will be used)
@@ -297,8 +282,8 @@
 		If two layouts with the same name are included, the first one takes precedence.
 		In the list below, we use the user-defined layouts first (in $NAVIT_USER_DATADIR), they take precedence. Being next in the list, the default layouts (in $NAVIT_SHAREDIR) will only be used if there is no user-defined layout that was already defined with the same name.
 		-->
-		<xi:include href="$NAVIT_USER_DATADIR/navit_layout_*.xml"/>
-		<xi:include href="$NAVIT_SHAREDIR/navit_layout_*.xml"/>
+		<!-- <xi:include href="$NAVIT_USER_DATADIR/navit_layout_*.xml"/> -->
+		<!-- <xi:include href="$NAVIT_SHAREDIR/navit_layout_*.xml"/> -->
 		<layout name="Route">
 			<layer name="streets">
 				<itemgra item_types="street_route_occluded" order="0-">

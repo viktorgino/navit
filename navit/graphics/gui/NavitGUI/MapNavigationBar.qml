@@ -164,7 +164,7 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             fillMode: Image.PreserveAspectFit
-            source: "qrc:/Navit/assets/ionicons/md-menu.svg"
+            source: "qrc:/NavitGUI/assets/ionicons/md-menu.svg"
             sourceSize.width: width
             sourceSize.height: height
         }

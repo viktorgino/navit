@@ -1,4 +1,4 @@
-module Navit
+module NavitGUI
 DestinationBar 1.0 DestinationBar.qml
 DestinationDetailsBar 1.0 DestinationDetailsBar.qml
 Instructions 1.0 Instructions.qml

@@ -6,6 +6,6 @@ Window {
     Loader {
         anchors.fill: parent
         id: navit_loader
-        source: "qrc:/Navit/MainLayout.qml"
+        source: "qrc:/NavitGUI/MainLayout.qml"
     }
 }

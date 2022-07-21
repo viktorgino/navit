@@ -1,5 +1,7 @@
 #ifndef __NAVIT_NLS_H__
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 char *navit_nls_add_textdomain(const char *package, const char *dir);
 void navit_nls_remove_textdomain(const char *package);
 const char *navit_nls_gettext(const char *msgid);
@@ -9,6 +11,8 @@ void navit_nls_main_init(void);
 #define _(STRING)    navit_nls_gettext(STRING)
 #define gettext_noop(String) String
 #define _n(STRING)    gettext_noop(STRING)
-
+#ifdef __cplusplus
+}
+#endif
 #define __NAVIT_NLS_H__
 #endif

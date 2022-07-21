@@ -1,0 +1,21 @@
+{
+    "files.associations": {
+        "graphics_qt5.h": "c",
+        "traffic.h": "c",
+        "typeinfo": "c",
+        "system_error": "c",
+        "array": "c",
+        "*.tcc": "c",
+        "iterator": "c",
+        "algorithm": "c",
+        "initializer_list": "c",
+        "istream": "c",
+        "numeric": "c",
+        "functional": "c",
+        "tuple": "c",
+        "valarray": "c",
+        "cstddef": "c",
+        "limits": "c",
+        "version": "c"
+    }
+}

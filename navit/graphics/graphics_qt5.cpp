@@ -39,8 +39,8 @@ extern "C" {
 
 #include "event_qt5.h"
 #include "graphics_qt5.h"
-#include <QDBusConnection>
-#include <QDBusInterface>
+// #include <QDBusConnection>
+// #include <QDBusInterface>
 #include <QFile>
 #include <QFont>
 #include <QGuiApplication>
@@ -870,6 +870,8 @@ static QObject *navit_singletontype_provider(QQmlEngine *engine, QJSEngine *scri
 /* create application and initial graphics context */
 static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics_methods* meth, struct attr** attrs,
         struct callback_list* cbl) {
+
+    qDebug() << "graphics_qt5_new";
     struct graphics_priv* graphics_priv = NULL;
     struct attr* event_loop_system = NULL;
     struct attr* platform = NULL;
@@ -977,7 +979,7 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
 //        if (loader != NULL) {
 //            dbg(lvl_debug, "navit_loader found");
 //            /* load our root window into the loader component */
-//            loader->setProperty("source", "qrc:/Navit/MainLayout.qml");
+//            loader->setProperty("source", "qrc:/NavitGUI/MainLayout.qml");
 //        }
 //    }
 
@@ -1011,15 +1013,12 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
 //    }
     /* generate initial pixmap same size as window */
     if (graphics_priv->pixmap == NULL) {
-        if (graphics_priv->window != NULL)
-            graphics_priv->pixmap = new QPixmap(graphics_priv->window->size());
-        if (graphics_priv->pixmap == NULL)
-            graphics_priv->pixmap = new QPixmap(100, 100);
+        graphics_priv->pixmap = new QPixmap(200, 200);
         graphics_priv->pixmap->fill(Qt::black);
     }
 
 //    /* tell Navit our geometry */
-//    resize_callback(graphics_priv, 500, 500);
+   resize_callback(graphics_priv, 200, 200);
 
 //    /* show our window */
 //    if (graphics_priv->window != NULL)
@@ -1029,9 +1028,10 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
     return graphics_priv;
 }
 
-void plugin_init(void) {
+void plugin_init() {
+    qDebug() << "Graphics plugin init";
     Q_INIT_RESOURCE(graphics_qt5);
-    //        dbg(lvl_debug,"enter");
+    dbg(lvl_debug,"Graphics plugin init");
     plugin_register_category_graphics("qt5", graphics_qt5_new);
     qt5_event_init();
 }

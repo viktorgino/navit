@@ -80,7 +80,7 @@ void NavitLayoutsModel::update() {
             layouts.insert("name",layout);
             layouts.insert("action", "setLayout");
             if(layout == activeLayout){
-                layouts.insert("imageUrl", "qrc:/Navit/assets/ionicons/md-checkmark-circle-outline.svg");
+                layouts.insert("imageUrl", "qrc:/NavitGUI/assets/ionicons/md-checkmark-circle-outline.svg");
             } else {
                 layouts.insert("imageUrl", "");
             }

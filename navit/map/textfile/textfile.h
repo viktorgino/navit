@@ -17,32 +17,40 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include "start_real.h"
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QThread>
-#include <QDebug>
+#include <stdio.h>
+#include "attr.h"
+#include "coord.h"
 
-int main(int argc, char **argv) {
+#define TEXTFILE_COMMENT_CHAR '#'
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
-    QGuiApplication app(argc, argv);
+struct map_priv {
+	int id;
+	char *filename;
+	char *charset;
+	int is_pipe;
+	int no_warning_if_map_file_missing;
+	int flags;
+};
 
-    navit_enter(argc, argv);
+#define TEXTFILE_LINE_SIZE 512
 
-    QQmlApplicationEngine engine;
+struct map_rect_priv {
+	struct map_selection *sel;
 
-    // engine.addImportPath("./graphics/");
+	FILE *f;
+	long pos;
+	char line[TEXTFILE_LINE_SIZE];
+	int attr_pos;
+	enum attr_type attr_last;
+	char attrs[TEXTFILE_LINE_SIZE];
+	char attr[TEXTFILE_LINE_SIZE];
+	char attr_name[TEXTFILE_LINE_SIZE];
+	struct coord c;
+	int eoc;
+	int more;
+	struct map_priv *m;
+	struct item item;
+	char *args;
+	int lastlen;
+};
 
-    engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
-    if (engine.rootObjects().isEmpty())
-        return -1;
-
-    qDebug() << "Loading QML";
-    int ret = app.exec();
-    navit_exit();
-    qDebug() << "Finished with : " << ret;
-    return ret;
-}

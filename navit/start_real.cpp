@@ -46,10 +46,13 @@
 #include "command.h"
 #include "geom.h"
 #include "traffic.h"
-#ifdef HAVE_API_WIN32_CE
-#include <windows.h>
-#include <winbase.h>
-#endif
+#include "plugin.h"
+
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QThread>
+#include <QDebug>
+
 
 int main_argc;
 char * const* main_argv;
@@ -70,12 +73,25 @@ extern void builtin_init(void);
 #endif /* USE_PLUGINS*/
 
 
+static void add_plugin(struct attr *parent, struct plugins *plugins, char *path) {
+    struct attr pa_attr= {attr_path};
+    struct attr pl_attr= {attr_plugins};
+    struct attr *attrs[2]= {&pa_attr,NULL};
+
+    if (! plugins) {
+        dbg(lvl_error, "Error plugins not set");
+    }
+    pa_attr.u.str=path;
+    pl_attr.u.plugins=plugins;
+    plugin_new(parent,attrs);
+}
+
 int navit_enter(int argc, char * const* argv) {
     xmlerror *error = NULL;
     char *config_file = NULL, *command=NULL, *startup_file=NULL;
     int opt;
     char *cp;
-    struct attr navit, conf;
+    struct attr navit, conf, plugins;
 
     GList *list = NULL, *li;
     main_argc=argc;
@@ -93,15 +109,13 @@ int navit_enter(int argc, char * const* argv) {
     if (cp) {
         debug_set_logfile(cp);
     }
-#ifdef HAVE_API_WIN32_CE
-    else {
-        debug_set_logfile("/Storage Card/navit.log");
-    }
-#endif
+
     file_init();
 #ifndef USE_PLUGINS
     builtin_init();
 #endif
+    // Add plugins 
+
     route_init();
     navigation_init();
     tracking_init();
@@ -113,50 +127,6 @@ int navit_enter(int argc, char * const* argv) {
 #ifdef HAVE_GETOPT_H
     opterr=0;  //don't bomb out on errors.
 #endif /* _MSC_VER */
-    /* ingore iphone command line argument */
-    if (argc == 2 && !strcmp(argv[1],"-RegisterForSystemEvents"))
-        argc=1;
-    if (argc > 1) {
-        /* Don't forget to update the manpage if you modify theses options */
-        while((opt = getopt(argc, argv, ":hvc:d:e:s:")) != -1) {
-            switch(opt) {
-            case 'h':
-                print_usage();
-                exit(0);
-                break;
-            case 'v':
-                printf("%s %s\n", "navit", NAVIT_VERSION);
-                exit(0);
-                break;
-            case 'c':
-                printf("config file n is set to `%s'\n", optarg);
-                config_file = optarg;
-                break;
-            case 'd':
-                debug_set_global_level(atoi(optarg), 1);
-                break;
-            case 'e':
-                command=optarg;
-                break;
-            case 's':
-                startup_file=optarg;
-                break;
-#ifdef HAVE_GETOPT_H
-            case ':':
-                fprintf(stderr, "navit: Error - Option `%c' needs a value\n", optopt);
-                print_usage();
-                exit(2);
-                break;
-//            case '?':
-//                fprintf(stderr, "navit: Error - No such option: `%c'\n", optopt);
-//                print_usage();
-//                exit(3);
-#endif
-            }
-        }
-        // use 1st cmd line option that is left for the config file
-        if (optind < argc) config_file = argv[optind];
-    }
 
     // if config file is explicitely given only look for it, otherwise try std paths
     if (config_file) {
@@ -179,7 +149,7 @@ int navit_enter(int argc, char * const* argv) {
             return 4;
         }
         // Try the next config file possibility from the list
-        config_file = li->data;
+        config_file = static_cast<char * >(li->data);
         dbg(lvl_debug,"trying %s",config_file);
         if (file_exists(config_file)) {
             break;
@@ -202,6 +172,16 @@ int navit_enter(int argc, char * const* argv) {
         li = g_list_next(li);
     }
     g_list_free(list);
+
+    // if (! config_get_attr(config, attr_plugins, &plugins, NULL)) {
+    //     dbg(lvl_error, "Internal initialization failed, can't get plugins");
+    //     exit(6);
+    // }
+    // dbg(lvl_error, "Loading graphics");
+
+    // add_plugin(&navit, plugins.u.plugins, "graphics/libnavit_graphics");
+    // plugins_init(plugins.u.plugins);
+
     if (! (config && config_get_attr(config, attr_navit, &navit, NULL))) {
         dbg(lvl_error, "%s", _("Internal initialization failed, exiting. Check previous error messages."));
         exit(5);
@@ -228,15 +208,39 @@ int navit_enter(int argc, char * const* argv) {
         command_evaluate(&conf, command);
     }
 
+
     return 0;
+}
+
+
+int main(int argc, char **argv) {
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#endif
+    QGuiApplication app(argc, argv);
+
+    navit_enter(argc, argv);
+
+    QQmlApplicationEngine engine;
+
+    // engine.addImportPath("./graphics/");
+
+    engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
+    if (engine.rootObjects().isEmpty())
+        return -1;
+
+    qDebug() << "Loading QML";
+    int ret = app.exec();
+    navit_exit();
+    qDebug() << "Finished with : " << ret;
+    return ret;
 }
 
 void navit_exit() {
     /* TODO: Android actually has no event loop, so we can't free all allocated resources here. Have to find better place to
      *  free all allocations on program exit. And don't forget to free all the stuff allocated in the code above.
      */
-    #ifndef HAVE_API_ANDROID
-        linguistics_free();
-        debug_finished();
-    #endif
+    linguistics_free();
+    debug_finished();
 }

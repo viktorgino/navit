@@ -236,7 +236,7 @@ static void event_qt5_main_loop_run(void) {
 
 static void event_qt5_main_loop_quit(void) {
     dbg(lvl_debug, "enter");
-    exit(0);
+    // exit(0);
 }
 
 static struct event_watch* event_qt5_add_watch(int fd, enum event_watch_cond cond, struct callback* cb) {

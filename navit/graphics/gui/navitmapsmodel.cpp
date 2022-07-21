@@ -96,7 +96,7 @@ void NavitMapsModel::update() {
 
             map_get_attr(attr.u.map, attr_active, &active, nullptr);
             if (active.u.num){
-                maps.insert("imageUrl", "qrc:/Navit/assets/ionicons/md-checkmark-circle-outline.svg");
+                maps.insert("imageUrl", "qrc:/NavitGUI/assets/ionicons/md-checkmark-circle-outline.svg");
             } else {
                 maps.insert("imageUrl", "");
             }

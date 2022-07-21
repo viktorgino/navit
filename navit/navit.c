@@ -2075,10 +2075,10 @@ int navit_init(struct navit *this_) {
 
     dbg(lvl_info,"enter graphics %p",this_->gra);
 
-    if (!this_->gra && !(this_->flags & 1)) {
-        dbg(lvl_error,"FATAL: No graphics subsystem available.");
-        exit(1);
-    }
+    // if (!this_->gra && !(this_->flags & 1)) {
+    //     dbg(lvl_error,"FATAL: No graphics subsystem available.");
+    //     exit(1);
+    // }
 
     if (this_->speech && this_->navigation) {
         struct attr speech;

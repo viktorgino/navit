@@ -1,3 +1,8 @@
+#ifndef CONFIG_H_H
+#define CONFIG_H_H
+
+#include "item.h"
+#include "attr.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,4 +28,6 @@ struct config *config_new(struct attr *parent, struct attr **attrs);
 /* end of prototypes */
 #ifdef __cplusplus
 }
+#endif
+
 #endif
