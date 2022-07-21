@@ -155,7 +155,7 @@ static struct event_priv *event_qt5_new(struct event_methods *meth)
         qt5_event_thread->setObjectName("event thread");
         qt5_event_thread->start();
     }
-    if (!qt5_timer)
+    if (qt5_timer)
     {
         qt5_timer->moveToThread(qt5_event_thread);
     }
