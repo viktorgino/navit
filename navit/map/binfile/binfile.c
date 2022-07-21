@@ -39,6 +39,7 @@
 #include "callback.h"
 #include "types.h"
 #include "geom.h"
+#include <pthread.h>
 
 static int map_id;
 
@@ -132,6 +133,7 @@ struct map_priv {
     long download_enabled;
     int last_searched_town_id_hi;
     int last_searched_town_id_lo;
+    pthread_mutex_t read_mutex;
 };
 
 struct map_rect_priv {
@@ -1687,38 +1689,52 @@ static struct item *map_rect_get_item_binfile(struct map_rect_priv *mr) {
     }
     for (;;) {
         t=mr->t;
-        if (! t)
-            return NULL;
-        t->pos=t->pos_next;
-        if (t->pos >= t->end) {
-            if (pop_tile(mr))
-                continue;
+        if (! t){
             return NULL;
         }
+        t->pos=t->pos_next;
+        pthread_mutex_lock(&mr->m->read_mutex);
+        if (t->pos >= t->end) {
+            if (pop_tile(mr)){
+                goto cont;
+            }
+            pthread_mutex_unlock(&mr->m->read_mutex);
+            return NULL;
+        }
+        
         setup_pos(mr);
         binfile_coord_rewind(mr);
         binfile_attr_rewind(mr);
         if ((mr->item.type == type_submap) && (!mr->country_id)) {
-            if (map_parse_submap(mr, 1))
+            if (map_parse_submap(mr, 1)){
+                pthread_mutex_unlock(&mr->m->read_mutex);
                 return &busy_item;
-            continue;
+            }
+            goto cont;
         }
         if (t->mode != 2) {
             mr->item.id_hi=t->zipfile_num;
             mr->item.id_lo=t->pos-t->start;
-            if (mr->m->changes && push_modified_item(mr))
-                continue;
+            if (mr->m->changes && push_modified_item(mr)){
+                goto cont;
+            }
         }
         if (mr->country_id) {
             if (mr->item.type == type_countryindex) {
                 map_parse_country_binfile(mr);
             }
             if (item_is_town(mr->item)) {
-                return &mr->item;
+                goto ret;
             } else {
-                continue;
+                goto cont;
             }
         }
+        goto ret;
+
+        cont: pthread_mutex_unlock(&mr->m->read_mutex);
+        continue;
+        
+        ret: pthread_mutex_unlock(&mr->m->read_mutex);
         return &mr->item;
     }
 }
@@ -2682,6 +2698,12 @@ static struct map_priv *map_new_binfile(struct map_methods *meth, struct attr **
         m=NULL;
     } else {
         load_changes(m);
+    }
+    int ret = pthread_mutex_init(&m->read_mutex, NULL);
+    if (ret != 0)
+    {
+        dbg(lvl_error,"Error loading read mutex %d", ret);
+        return NULL;
     }
     return m;
 }

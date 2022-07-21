@@ -17,6 +17,27 @@
         "cstddef": "c",
         "limits": "c",
         "version": "c",
-        "random": "c"
+        "random": "c",
+        "bitset": "c",
+        "chrono": "c",
+        "compare": "c",
+        "deque": "c",
+        "list": "c",
+        "string": "c",
+        "vector": "c",
+        "memory_resource": "c",
+        "optional": "c",
+        "memory": "c",
+        "fstream": "c",
+        "future": "c",
+        "mutex": "c",
+        "ostream": "c",
+        "ratio": "c",
+        "string_view": "c",
+        "thread": "c",
+        "regex": "c",
+        "type_traits": "c",
+        "variant": "c",
+        "*.inc": "c"
     }
 }
