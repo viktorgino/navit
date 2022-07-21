@@ -269,7 +269,8 @@ static void setDestinationStatic(struct navit *navit, char * label, int x, int y
 }
 void NavitHelper::setDestination(NavitInstance *navitInstance, QString label, int x, int y){
     if(navitInstance){
-        event_add_timeout(0, 0, callback_new_4(callback_cast(setDestinationStatic), navitInstance->getNavit(), label.toUtf8().data(), x ,y));
+        // event_add_timeout(0, 0, callback_new_4(callback_cast(setDestinationStatic), navitInstance->getNavit(), label.toUtf8().data(), x ,y));
+        setDestinationStatic(navitInstance->getNavit(), label.toUtf8().data(), x ,y);
     }
 }
 
@@ -282,7 +283,8 @@ static void setPositionStatic(struct navit *navit, int x, int y) {
 
 void NavitHelper::setPosition(NavitInstance *navitInstance, int x, int y){
     if(navitInstance){
-        event_add_timeout(0, 0, callback_new_3(callback_cast(setPositionStatic), navitInstance->getNavit(), x ,y));
+        // event_add_timeout(0, 0, callback_new_3(callback_cast(setPositionStatic), navitInstance->getNavit(), x ,y));
+        setPositionStatic(navitInstance->getNavit(), x ,y);
     }
 }
 

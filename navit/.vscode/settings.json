@@ -16,6 +16,7 @@
         "valarray": "c",
         "cstddef": "c",
         "limits": "c",
-        "version": "c"
+        "version": "c",
+        "random": "c"
     }
 }

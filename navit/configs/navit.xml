@@ -68,7 +68,7 @@
 		<!-- For SDL, you should add follow="1" to have the view centered on your position -->
 		<!-- <vehicle name="Meins" enabled="yes" source="gpsd://localhost" color="#0000ff" follow="1"/> -->
 
-		<vehicle name="Demo" profilename="car" enabled="yes" active="1" source="demo://"/>
+		<vehicle name="Demo" profilename="car" enabled="yes" active="1" follow="1" source="demo://"/>
 
 		<!-- For the cumulative displacement filter to be enabled, set cdf_histsize="x" here, with x being an integer somewhere around 4 -->
 		<tracking cdf_histsize="0"/>

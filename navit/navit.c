@@ -1495,10 +1495,10 @@ navit_new(struct attr *parent, struct attr **attrs) {
     this_->osd_configuration=-1;
     this_->default_layout_name=NULL;
 
-    this_->center_timeout = 10;
+    this_->center_timeout = 1;
     this_->use_mousewheel = 1;
-    this_->autozoom_secs = 10;
-    this_->autozoom_min = 7;
+    this_->autozoom_secs = 1;
+    this_->autozoom_min = 5;
     this_->autozoom_active = 0;
     this_->autozoom_paused = 0;
     this_->zoom_min = 1;
@@ -1506,7 +1506,7 @@ navit_new(struct attr *parent, struct attr **attrs) {
     this_->autozoom_max = this_->zoom_max;
     this_->follow_cursor = 1;
     this_->radius = 30;
-    this_->border = 16;
+    this_->border = 2;
     this_->auto_switch = TRUE;
 
     transform_from_geo(pro, &g, &co);
@@ -2075,10 +2075,10 @@ int navit_init(struct navit *this_) {
 
     dbg(lvl_info,"enter graphics %p",this_->gra);
 
-    if (!this_->gra && !(this_->flags & 1)) {
-        dbg(lvl_error,"FATAL: No graphics subsystem available.");
-        exit(1);
-    }
+    // if (!this_->gra && !(this_->flags & 1)) {
+    //     dbg(lvl_error,"FATAL: No graphics subsystem available.");
+    //     exit(1);
+    // }
 
     if (this_->speech && this_->navigation) {
         struct attr speech;

@@ -269,7 +269,7 @@ void QNavitQuick_2::setPitch(int pitch){
 
 void QNavitQuick_2::setFollowVehicle(bool followVehicle){
     // qDebug() << "setFollowVehicle " << followVehicle;
-    setNavitNumProperty(attr_follow, 0);
+    setNavitNumProperty(attr_follow, followVehicle);
     setNavitNumProperty(attr_follow_cursor, followVehicle);
 }
 
@@ -278,7 +278,6 @@ void QNavitQuick_2::setTracking(bool tracking) {
 }
 
 void QNavitQuick_2::setAutozoom(bool autoZoom){
-    setNavitNumProperty(attr_autozoom, (int)autoZoom);
     setNavitNumProperty(attr_autozoom_active, (int)autoZoom);
 }
 
@@ -315,6 +314,11 @@ void QNavitQuick_2::setNavitInstance(NavitInstance *navit){
         m_tracking = getNavitNumProperty(attr_tracking);
         m_autoZoom = getNavitNumProperty(attr_autozoom_active);
         m_pitch = getNavitNumProperty(attr_pitch);
+
+        setNavitNumProperty(attr_autozoom, 1); //Sets auto zoom secs
+        setNavitNumProperty(attr_autozoom_min, 0); //Set auto zoom minimum distance
+        setNavitNumProperty(attr_autozoom_max, 30); //Set auto zoom minimum distanceattr_timeout
+        setNavitNumProperty(attr_timeout, 1); //Set auto zoom minimum distance
         emit propertiesChanged();
     }
 }
