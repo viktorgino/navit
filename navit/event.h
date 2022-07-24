@@ -27,6 +27,7 @@ extern "C" {
 struct event_idle;
 struct event_timeout;
 struct event_watch;
+struct event_thread;
 struct callback;
 struct callback_list;
 struct file;
@@ -46,6 +47,7 @@ struct event_methods {
 	void (*remove_timeout)(struct event_timeout *ev);
 	struct event_idle *(*add_idle)(int priority, struct callback *cb);
 	void (*remove_idle)(struct event_idle *ev);
+	struct event_thread*(*add_thread)(struct callback *cb);
 	void (*call_callback)(struct callback_list *cb);
 };
 
@@ -66,6 +68,7 @@ struct event_timeout *event_add_timeout(int timeout, int multi, struct callback 
 void event_remove_timeout(struct event_timeout *ev);
 struct event_idle *event_add_idle(int priority, struct callback *cb);
 void event_remove_idle(struct event_idle *ev);
+struct event_thread *event_add_thread(struct callback *cb);
 void event_call_callback(struct callback_list *cb);
 char const *event_system(void);
 int event_request_system(const char *system, const char *requestor);

@@ -35,7 +35,6 @@
 #include "track.h"
 #include "debug.h"
 #include "event.h"
-#include "event_glib.h"
 #include "xmlconfig.h"
 #include "file.h"
 #include "search.h"

@@ -211,6 +211,17 @@ struct graphics_data_image {
     int size;
 };
 
+struct displayitem {
+    struct displayitem *next;
+    struct item item;
+    char *label;
+    struct displayitem_poly_holes * holes;
+    int z_order;
+    int flags;
+    int count;
+    struct coord c[0];
+};
+
 /* prototypes */
 enum attr_type;
 enum draw_mode_num;
@@ -219,7 +230,6 @@ struct attr;
 struct attr_iter;
 struct callback;
 struct color;
-struct displayitem;
 struct displaylist;
 struct displaylist_handle;
 struct graphics;

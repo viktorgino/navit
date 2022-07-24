@@ -114,6 +114,11 @@ static struct event_idle *event_qt5_add_idle(int priority, struct callback *cb)
     return (struct event_idle *)et;
 }
 
+static struct event_thread *event_qt5_add_thread(struct callback *cb)
+{
+    return nullptr;
+}
+
 static void event_qt5_remove_idle(struct event_idle *ev)
 {
     Qt5GraphicsWorker::eventIdle *idle = (Qt5GraphicsWorker::eventIdle *)ev;
@@ -135,6 +140,7 @@ static struct event_methods event_qt5_methods = {
     event_qt5_remove_timeout,
     event_qt5_add_idle,
     event_qt5_remove_idle,
+    event_qt5_add_thread,
     event_qt5_call_callback,
 };
 static struct event_priv *event_qt5_new(struct event_methods *meth)

@@ -96,6 +96,12 @@ event_add_idle(int priority, struct callback *cb) {
     return event_methods.add_idle(priority,cb);
 }
 
+
+struct event_thread *event_add_thread(struct callback *cb) {
+    require_method(add_thread);
+    return event_methods.add_thread(cb);
+}
+
 void event_remove_idle(struct event_idle *ev) {
     require_method(remove_idle);
     event_methods.remove_idle(ev);
