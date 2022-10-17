@@ -3,6 +3,23 @@
 
 #include <QObject>
 
+extern "C" {
+#include "../config.h"
+#include "item.h" /* needs to be first, as attr.h depends on it */
+
+#include "callback.h"
+#include "color.h"
+#include "debug.h"
+#include "event.h"
+
+#include "point.h" /* needs to be before graphics.h */
+
+#include "graphics.h"
+#include "plugin.h"
+#include "plugin_def.h"
+#include "window.h"
+}
+
 class NavitInstance : public QObject
 {
     Q_OBJECT
@@ -14,11 +31,12 @@ public:
     void emit_update() {
         emit update();
     }
-    struct graphics_priv* m_graphics_priv;
+    struct graphics_priv* m_graphics_priv = nullptr;
+    QPixmap getPixmap();
 signals:
     void update();
 private:
-    navit * m_navit;
+    navit * m_navit = nullptr;
 };
 
 #endif // NAVITINSTANCE_H

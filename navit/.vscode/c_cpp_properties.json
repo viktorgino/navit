@@ -1,0 +1,9 @@
+{
+    "configurations": [
+      {
+        "name": "Linux x64",
+        "intelliSenseMode": "linux-gcc-x64"
+      }
+    ],
+    "version": 4
+  }

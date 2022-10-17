@@ -342,7 +342,7 @@ struct graphics * graphics_new(struct attr *parent, struct attr **attrs) {
         return NULL;
     }
 
-    graphicstype_new=plugin_get_category_graphics(type_attr->u.str);
+    graphicstype_new=plugin_get_category(plugin_category_graphics, type_attr->u.str);
     if (! graphicstype_new) {
         dbg(lvl_error,"Failed to load graphics plugin %s.", type_attr->u.str);
         return NULL;
@@ -1423,26 +1423,6 @@ struct displayitem_poly_holes {
     int count;
     int *ccount;
     struct coord ** coords;
-};
-
-/**
- * @brief graphics display item structure
- *
- * The graphics item passes the ap items and other items with this structure
- * to the graphics drawing routines. The struct is only a stub. It is allocated
- * including "count -1" struct coord's following c[0], if "holes" not NULL, by a
- * polygon hole structure, and if label != NULL, a series of zero terminated
- * strings followed by another zero for label.
-*/
-struct displayitem {
-    struct displayitem *next;
-    struct item item;
-    char *label;
-    struct displayitem_poly_holes * holes;
-    int z_order;
-    int flags;
-    int count;
-    struct coord c[0];
 };
 
 /**

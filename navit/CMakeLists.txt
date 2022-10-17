@@ -18,7 +18,7 @@ add_subdirectory (map/textfile)
 add_subdirectory (vehicle/demo)
 
 find_package(PkgConfig REQUIRED)
-find_package(Qt5 REQUIRED COMPONENTS Core Quick Svg)
+find_package(Qt5 REQUIRED COMPONENTS Core Quick Svg Quick3D)
 
 pkg_check_modules(GMODULE REQUIRED IMPORTED_TARGET gmodule-2.0)
 pkg_check_modules(GLIB2 REQUIRED IMPORTED_TARGET glib-2.0>=2.10)
@@ -27,7 +27,7 @@ pkg_check_modules(DBUS REQUIRED IMPORTED_TARGET dbus-1>=1.4)
 pkg_check_modules(DBUSGLIB REQUIRED IMPORTED_TARGET dbus-glib-1)
 pkg_check_modules(ZLIB REQUIRED IMPORTED_TARGET zlib)
 
-set(NAVIT_LIBS Qt5::Core Qt5::Quick Qt5::Svg
+set(NAVIT_LIBS Qt5::Core Qt5::Quick Qt5::Svg Qt5::Quick3D
     PkgConfig::GMODULE PkgConfig::GLIB2
     ${GLIB_LIBRARIES}
     PkgConfig::FONTCONFIG PkgConfig::DBUS 
@@ -61,7 +61,7 @@ endforeach()
 
 add_custom_target(navit_config_xml ALL DEPENDS COMMAND cp ${XML_FILES} ${CMAKE_BINARY_DIR})
 
-qt5_add_resources(NAVIT_QRC "navit.qrc")
+Qt5_add_resources(NAVIT_QRC "navit.qrc")
 
 add_executable(navit start.cpp ${NAVIT_QRC})
 target_link_libraries(graphics_qt5 navit_core)

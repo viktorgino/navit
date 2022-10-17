@@ -1156,5 +1156,5 @@ static struct map_priv *tracking_map_new(struct map_methods *meth, struct attr *
 
 
 void tracking_init(void) {
-    plugin_register_category_map("tracking", tracking_map_new);
+    plugin_register_category(plugin_category_map, "tracking", tracking_map_new);
 }

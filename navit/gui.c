@@ -44,7 +44,7 @@ gui_new(struct attr *parent, struct attr **attrs) {
         return NULL;
     }
 
-    guitype_new=plugin_get_category_gui(type_attr->u.str);
+    guitype_new=plugin_get_category(plugin_category_gui, type_attr->u.str);
     if (! guitype_new)
         return NULL;
 

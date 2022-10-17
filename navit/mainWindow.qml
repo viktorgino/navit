@@ -11,11 +11,4 @@ Window {
         id: root
         anchors.fill: parent
     }
-    // Rectangle {
-    //     width: 100
-    //     height: 100
-    //     color : "#ff0000"
-    //     x: 10
-    //     y: 10
-    // }
 }

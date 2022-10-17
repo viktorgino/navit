@@ -96,6 +96,7 @@ static char *environment_vars[][6]= {
     {"NAVIT_USER_DATADIR",":",          "~/.navit",      ":\\data",     ":/home",       "~\\navit"},
     {"NAVIT_LOGFILE",     NULL,         NULL,            ":\\navit.log",NULL,           ":\\navit.log"},
     {"NAVIT_LIBPREFIX",   "*/.libs/",   NULL,            NULL,          NULL,           NULL},
+    {"NAVIT_MAPS_DIR",   "~/.navit/maps",   NULL,            NULL,          NULL,           NULL},
     {NULL,                NULL,         NULL,            NULL,          NULL,           NULL},
 };
 
@@ -356,7 +357,7 @@ void main_init(const char *program) {
 #endif
 #if !defined _WIN32 && !defined _WIN32_WCE
     if (file_exists("navit.c") || file_exists("navit.o") || file_exists("navit.lo")
-            || file_exists("THIS_IS_THE_NAVIT_WORKING_DIR")) {
+            || file_exists("THIS_IS_THE_NAVIT_WORKING_DIR") || file_exists("Makefile")) {
         char buffer[PATH_MAX];
         printf("%s",_("Running from source directory\n"));
         if(getcwd(buffer, PATH_MAX)==NULL) { /*libc of navit returns "dummy" */
@@ -433,6 +434,15 @@ void main_init(const char *program) {
 # endif
 #endif	/* _WIN32 || _WIN32_WCE */
 
+    printf("NAVIT_LIBDIR : %s\nNAVIT_SHAREDIR : %s\nNAVIT_LOCALEDIR: %s\nNAVIT_USER_DATADIR: %s\nNAVIT_LOGFILE: %s\nNAVIT_LIBPREFIX: %s\nNAVIT_MAPS_DIR: %s\n",
+        getenv("NAVIT_LIBDIR"),
+        getenv("NAVIT_SHAREDIR"),
+        getenv("NAVIT_LOCALEDIR"),
+        getenv("NAVIT_USER_DATADIR"),
+        getenv("NAVIT_LOGFILE"),
+        getenv("NAVIT_LIBPREFIX"),
+        getenv("NAVIT_MAPS_DIR")
+    );
     s = getenv("NAVIT_WID");
     if (s) {
         setenv("SDL_WINDOWID", s, 0);

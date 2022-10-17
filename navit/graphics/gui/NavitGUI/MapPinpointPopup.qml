@@ -21,7 +21,7 @@ Popup {
             anchors.fill: parent
             source: backgroundRectangle
             color: "#80000000"
-            samples: 1 + radius * 2
+            // samples: 1 + radius * 2
             radius: 60
             spread: 0.2
         }

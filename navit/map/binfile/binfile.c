@@ -2693,17 +2693,18 @@ static struct map_priv *map_new_binfile(struct map_methods *meth, struct attr **
     if (download_enabled)
         m->download_enabled=download_enabled->u.num;
 
-    if (!map_binfile_open(m) && !m->check_version && !m->url) {
-        map_binfile_destroy(m);
-        m=NULL;
-    } else {
-        load_changes(m);
-    }
     int ret = pthread_mutex_init(&m->read_mutex, NULL);
     if (ret != 0)
     {
         dbg(lvl_error,"Error loading read mutex %d", ret);
         return NULL;
+    }
+    
+    if (!map_binfile_open(m) && !m->check_version && !m->url) {
+        map_binfile_destroy(m);
+        m=NULL;
+    } else {
+        load_changes(m);
     }
     return m;
 }
@@ -2713,6 +2714,6 @@ void plugin_init(void) {
     if (sizeof(struct zip_cd) != 46) {
         dbg(lvl_error,"error: sizeof(struct zip_cd)=%zu",sizeof(struct zip_cd));
     }
-    plugin_register_category_map("binfile", map_new_binfile);
+    plugin_register_category(plugin_category_map, "binfile", map_new_binfile);
 }
 

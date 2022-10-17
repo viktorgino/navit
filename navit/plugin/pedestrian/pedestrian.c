@@ -1393,7 +1393,7 @@ void plugin_init(void) {
 #endif
 
     plugin_register_category_osd("marker", osd_marker_new);
-    plugin_register_category_map("route_occluded", map_route_occluded_new);
+    plugin_register_category(plugin_category_map, "route_occluded", map_route_occluded_new);
     callback.type = attr_callback;
     callback.u.callback = callback_new_attr_0(callback_cast(pedestrian_navit), attr_navit);
     config_add_attr(config, &callback);

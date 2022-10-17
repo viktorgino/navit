@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QDebug>
+#include <QVariant>
 
 #include "navitinstance.h"
 

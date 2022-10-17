@@ -25,6 +25,9 @@
 #ifndef NAVIT_GRAPHICS_H
 #define NAVIT_GRAPHICS_H
 #include "coord.h"
+#include "item.h"
+#include "point.h"
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -211,6 +214,15 @@ struct graphics_data_image {
     int size;
 };
 
+/**
+ * @brief graphics display item structure
+ *
+ * The graphics item passes the ap items and other items with this structure
+ * to the graphics drawing routines. The struct is only a stub. It is allocated
+ * including "count -1" struct coord's following c[0], if "holes" not NULL, by a
+ * polygon hole structure, and if label != NULL, a series of zero terminated
+ * strings followed by another zero for label.
+*/
 struct displayitem {
     struct displayitem *next;
     struct item item;

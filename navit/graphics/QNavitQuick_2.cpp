@@ -112,7 +112,6 @@ void QNavitQuick_2::paint(QPainter* painter) {
 
 void QNavitQuick_2::geometryChanged(const QRectF& newGeometry, const QRectF& oldGeometry) {
     dbg(lvl_debug, "enter")
-    QQuickPaintedItem::geometryChanged(newGeometry, oldGeometry);
     QPainter* painter = nullptr;
     if (graphics_priv == nullptr) {
         dbg(lvl_debug, "Context not set, aborting")

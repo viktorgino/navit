@@ -4603,7 +4603,7 @@ static struct traffic * traffic_new(struct attr *parent, struct attr **attrs) {
         return NULL;
     }
     dbg(lvl_debug, "type='%s'", attr->u.str);
-    traffic_new = plugin_get_category_traffic(attr->u.str);
+    traffic_new = plugin_get_category(plugin_category_traffic, attr->u.str);
     dbg(lvl_debug, "new=%p", traffic_new);
     if (!traffic_new) {
         dbg(lvl_error, "wrong type '%s'", attr->u.str);
@@ -5772,7 +5772,7 @@ static struct map_priv * traffic_map_new(struct map_methods *meth, struct attr *
 
 void traffic_init(void) {
     dbg(lvl_debug, "enter");
-    plugin_register_category_map("traffic", traffic_map_new);
+    plugin_register_category(plugin_category_map, "traffic", traffic_map_new);
 }
 
 struct map * traffic_get_map(struct traffic *this_) {

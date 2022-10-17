@@ -17,26 +17,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <string.h>
-#include <glib.h>
-#include "config.h"
-#ifdef USE_PLUGINS
-#ifdef HAVE_GMODULE
-#include <gmodule.h>
-#else
-#ifdef HAVE_API_WIN32_BASE
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
-#endif
-#endif
 #include "plugin.h"
-#include "file.h"
-#define PLUGIN_C
-#include "plugin.h"
-#include "item.h"
-#include "debug.h"
+
 
 /**
  * @defgroup plugins
@@ -45,87 +27,13 @@
  * @{
  */
 
-#ifdef USE_PLUGINS
-#ifndef HAVE_GMODULE
-typedef void * GModule;
-#define G_MODULE_BIND_LOCAL 1
-#define G_MODULE_BIND_LAZY 2
-static int g_module_supported(void) {
-    return 1;
-}
-
-#ifdef HAVE_API_WIN32_BASE
-
-static DWORD last_error;
-static char errormsg[64];
-
-static void *g_module_open(char *name, int flags) {
-    HINSTANCE handle;
-    int len=MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, name, -1, 0, 0);
-    wchar_t filename[len];
-    MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, name, -1, filename, len) ;
-
-    handle = LoadLibraryW (filename);
-    if (!handle)
-        last_error=GetLastError();
-    return handle;
-}
-
-static char *g_module_error(void) {
-    sprintf(errormsg,"dll error %d",(int)last_error);
-    return errormsg;
-}
-
-static int g_module_symbol(GModule *handle, char *symbol, gpointer *addr) {
-#ifdef HAVE_API_WIN32_CE
-    int len=MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, symbol, -1, 0, 0);
-    wchar_t wsymbol[len+1];
-    MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, symbol, -1, wsymbol, len) ;
-    *addr=GetProcAddress ((HANDLE)handle, wsymbol);
-#else
-    *addr=GetProcAddress ((HANDLE)handle, symbol);
-#endif
-    if (*addr)
-        return 1;
-    last_error=GetLastError();
-    return 0;
-}
-
-static void g_module_close(GModule *handle) {
-    FreeLibrary((HANDLE)handle);
-}
-
-#else
-static void *g_module_open(char *name, int flags) {
-    return dlopen(name,
-                  (flags & G_MODULE_BIND_LAZY ? RTLD_LAZY : RTLD_NOW) |
-                  (flags & G_MODULE_BIND_LOCAL ? RTLD_LOCAL : RTLD_GLOBAL));
-}
-
-static char *g_module_error(void) {
-    return dlerror();
-}
-
-static int g_module_symbol(GModule *handle, char *symbol, gpointer *addr) {
-    *addr=dlsym(handle, symbol);
-    return (*addr != NULL);
-}
-
-static void g_module_close(GModule *handle) {
-    dlclose(handle);
-}
-#endif
-#endif
-#endif
 
 struct plugin {
     int active;
     int lazy;
     int ondemand;
     char *name;
-#ifdef USE_PLUGINS
     GModule *mod;
-#endif
     void (*init)(void);
 };
 
@@ -168,7 +76,7 @@ int plugin_load(struct plugin *pl) {
         g_module_close(mod);
         return 0;
     } else {
-        dbg(lvl_debug, "loaded module %s", pl->name);
+        printf("loaded module %s\n", pl->name);
         pl->mod=mod;
         pl->init=init;
     }
@@ -301,7 +209,6 @@ plugin_new(struct attr *parent, struct attr **attrs) {
 }
 
 int plugins_init(struct plugins *pls) {
-#ifdef USE_PLUGINS
     struct plugin *pl;
     GList *l;
 
@@ -321,7 +228,6 @@ int plugins_init(struct plugins *pls) {
     } else {
         dbg(lvl_error, "Warning: No plugins found. Is Navit installed correctly?");
     }
-#endif
     return 0;
 }
 
@@ -351,12 +257,38 @@ static void *find_by_name(enum plugin_category category, const char *name) {
     return NULL;
 }
 
-void *plugin_get_category(enum plugin_category category, const char *category_name, const char *name) {
+const char * plugin_category_to_category_name(enum plugin_category category) {
+    switch (category)
+    {
+    case plugin_category_graphics:
+        return "graphics";
+    case plugin_category_gui:
+        return "gui";
+    case plugin_category_map:
+        return "map";
+    case plugin_category_osd:
+        return "osd";
+    case plugin_category_speech:
+        return "speech";
+    case plugin_category_vehicle:
+        return "vehicle";
+    case plugin_category_event:
+        return "event";
+    case plugin_category_font:
+        return "font";
+    case plugin_category_traffic:
+        return "traffic";
+    default:
+        return "";
+    }
+}
+
+void *plugin_get_category(enum plugin_category category, const char *name) {
     GList *plugin_list;
     struct plugin *pl;
     char *mod_name, *filename=NULL, *corename=NULL;
     void *result=NULL;
-
+    const char *category_name = plugin_category_to_category_name(category);
     dbg(lvl_debug, "category=\"%s\", name=\"%s\"", category_name, name);
 
     if ((result=find_by_name(category, name))) {
@@ -392,4 +324,14 @@ void *plugin_get_category(enum plugin_category category, const char *category_na
     g_free(filename);
     g_free(corename);
     return NULL;
+}
+
+
+void plugin_register_category(enum plugin_category category, const char *name, void *plugin_new)
+{
+    struct name_val *nv;
+    nv=g_new(struct name_val, 1);
+    nv->name=g_strdup(name);
+	nv->val=plugin_new;
+	plugin_categories[category]=g_list_append(plugin_categories[category], nv);
 }

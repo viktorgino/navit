@@ -138,9 +138,9 @@ private:
 
     QString m_country = "United Kingdom";
 
-    struct search_list *m_searchResultList;
+    struct search_list *m_searchResultList = nullptr;
 
-    char *m_country_iso2;
+    char *m_country_iso2 = nullptr;
 
     enum SearchType m_search_type;
 

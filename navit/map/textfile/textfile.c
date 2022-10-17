@@ -368,6 +368,6 @@ static struct map_priv *map_new_textfile(struct map_methods *meth, struct attr *
 
 void plugin_init(void) {
     dbg(lvl_debug,"textfile: plugin_init");
-    plugin_register_category_map("textfile", map_new_textfile);
+    plugin_register_category(plugin_category_map, "textfile", map_new_textfile);
 }
 

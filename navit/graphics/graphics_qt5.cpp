@@ -50,7 +50,6 @@ extern "C" {
 #include <QScreen>
 #include <QSvgRenderer>
 
-#include "QNavitQuick.h"
 #include "QNavitQuick_2.h"
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -554,9 +553,9 @@ static void draw_text(struct graphics_priv* gr, struct graphics_gc_priv* fg, str
     QString tmp = QString::fromUtf8(text);
     qreal m_dx = ((qreal)dx) / 65536.0;
     qreal m_dy = ((qreal)dy) / 65536.0;
-    QMatrix sav = painter->worldMatrix();
-    QMatrix m(m_dx, m_dy, -m_dy, m_dx, p->x, p->y);
-    painter->setWorldMatrix(m, TRUE);
+    QTransform sav = painter->worldTransform();
+    QTransform m(m_dx, m_dy, -m_dy, m_dx, p->x, p->y);
+    painter->setWorldTransform(m, TRUE);
     painter->setFont(*font->font);
     if (bg) {
         QPen shadow;
@@ -569,7 +568,7 @@ static void draw_text(struct graphics_priv* gr, struct graphics_gc_priv* fg, str
     }
     painter->setPen(*fg->pen);
     painter->drawText(0, 0, tmp);
-    painter->setWorldMatrix(sav);
+    painter->setWorldTransform(sav);
 #endif
 }
 
@@ -896,7 +895,7 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
 #if HAVE_FREETYPE
     struct font_priv* (*font_freetype_new)(void* meth);
     /* get font plugin if present */
-    font_freetype_new = (struct font_priv * (*)(void*))plugin_get_category_font("freetype");
+    font_freetype_new = (struct font_priv * (*)(void*))plugin_get_category(plugin_category_font, "freetype");
     if (!font_freetype_new) {
         dbg(lvl_error, "no freetype");
         return NULL;
@@ -946,7 +945,6 @@ static struct graphics_priv* graphics_qt5_new(struct navit* nav, struct graphics
     graphics_priv->GPriv = NULL;
 
     /* register our QtQuick widget to allow it's usage within QML */
-    qmlRegisterType<QNavitQuick>("Navit.Graphics", 1, 0, "NavitMap");
     qmlRegisterType<QNavitQuick_2>("Navit.Graphics", 2, 0, "NavitMap");
 
     qmlRegisterType<NavitPOIModel>("Navit.POI", 1, 0, "NavitPOIModel");
@@ -1032,6 +1030,6 @@ void plugin_init() {
     qDebug() << "Graphics plugin init";
     Q_INIT_RESOURCE(graphics_qt5);
     dbg(lvl_debug,"Graphics plugin init");
-    plugin_register_category_graphics("qt5", graphics_qt5_new);
+    plugin_register_category(plugin_category_graphics, "qt5", (void*) graphics_qt5_new);
     qt5_event_init();
 }

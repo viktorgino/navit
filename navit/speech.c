@@ -44,7 +44,7 @@ speech_new(struct attr *parent, struct attr **attrs) {
         return NULL;
     }
     dbg(lvl_debug,"type='%s'", attr->u.str);
-    speech_new=plugin_get_category_speech(attr->u.str);
+    speech_new=plugin_get_category(plugin_category_speech, attr->u.str);
     dbg(lvl_debug,"new=%p", speech_new);
     if (! speech_new) {
         dbg(lvl_error,"wrong type '%s'", attr->u.str);

@@ -17,11 +17,24 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef PLUGIN_C
+#ifndef PLUGIN_H
+#define PLUGIN_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <string.h>
+#include <glib.h>
+#include "config.h"
+
+#include <gmodule.h>
+
+#include "item.h"
+#include "debug.h"
+#include "file.h"
+
+#include "plugin_def.h"
 
 struct plugin;
 
@@ -54,101 +67,18 @@ enum plugin_category {
     /** Dummy for last entry. */
     plugin_category_last,
 };
-#endif
 
 struct container;
 struct popup;
 struct popup_item;
-#undef PLUGIN_FUNC1
-#undef PLUGIN_FUNC3
-#undef PLUGIN_FUNC4
-#undef PLUGIN_CATEGORY
-#define PLUGIN_PROTO(name,...) void name(__VA_ARGS__)
 
-#ifdef PLUGIN_C
-#define PLUGIN_REGISTER(name,...)						\
-void										\
-plugin_register_##name(PLUGIN_PROTO((*func),__VA_ARGS__))				\
-{										\
-        plugin_##name##_func=func;						\
-}
-
-#define PLUGIN_CALL(name,...)						\
-{										\
-	if (plugin_##name##_func)						\
-		(*plugin_##name##_func)(__VA_ARGS__);					\
-}
-
-#define PLUGIN_FUNC1(name,t1,p1)				\
-PLUGIN_PROTO((*plugin_##name##_func),t1 p1);			\
-void plugin_call_##name(t1 p1) PLUGIN_CALL(name,p1)		\
-PLUGIN_REGISTER(name,t1 p1)
-
-#define PLUGIN_FUNC3(name,t1,p1,t2,p2,t3,p3)					\
-PLUGIN_PROTO((*plugin_##name##_func),t1 p1,t2 p2,t3 p3);				\
-void plugin_call_##name(t1 p1,t2 p2, t3 p3) PLUGIN_CALL(name,p1,p2,p3)	\
-PLUGIN_REGISTER(name,t1 p1,t2 p2,t3 p3)
-
-#define PLUGIN_FUNC4(name,t1,p1,t2,p2,t3,p3,t4,p4)					\
-PLUGIN_PROTO((*plugin_##name##_func),t1 p1,t2 p2,t3 p3,t4 p4);				\
-void plugin_call_##name(t1 p1,t2 p2, t3 p3, t4 p4) PLUGIN_CALL(name,p1,p2,p3,p4)	\
-PLUGIN_REGISTER(name,t1 p1,t2 p2,t3 p3,t4 p4)
 
 struct name_val {
     char *name;
     void *val;
 };
 
-GList *plugin_categories[plugin_category_last];
-
-#define PLUGIN_CATEGORY(category,newargs) \
-struct category##_priv; \
-struct category##_methods; \
-void \
-plugin_register_category_##category(const char *name, struct category##_priv *(*new_) newargs) \
-{ \
-        struct name_val *nv; \
-        nv=g_new(struct name_val, 1); \
-        nv->name=g_strdup(name); \
-	nv->val=new_; \
-	plugin_categories[plugin_category_##category]=g_list_append(plugin_categories[plugin_category_##category], nv); \
-} \
- \
-void * \
-plugin_get_category_##category(const char *name) \
-{ \
-	return plugin_get_category(plugin_category_##category, #category, name); \
-}
-
-#else
-#define PLUGIN_FUNC1(name,t1,p1)			\
-void plugin_register_##name(void(*func)(t1 p1));	\
-void plugin_call_##name(t1 p1);
-
-#define PLUGIN_FUNC3(name,t1,p1,t2,p2,t3,p3)			\
-void plugin_register_##name(void(*func)(t1 p1,t2 p2,t3 p3));	\
-void plugin_call_##name(t1 p1,t2 p2,t3 p3);
-
-#define PLUGIN_FUNC4(name,t1,p1,t2,p2,t3,p3,t4,p4)			\
-void plugin_register_##name(void(*func)(t1 p1,t2 p2,t3 p3,t4 p4));	\
-void plugin_call_##name(t1 p1,t2 p2,t3 p3,t4 p4);
-
-#define PLUGIN_CATEGORY(category,newargs) \
-struct category##_priv; \
-struct category##_methods; \
-void plugin_register_category_##category(const char *name, struct category##_priv *(*new_) newargs); \
-void *plugin_get_category_##category(const char *name);
-
-#endif
-
-#include "plugin_def.h"
-
-#ifndef USE_PLUGINS
-#define plugin_module_cat3(pre,mod,post) pre##mod##post
-#define plugin_module_cat2(pre,mod,post) plugin_module_cat3(pre,mod,post)
-#define plugin_module_cat(pre,post) plugin_module_cat2(pre,MODULE,post)
-#define plugin_init plugin_module_cat(module_,_init)
-#endif
+static GList *plugin_categories[plugin_category_last];
 
 struct attr;
 
@@ -166,11 +96,12 @@ struct plugins *plugins_new(struct attr *, struct attr **);
 struct plugin *plugin_new(struct attr *parent, struct attr ** attrs);
 int plugins_init(struct plugins *pls);
 void plugins_destroy(struct plugins *pls);
-void *plugin_get_category(enum plugin_category category, const char *category_name, const char *name);
+void *plugin_get_category(enum plugin_category category, const char *name);
+void plugin_register_category(enum plugin_category category, const char *name, void *plugin_new);
 /* end of prototypes */
 
 #ifdef __cplusplus
 }
 #endif
 
-
+#endif

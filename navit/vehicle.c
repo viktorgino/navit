@@ -128,7 +128,7 @@ vehicle_new(struct attr *parent, struct attr **attrs) {
         *colon = '\0';
     dbg(lvl_debug, "source='%s' type='%s'", source->u.str, type);
 
-    vehicletype_new = plugin_get_category_vehicle(type);
+    vehicletype_new = plugin_get_category(plugin_category_vehicle, type);
     if (!vehicletype_new) {
         dbg(lvl_error, "invalid source '%s': unknown type '%s'", source->u.str, type);
         g_free(type);

@@ -19,7 +19,7 @@ QString NavitHelper::getClosest(QList<QVariantMap> items, int maxDistance) {
     QString ret;
     int retDistance = 1000000;
     for(QVariantMap item : items){
-        if(item.value("distance") < retDistance){
+        if(item.value("distance").toInt() < retDistance){
             ret = item.value("label").toString();
             retDistance = item.value("distance").toInt();
         }
@@ -95,7 +95,7 @@ QVariantMap NavitHelper::getPOI(NavitInstance *navitInstance, struct coord cente
         QVariantMap ret;
         int retDistance = 1000000;
         for(QVariantMap poi : pois){
-            if(poi.value("distance") < retDistance){
+            if(poi.value("distance").toInt() < retDistance){
                 ret = poi;
                 retDistance = poi.value("distance").toInt();
             }
@@ -168,7 +168,7 @@ QString NavitHelper::getAddress(NavitInstance *navitInstance, struct coord cente
                                 streets << street;
                             } else if(item_is_street(*item)){
                                 QVariantMap street;
-                                street.insert("label", label);
+                                street.insert("label", QVariant(label));
                                 street.insert("distance", idist);
                                 streets << street;
                             } else if (item_is_town(*item)) {

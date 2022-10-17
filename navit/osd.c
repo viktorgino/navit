@@ -49,7 +49,7 @@ osd_new(struct attr *parent, struct attr **attrs) {
 
     if (! type)
         return NULL;
-    new=plugin_get_category_osd(type->u.str);
+    new=plugin_get_category(plugin_category_osd, type->u.str);
     if (! new) {
         dbg(lvl_error, "invalid OSD type '%s'", type->u.str);
         return NULL;

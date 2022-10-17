@@ -261,6 +261,8 @@ QString NavitRoute::getLastDestination(struct pcoord *pc) {
         map_rect_destroy(mr_formerdests);
         return ret;
     }
+
+    return "";
 }
 void NavitRoute::destinationUpdate(){
     struct route * route = navit_get_route(m_navitInstance->getNavit());

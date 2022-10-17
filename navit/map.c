@@ -24,7 +24,7 @@
  * This file contains the code that makes navit able to load maps. Because
  * navit is able to open maps in different formats, this code does not handle
  * any map format itself. This is done by map plugins which register to this
- * code by calling plugin_register_category_map().
+ * code by calling plugin_register_category(plugin_category_map, ).
  *
  * When opening a new map, the map plugin will return a pointer to a map_priv
  * struct, which can be defined by the map plugin and contains whatever private
@@ -98,7 +98,7 @@ map_new(struct attr *parent, struct attr **attrs) {
         dbg(lvl_error,"missing type");
         return NULL;
     }
-    maptype_new=plugin_get_category_map(type->u.str);
+    maptype_new=plugin_get_category(plugin_category_map, type->u.str);
     if (! maptype_new) {
         dbg(lvl_error,"invalid type '%s'", type->u.str);
         return NULL;

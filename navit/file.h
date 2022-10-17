@@ -32,6 +32,7 @@ extern "C" {
 #endif
 #include "param.h"
 #include <stdio.h>
+#include <glib.h>
 
 struct file {
 	struct file *next;

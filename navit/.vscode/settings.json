@@ -38,6 +38,12 @@
         "regex": "c",
         "type_traits": "c",
         "variant": "c",
-        "*.inc": "c"
+        "*.inc": "c",
+        "projection.h": "c",
+        "coord.h": "c",
+        "item.h": "c",
+        "file.h": "c",
+        "plugin_def.h": "c",
+        "qquick3dtexturedata": "cpp"
     }
 }
