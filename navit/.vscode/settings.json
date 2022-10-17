@@ -44,6 +44,7 @@
         "item.h": "c",
         "file.h": "c",
         "plugin_def.h": "c",
-        "qquick3dtexturedata": "cpp"
+        "qquick3dtexturedata": "cpp",
+        "graphics.h": "c"
     }
 }

@@ -35,8 +35,8 @@ set(NAVIT_LIBS Qt5::Core Qt5::Quick Qt5::Svg Qt5::Quick3D
 
 add_library (navit_core SHARED announcement.c atom.c attr.c cache.c callback.c command.c config_.c coord.c country.c data_window.c debug.c
 event.c file.c geom.c graphics.c gui.c item.c layout.c log.c main.c map.c maps.c
-linguistics.c mapset.c maptype.c menu.c messages.c bookmarks.c navit.c navit_nls.c navigation.c osd.c param.c phrase.c plugin.c popup.c
-profile.c profile_option.c projection.c roadprofile.c route.c script.c search.c speech.c sunriset.c transform.c track.c
+linguistics.c mapset.c maptype.c menu.c messages.c bookmarks.c navit.c navit_nls.c navigation.c param.c phrase.c plugin.c popup.c
+profile.c profile_option.c projection.c roadprofile.c route.c search.c speech.c sunriset.c transform.c track.c
 search_houseno_interpol.c traffic.c util.c vehicle.c vehicleprofile.c xmlconfig.c start_real.cpp)
 
 target_compile_definitions(navit_core PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>)

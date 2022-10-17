@@ -1,48 +1,48 @@
-/**
- * Navit, a modular navigation system.
- * Copyright (C) 2005-2008 Navit Team
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA.
- */
+// /**
+//  * Navit, a modular navigation system.
+//  * Copyright (C) 2005-2008 Navit Team
+//  *
+//  * This program is free software; you can redistribute it and/or
+//  * modify it under the terms of the GNU General Public License
+//  * version 2 as published by the Free Software Foundation.
+//  *
+//  * This program is distributed in the hope that it will be useful,
+//  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  * GNU General Public License for more details.
+//  *
+//  * You should have received a copy of the GNU General Public License
+//  * along with this program; if not, write to the
+//  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+//  * Boston, MA  02110-1301, USA.
+//  */
 
-#include "start_real.h"
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QThread>
-#include <QDebug>
+// #include "start_real.h"
+// #include <QGuiApplication>
+// #include <QQmlApplicationEngine>
+// #include <QThread>
+// #include <QDebug>
 
-int main(int argc, char **argv) {
+// int main(int argc, char **argv) {
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
-    QGuiApplication app(argc, argv);
+// #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+//     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+// #endif
+//     QGuiApplication app(argc, argv);
 
-    navit_enter(argc, argv);
+//     navit_enter(argc, argv);
 
-    QQmlApplicationEngine engine;
+//     QQmlApplicationEngine engine;
 
-    // engine.addImportPath("./graphics/");
+//     // engine.addImportPath("./graphics/");
 
-    engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
-    if (engine.rootObjects().isEmpty())
-        return -1;
+//     engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
+//     if (engine.rootObjects().isEmpty())
+//         return -1;
 
-    qDebug() << "Loading QML";
-    int ret = app.exec();
-    navit_exit();
-    qDebug() << "Finished with : " << ret;
-    return ret;
-}
+//     qDebug() << "Loading QML";
+//     int ret = app.exec();
+//     navit_exit();
+//     qDebug() << "Finished with : " << ret;
+//     return ret;
+// }

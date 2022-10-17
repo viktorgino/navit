@@ -45,7 +45,6 @@
 #include "point.h"
 #include "graphics.h"
 #include "gui.h"
-#include "osd.h"
 #include "log.h"
 #include "announcement.h"
 #include "vehicleprofile.h"
@@ -271,10 +270,6 @@ object_func_lookup(enum attr_type type) {
         return &roadprofile_func;
     case attr_route:
         return &route_func;
-    case attr_script:
-        return &script_func;
-    case attr_osd:
-        return &osd_func;
     case attr_trackingo:
         return &tracking_func;
     case attr_speech:
@@ -375,6 +370,8 @@ static void initStatic(void) {
     elements[7].func=NULL;
     elements[7].type=attr_debug;
 
+    // TODO : remove
+    // Only kept for backwards compatibility
     elements[8].name="osd";
     elements[8].parent="navit";
     elements[8].func=NULL;

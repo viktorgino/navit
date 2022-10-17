@@ -130,7 +130,6 @@ struct navit {
     int tracking_flag;
     int orientation;
     int recentdest_count;
-    int osd_configuration;
     GList *vehicles;
     GList *windows_items;
     struct navit_vehicle *vehicle;
@@ -1492,7 +1491,6 @@ navit_new(struct attr *parent, struct attr **attrs) {
     this_->orientation=-1;
     this_->tracking_flag=1;
     this_->recentdest_count=10;
-    this_->osd_configuration=-1;
     this_->default_layout_name=NULL;
 
     this_->center_timeout = 1;
@@ -2626,11 +2624,6 @@ static int navit_set_attr_do(struct navit *this_, struct attr *attr, int init) {
                 navit_draw(this_);
         }
         break;
-    case attr_osd_configuration:
-        dbg(lvl_debug,"setting osd_configuration to %ld (was %d)", attr->u.num, this_->osd_configuration);
-        attr_updated=(this_->osd_configuration != attr->u.num);
-        this_->osd_configuration=attr->u.num;
-        break;
     case attr_pitch:
         attr_updated=(this_->pitch != attr->u.num);
         this_->pitch=attr->u.num;
@@ -2738,8 +2731,8 @@ static int navit_set_attr_do(struct navit *this_, struct attr *attr, int init) {
     }
     if (attr_updated && !init) {
         callback_list_call_attr_2(this_->attr_cbl, attr->type, this_, attr);
-        if (attr->type == attr_osd_configuration)
-            graphics_draw_mode(this_->gra, draw_mode_end);
+        // if (attr->type == attr_osd_configuration)
+        //     graphics_draw_mode(this_->gra, draw_mode_end);
     }
     return 1;
 }
@@ -2861,12 +2854,6 @@ int navit_get_attr(struct navit *this_, enum attr_type type, struct attr *attr, 
         break;
     case attr_orientation:
         attr->u.num=this_->orientation;
-        break;
-    case attr_osd:
-        ret=attr_generic_get_attr(this_->attrs, NULL, type, attr, iter?(struct attr_iter *)&iter->iter:NULL);
-        break;
-    case attr_osd_configuration:
-        attr->u.num=this_->osd_configuration;
         break;
     case attr_pitch:
         attr->u.num=round(transform_get_pitch(this_->trans)*sqrt(this_->w*this_->h)/sqrt(
@@ -3075,8 +3062,6 @@ int navit_add_attr(struct navit *this_, struct attr *attr) {
     case attr_navigation:
         this_->navigation=attr->u.navigation;
         break;
-    case attr_osd:
-        break;
     case attr_recent_dest:
         this_->recentdest_count = attr->u.num;
         break;
@@ -3118,7 +3103,6 @@ int navit_remove_attr(struct navit *this_, struct attr *attr) {
         navit_remove_callback(this_, attr->u.callback);
         break;
     case attr_vehicle:
-    case attr_osd:
         this_->attrs=attr_generic_remove_attr(this_->attrs, attr);
         return 1;
     default:

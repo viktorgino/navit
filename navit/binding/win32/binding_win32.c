@@ -40,7 +40,7 @@
 #include "vehicleprofile.h"
 #include "map.h"
 #include "mapset.h"
-#include "osd.h"
+
 #include "route.h"
 #include "search.h"
 #include "callback.h"

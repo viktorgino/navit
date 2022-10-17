@@ -42,7 +42,6 @@
 #include "vehicleprofile.h"
 #include "map.h"
 #include "mapset.h"
-#include "osd.h"
 #include "route.h"
 #include "search.h"
 #include "gui.h"
@@ -952,18 +951,6 @@ static DBusHandlerResult request_mapset_get_attr(DBusConnection *connection, DBu
 static DBusHandlerResult request_navigation_get_attr(DBusConnection *connection, DBusMessage *message) {
     return request_get_attr(connection, message, "navigation", NULL, (int (*)(void *, enum attr_type, struct attr *,
                             struct attr_iter *))navigation_get_attr);
-}
-
-/* osd */
-
-static DBusHandlerResult request_osd_get_attr(DBusConnection *connection, DBusMessage *message) {
-    return request_get_attr(connection, message, "osd", NULL, (int (*)(void *, enum attr_type, struct attr *,
-                            struct attr_iter *))osd_get_attr);
-}
-
-
-static DBusHandlerResult request_osd_set_attr(DBusConnection *connection, DBusMessage *message) {
-    return request_set_add_remove_attr(connection, message, "osd", NULL, (int (*)(void *, struct attr *))osd_set_attr);
 }
 
 /* roadprofile */
@@ -2021,8 +2008,6 @@ struct dbus_method {
     {".mapset", "get_attr",            "s",       "attribute",                               "sv",  "attrname,value", request_mapset_get_attr},
     {".mapset", "get_attr_wi",         "so",      "attribute,attr_iter",                     "sv",  "attrname,value", request_mapset_get_attr},
     {".navigation","get_attr",         "s",       "attribute",                               "",   "",      request_navigation_get_attr},
-    {".osd",    "get_attr",          "s",       "attribute",                               "sv",  "attrname,value", request_osd_get_attr},
-    {".osd",    "set_attr",          "sv",      "attribute,value",                         "",    "",  request_osd_set_attr},
     {".roadprofile", "get_attr",       "s",       "attribute",                               "sv",  "attrname,value", request_roadprofile_get_attr},
     {".roadprofile", "get_attr_wi",    "so",      "attribute,attr_iter",                     "",   "",      request_roadprofile_get_attr},
     {".roadprofile", "set_attr",       "sv",      "attribute,value",                         "",    "",  request_roadprofile_set_attr},
