@@ -9,24 +9,11 @@
 #include "navit.h"
 #include "vehicle.h"
 #include "speech.h"
-#include "gui.h"
 #include "debug.h"
 #include "callback.h"
 #include "command.h"
 #include "event.h"
 #include "navit_nls.h"
-
-/*
-gui.fullscreen=!gui.fullscreen
-gui.menu()
-gui.get_data()
-zoom_in()
-zoom_out()
-speech.active=!speech.active
-osd_configuration=1
-osd[@type=="xxx"].active=0;osd[@type=="yyy"].active=0
-*/
-
 
 /**
  * The result, or interim result, of evaluating a saved command.

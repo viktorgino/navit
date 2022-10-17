@@ -40,7 +40,6 @@
 #include "debug.h"
 #include "main.h"
 #include "navit.h"
-#include "gui.h"
 #include "item.h"
 #include "xmlconfig.h"
 #include "coord.h"

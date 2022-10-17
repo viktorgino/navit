@@ -230,10 +230,8 @@ ATTR(predraw)
 ATTR(postdraw)
 ATTR(button)
 ATTR(ondemand)
-ATTR(menu_on_map_click)
 ATTR(direction)
 ATTR_UNUSED
-ATTR(gui_speech)
 ATTR(town_id) /* fixme? */
 ATTR(street_id) /* fixme? */
 ATTR(district_id) /* fixme? */
@@ -262,7 +260,6 @@ ATTR(persistent)
 ATTR(waypoints_flag) /* toggle for "set as destination" to switch between start a new route or add */
 ATTR(no_warning_if_map_file_missing)
 ATTR(duplicate)
-ATTR(has_menu_button)
 ATTR(oneway)
 ATTR2(0x0002ffff,type_int_end)
 ATTR2(0x00030000,type_string_begin)

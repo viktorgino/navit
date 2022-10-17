@@ -69,8 +69,6 @@ enum plugin_category {
 };
 
 struct container;
-struct popup;
-struct popup_item;
 
 
 struct name_val {

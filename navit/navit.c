@@ -34,7 +34,6 @@
 #include "debug.h"
 #include "navit.h"
 #include "callback.h"
-#include "gui.h"
 #include "item.h"
 #include "xmlconfig.h"
 #include "projection.h"
@@ -46,9 +45,7 @@
 #include "transform.h"
 #include "traffic.h"
 #include "param.h"
-#include "menu.h"
 #include "graphics.h"
-#include "popup.h"
 #include "data_window.h"
 #include "route.h"
 #include "navigation.h"
@@ -134,11 +131,10 @@ struct navit {
     GList *windows_items;
     struct navit_vehicle *vehicle;
     struct callback_list *attr_cbl;
-    struct callback *nav_speech_cb, *roadbook_callback, *popup_callback, *route_cb, *progress_cb;
+    struct callback *nav_speech_cb, *roadbook_callback, *route_cb, *progress_cb;
     struct datawindow *roadbook_window;
     struct map *former_destination;
     struct point pressed, last, current;
-    int button_pressed,moved,popped,zoomed;
     int center_timeout;
     int autozoom_secs;
     int autozoom_min;
@@ -147,7 +143,6 @@ struct navit {
     int autozoom_paused;
     struct event_timeout *button_timeout, *motion_timeout;
     struct callback *motion_timeout_callback;
-    int ignore_button;
     int ignore_graphics_events;
     struct log *textfile_debug_log;
     struct pcoord destination;
@@ -160,7 +155,7 @@ struct navit {
     int drag_bitmap;
     int use_mousewheel;
     struct messagelist *messages;
-    struct callback *resize_callback,*button_callback,*motion_callback,*predraw_callback;
+    struct callback *resize_callback,*motion_callback,*predraw_callback;
     struct vehicleprofile *vehicleprofile;
     GList *vehicleprofiles;
     int pitch;
@@ -485,35 +480,6 @@ int navit_get_height(struct navit *this_) {
     return this_->h;
 }
 
-static void navit_popup(void *data) {
-    struct navit *this_=data;
-    popup(this_, 1, &this_->pressed);
-    this_->button_timeout=NULL;
-    this_->popped=1;
-}
-
-
-/**
- * @brief Sets a flag indicating that the current button event should be ignored by subsequent handlers.
- *
- * Calling this function will set the {@code ignore_button} member to {@code true} and return its previous state.
- * The default handler, {@link navit_handle_button(navit *, int, int, point *, callback *)} calls this function
- * just before the actual event handling core and aborts if the result is {@code true}. In order to prevent
- * multiple handlers from firing on a single event, custom button click handlers should implement the same logic
- * for events they wish to handle.
- *
- * If a handler wishes to pass down an event to other handlers, it must abort without calling this function.
- *
- * @param this_ The navit instance
- * @return {@code true} if the caller should ignore the button event, {@code false} if it should handle it
- */
-int navit_ignore_button(struct navit *this_) {
-    if (this_->ignore_button)
-        return 1;
-    this_->ignore_button=1;
-    return 0;
-}
-
 void navit_ignore_graphics_events(struct navit *this_, int ignore) {
     this_->ignore_graphics_events=ignore;
 }
@@ -559,78 +525,6 @@ void navit_set_timeout(struct navit *this_) {
     navit_set_attr(this_, &follow);
 }
 
-int navit_handle_button(struct navit *this_, int pressed, int button, struct point *p,
-                        struct callback *popup_callback) {
-    int border=16;
-
-    dbg(lvl_debug,"button %d %s (ignore: %d)",button,pressed?"pressed":"released",this_->ignore_button);
-    callback_list_call_attr_4(this_->attr_cbl, attr_button, this_, GINT_TO_POINTER(pressed), GINT_TO_POINTER(button), p);
-    if (this_->ignore_button) {
-        this_->ignore_button=0;
-        return 0;
-    }
-    if (pressed) {
-        this_->pressed=*p;
-        this_->last=*p;
-        this_->zoomed=0;
-        if (button == 1) {
-            this_->button_pressed=1;
-            this_->moved=0;
-            this_->popped=0;
-            if (popup_callback)
-                this_->button_timeout=event_add_timeout(500, 0, popup_callback);
-        }
-        if (button == 2)
-            navit_set_center_screen(this_, p, 1);
-        if (button == 3)
-            popup(this_, button, p);
-        if (button == 4 && this_->use_mousewheel) {
-            this_->zoomed = 1;
-            navit_zoom_in(this_, 2, p);
-        }
-        if (button == 5 && this_->use_mousewheel) {
-            this_->zoomed = 1;
-            navit_zoom_out(this_, 2, p);
-        }
-    } else {
-
-        this_->button_pressed=0;
-        if (this_->button_timeout) {
-            event_remove_timeout(this_->button_timeout);
-            this_->button_timeout=NULL;
-            if (! this_->moved && ! transform_within_border(this_->trans, p, border)) {
-                navit_set_center_screen(this_, p, !this_->zoomed);
-            }
-        }
-        if (this_->motion_timeout) {
-            event_remove_timeout(this_->motion_timeout);
-            this_->motion_timeout=NULL;
-        }
-        if (this_->moved) {
-            dbg(lvl_debug, "mouse drag (%d, %d)->(%d, %d)", this_->pressed.x, this_->pressed.y, p->x, p->y);
-            update_transformation(this_->trans, &this_->pressed, p);
-            graphics_draw_drag(this_->gra, NULL);
-            transform_copy(this_->trans, this_->trans_cursor);
-            graphics_overlay_disable(this_->gra, 0);
-            if (!this_->zoomed)
-                navit_set_timeout(this_);
-            navit_draw(this_);
-        } else
-            return 1;
-    }
-    return 0;
-}
-
-static void navit_button(void *data, int pressed, int button, struct point *p) {
-    struct navit *this=data;
-    dbg(lvl_debug,"enter %d %d ignore %d",pressed,button,this->ignore_graphics_events);
-    if (!this->ignore_graphics_events) {
-        if (! this->popup_callback)
-            this->popup_callback=callback_new_1(callback_cast(navit_popup), this);
-        navit_handle_button(this, pressed, button, p, this->popup_callback);
-    }
-}
-
 
 static void navit_motion_timeout(struct navit *this_) {
     int dx, dy;
@@ -642,7 +536,6 @@ static void navit_motion_timeout(struct navit *this_) {
         if (graphics_draw_drag(this_->gra, &point)) {
             graphics_overlay_disable(this_->gra, 1);
             graphics_draw_mode(this_->gra, draw_mode_end);
-            this_->moved=1;
             this_->motion_timeout=NULL;
             return;
         }
@@ -658,7 +551,6 @@ static void navit_motion_timeout(struct navit *this_) {
         graphics_draw_cancel(this_->gra, this_->displaylist);
         graphics_displaylist_draw(this_->gra, this_->displaylist, tr, this_->layout_current, this_->graphics_flags|512);
         transform_destroy(tr);
-        this_->moved=1;
     }
     this_->motion_timeout=NULL;
     return;
@@ -667,21 +559,18 @@ static void navit_motion_timeout(struct navit *this_) {
 void navit_handle_motion(struct navit *this_, struct point *p) {
     int dx, dy;
 
-    if (this_->button_pressed && !this_->popped) {
-        dx=(p->x-this_->pressed.x);
-        dy=(p->y-this_->pressed.y);
-        if (dx < -8 || dx > 8 || dy < -8 || dy > 8) {
-            this_->moved=1;
-            if (this_->button_timeout) {
-                event_remove_timeout(this_->button_timeout);
-                this_->button_timeout=NULL;
-            }
-            this_->current=*p;
-            if (! this_->motion_timeout_callback)
-                this_->motion_timeout_callback=callback_new_1(callback_cast(navit_motion_timeout), this_);
-            if (! this_->motion_timeout)
-                this_->motion_timeout=event_add_timeout(this_->drag_bitmap?10:100, 0, this_->motion_timeout_callback);
+    dx=(p->x-this_->pressed.x);
+    dy=(p->y-this_->pressed.y);
+    if (dx < -8 || dx > 8 || dy < -8 || dy > 8) {
+        if (this_->button_timeout) {
+            event_remove_timeout(this_->button_timeout);
+            this_->button_timeout=NULL;
         }
+        this_->current=*p;
+        if (! this_->motion_timeout_callback)
+            this_->motion_timeout_callback=callback_new_1(callback_cast(navit_motion_timeout), this_);
+        if (! this_->motion_timeout)
+            this_->motion_timeout=event_add_timeout(this_->drag_bitmap?10:100, 0, this_->motion_timeout_callback);
     }
 }
 
@@ -1546,8 +1435,6 @@ static int navit_set_graphics(struct navit *this_, struct graphics *gra) {
     this_->gra=gra;
     this_->resize_callback=callback_new_attr_1(callback_cast(navit_resize), attr_resize, this_);
     graphics_add_callback(gra, this_->resize_callback);
-    this_->button_callback=callback_new_attr_1(callback_cast(navit_button), attr_button, this_);
-    graphics_add_callback(gra, this_->button_callback);
     this_->motion_callback=callback_new_attr_1(callback_cast(navit_motion), attr_motion, this_);
     graphics_add_callback(gra, this_->motion_callback);
     this_->predraw_callback=callback_new_attr_1(callback_cast(navit_predraw), attr_predraw, this_);
@@ -2056,9 +1943,6 @@ void navit_window_roadbook_new(struct navit *this_) {
 
     this_->roadbook_callback=callback_new_1(callback_cast(navit_window_roadbook_update), this_);
     navigation_register_callback(this_->navigation, attr_navigation_long, this_->roadbook_callback);
-    // this_->roadbook_window=gui_datawindow_new(this_->gui, _("Roadbook"), NULL,
-    //                        callback_new_1(callback_cast(navit_window_roadbook_destroy), this_));
-    // TODO : Fix data windows
     navit_window_roadbook_update(this_);
 }
 
@@ -2471,8 +2355,7 @@ void navit_drag_map(struct navit *this_, struct point *origin, struct point *des
     graphics_draw_drag(this_->gra, NULL);
     transform_copy(this_->trans, this_->trans_cursor);
     graphics_overlay_disable(this_->gra, 0);
-    if (!this_->zoomed)
-        navit_set_timeout(this_);
+    navit_set_timeout(this_);
     navit_draw(this_);
 }
 
@@ -3236,7 +3119,7 @@ static void navit_vehicle_update_position(struct navit *this_, struct navit_vehi
     navit_textfile_debug_log(this_, "type=trackpoint_tracked");
     if (this_->ready == 3) {
         transform(this_->trans_cursor, pro, &nv->coord, &cursor_pnt, 1, 0, 0, NULL);
-        if (this_->button_pressed != 1 && this_->follow_cursor && nv->follow_curr <= nv->follow &&
+        if (this_->follow_cursor && nv->follow_curr <= nv->follow &&
                 (nv->follow_curr == 1 || !transform_within_border(this_->trans_cursor, &cursor_pnt, this_->border)))
             navit_set_center_cursor_draw(this_);
         else
@@ -3707,13 +3590,11 @@ void navit_destroy(struct navit *this_) {
 
     callback_destroy(this_->nav_speech_cb);
     callback_destroy(this_->roadbook_callback);
-    callback_destroy(this_->popup_callback);
     callback_destroy(this_->motion_timeout_callback);
     callback_destroy(this_->progress_cb);
 
     if(this_->gra) {
         graphics_remove_callback(this_->gra, this_->resize_callback);
-        graphics_remove_callback(this_->gra, this_->button_callback);
         graphics_remove_callback(this_->gra, this_->motion_callback);
         graphics_remove_callback(this_->gra, this_->predraw_callback);
     }

@@ -45,6 +45,8 @@
         "file.h": "c",
         "plugin_def.h": "c",
         "qquick3dtexturedata": "cpp",
-        "graphics.h": "c"
+        "graphics.h": "c",
+        "types.h": "c",
+        "config.h": "c"
     }
 }

@@ -1416,7 +1416,6 @@ int graphics_hide_native_keyboard (struct graphics *this_, struct graphics_keybo
 }
 
 #include "attr.h"
-#include "popup.h"
 #include <stdio.h>
 
 struct displayitem_poly_holes {

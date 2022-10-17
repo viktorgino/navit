@@ -82,11 +82,6 @@ struct graphics_keyboard {
      * due to limitations of the platform. */
     int mode;									/**< Mode flags for the keyboard */
     char *lang;									/**< The preferred language for text input, may be {@code NULL}. */
-    void *gui_priv;								/**< Private data determined by the GUI. The GUI may store
-												 *   a pointer to a data structure of its choice here. It is
-												 *   the responsibility of the GUI to free the data structure
-												 *   when it is no longer needed. The graphics plugin should
-												 *   not access this member. */
     struct graphics_keyboard_priv *gra_priv;	/**< Private data determined by the graphics plugin. The
 												 *   graphics plugin is responsible for its management. If it
 												 *   uses this member, it must free the associated data in
