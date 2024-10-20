@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/navit",
+            "program": "${workspaceFolder}/build/navit_app",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",

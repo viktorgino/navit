@@ -34,7 +34,7 @@ target_include_directories(graphics_qt5 PRIVATE "../" "../../")
 set_target_properties(graphics_qt5 PROPERTIES COMPILE_DEFINITIONS "MODULE=graphics_qt5")
 # pass QML and QWIDGET preference to source
 
-add_custom_target(graphics_qml_files ALL DEPENDS COMMAND cp -R ${CMAKE_CURRENT_SOURCE_DIR}/gui/NavitGUI ${CMAKE_BINARY_DIR})
-add_custom_target(qraphics_qmldir ALL DEPENDS COMMAND cp -R ${CMAKE_CURRENT_SOURCE_DIR}/qmldir ${CMAKE_BINARY_DIR}/graphics)
+add_custom_target(graphics_qml_files ALL DEPENDS COMMAND cp -R ${CMAKE_CURRENT_SOURCE_DIR}/gui/NavitGUI ${CMAKE_BINARY_DIR}/navit)
+add_custom_target(qraphics_qmldir ALL DEPENDS COMMAND cp -R ${CMAKE_CURRENT_SOURCE_DIR}/qmldir ${CMAKE_BINARY_DIR}/navit/graphics)
 
 target_compile_definitions(graphics_qt5 PRIVATE USE_QML=${QML} USE_QWIDGET=${QWIDGET} HAVE_FREETYPE=${HAVE_FREETYPE})

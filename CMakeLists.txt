@@ -688,9 +688,9 @@ if (NOT NAVIT_DEPENDENCY_ERROR)
 endif(NOT NAVIT_DEPENDENCY_ERROR)
 
 add_subdirectory (navit)
-add_subdirectory (man)
+# add_subdirectory (man)
 
 
-if (USE_NATIVE_LANGUAGE_SUPPORT)
-	add_subdirectory (po)
-endif(USE_NATIVE_LANGUAGE_SUPPORT)
+# if (USE_NATIVE_LANGUAGE_SUPPORT)
+# 	add_subdirectory (po)
+# endif(USE_NATIVE_LANGUAGE_SUPPORT)

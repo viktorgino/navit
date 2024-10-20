@@ -61,12 +61,16 @@ endforeach()
 
 add_custom_target(navit_config_xml ALL DEPENDS COMMAND cp ${XML_FILES} ${CMAKE_BINARY_DIR})
 
-Qt5_add_resources(NAVIT_QRC "navit.qrc")
-
-add_executable(navit start.cpp ${NAVIT_QRC})
 target_link_libraries(graphics_qt5 navit_core)
 target_link_libraries(map_binfile navit_core)
 target_link_libraries(map_textfile navit_core)
 target_link_libraries(vehicle_demo navit_core)
 
-target_link_libraries (navit navit_core graphics_qt5 ${NAVIT_LIBS})
+Qt5_add_resources(NAVIT_QRC "navit.qrc")
+
+add_executable(navit_app start.cpp ${NAVIT_QRC})
+target_link_libraries (navit_app navit_core graphics_qt5 ${NAVIT_LIBS})
+
+add_custom_command(TARGET navit_app POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:navit_app> ${CMAKE_BINARY_DIR}
+)

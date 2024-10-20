@@ -776,7 +776,7 @@ int attr_data_size(struct attr *attr) {
     if (attr->type == attr_poly_hole) {
         return (sizeof(attr->u.poly_hole->coord_count) + (attr->u.poly_hole->coord_count * sizeof(*attr->u.poly_hole->coord)));
     }
-    dbg(lvl_error,"size for %s unknown", attr_to_name(attr->type));
+    dbg(lvl_debug,"size for %s unknown", attr_to_name(attr->type));
     return 0;
 }
 

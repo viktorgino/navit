@@ -89,14 +89,14 @@ void setenv(char *var, char *val, int overwrite) {
 */
 
 static char *environment_vars[][6]= {
-    {"NAVIT_LIBDIR",      ":",          ":/",     ":\\lib",      ":/lib",        ":\\lib"},
-    {"NAVIT_SHAREDIR",    ":",          ":/",   ":",           ":/share",      ":"},
-    {"NAVIT_LOCALEDIR",   ":/../locale",":/",  ":\\locale",   ":/locale",     ":\\locale"},
-    {"NAVIT_USER_DATADIR",":",          "~/.navit",      ":\\data",     ":/home",       "~\\navit"},
-    {"NAVIT_LOGFILE",     NULL,         NULL,            ":\\navit.log",NULL,           ":\\navit.log"},
-    {"NAVIT_LIBPREFIX",   "*/.libs/",   NULL,            NULL,          NULL,           NULL},
-    {"NAVIT_MAPS_DIR",   "~/.navit/maps",   NULL,            NULL,          NULL,           NULL},
-    {NULL,                NULL,         NULL,            NULL,          NULL,           NULL},
+    {"NAVIT_LIBDIR",      ":",              ":/navit/",         ":\\lib",       ":/lib",        ":\\lib"},
+    {"NAVIT_SHAREDIR",    ":",              ":/",               ":",            ":/share",      ":"},
+    {"NAVIT_LOCALEDIR",   ":/../locale",    ":/",               ":\\locale",    ":/locale",     ":\\locale"},
+    {"NAVIT_USER_DATADIR",":",              "~/.navit",         ":\\data",      ":/home",       "~\\navit"},
+    {"NAVIT_LOGFILE",     NULL,             NULL,               ":\\navit.log", NULL,           ":\\navit.log"},
+    {"NAVIT_LIBPREFIX",   "*/.libs/",       NULL,               NULL,           NULL,           NULL},
+    {"NAVIT_MAPS_DIR",   "~/.navit/maps",   "~/.navit/maps",    NULL,           NULL,           NULL},
+    {NULL,                NULL,             NULL,               NULL,           NULL,           NULL},
 };
 
 static void main_setup_environment(int mode) {

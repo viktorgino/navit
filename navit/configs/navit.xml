@@ -9,10 +9,11 @@
 <config xmlns:xi="http://www.w3.org/2001/XInclude">
 	<plugins>
 		<!-- <plugin path="./graphics/lib*.so" ondemand="yes"/> -->
-		<plugin path="./*/lib*.so" ondemand="yes"/>
+		<plugin path="navit/*/lib*.so" ondemand="yes"/>
 		<plugin path="$NAVIT_LIBDIR/map/binfile/libmap_binfile.so" ondemand="yes"/>
-		<plugin path="./map/textfile/libmap_textfile.so" ondemand="yes"/>
-		<plugin path="./vehicle/demo/libvehicle_demo.so" ondemand="yes"/>
+		<plugin path="navit/map/textfile/libmap_textfile.so" ondemand="yes"/>
+		<plugin path="navit/map/binfile/libmap_binfile.so" ondemand="yes"/>
+		<plugin path="navit/vehicle/demo/libvehicle_demo.so" ondemand="yes"/>
 		<plugin path="$NAVIT_LIBDIR/*/lib*.so" active="yes"/>
 		<plugin path="$NAVIT_LIBDIR/autoload/${NAVIT_LIBPREFIX}lib*.so"/>
 		<plugin path="$NAVIT_LIBDIR/*/${NAVIT_LIBPREFIX}libgraphics_null.so" active="no"/>

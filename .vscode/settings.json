@@ -1,7 +1,10 @@
 {
-    "cmake.configureOnOpen": true,
+    "[cpp]":{
+        "editor.formatOnSave": true,
+    },
     "files.associations": {
-        "xmlconfig.h": "c",
-        "fib.h": "c"
+        "*.cpp": "cpp",
+        "*.h": "c",
+        "*.c": "c"
     }
 }
