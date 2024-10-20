@@ -776,7 +776,7 @@ struct graphics_image * graphics_image_new_scaled(struct graphics *gra, char *pa
 }
 
 static void image_new_helper(struct graphics *gra, struct graphics_image *this_, char *path, char *name, int width,
-                             int height, int rotate, int zip) {
+                             int height, int rotate) {
     int i=0;
     int stdsizes[]= {8,12,16,22,24,32,36,48,64,72,96,128,192,256};
     const int numstdsizes=sizeof(stdsizes)/sizeof(int);
@@ -865,42 +865,20 @@ static void image_new_helper(struct graphics *gra, struct graphics_image *this_,
         this_->width=width;
         this_->height=height;
         dbg(lvl_debug,"Trying to load image '%s' for '%s' at %dx%d", new_name, path, width, height);
-        if (zip) {
-            unsigned char *start;
-            int len;
-            if (file_get_contents(new_name, &start, &len)) {
-                struct graphics_image_buffer buffer= {"buffer:",graphics_image_type_unknown};
-                buffer.start=start;
-                buffer.len=len;
-                this_->hot = graphics_dpi_scale_point(gra,&this_->hot);
-                if(this_->width != IMAGE_W_H_UNSET)
-                    this_->width = graphics_dpi_scale(gra,this_->width);
-                if(this_->height != IMAGE_W_H_UNSET)
-                    this_->height = graphics_dpi_scale(gra,this_->height);
-                this_->priv=gra->meth.image_new(gra->priv, &this_->meth, (char *)&buffer, &this_->width, &this_->height, &this_->hot,
-                                                rotate);
-                this_->hot = graphics_dpi_unscale_point(gra,&this_->hot);
-                if(this_->width != IMAGE_W_H_UNSET)
-                    this_->width = graphics_dpi_unscale(gra,this_->width);
-                if(this_->height != IMAGE_W_H_UNSET)
-                    this_->height = graphics_dpi_unscale(gra,this_->height);
-                g_free(start);
-            }
-        } else {
-            if (strcmp(new_name,"buffer:")) {
-                this_->hot = graphics_dpi_scale_point(gra,&this_->hot);
-                if(this_->width != IMAGE_W_H_UNSET)
-                    this_->width = graphics_dpi_scale(gra,this_->width);
-                if(this_->height != IMAGE_W_H_UNSET)
-                    this_->height = graphics_dpi_scale(gra,this_->height);
-                this_->priv=gra->meth.image_new(gra->priv, &this_->meth, new_name, &this_->width, &this_->height, &this_->hot, rotate);
-                this_->hot = graphics_dpi_unscale_point(gra,&this_->hot);
-                if(this_->width != IMAGE_W_H_UNSET)
-                    this_->width = graphics_dpi_unscale(gra,this_->width);
-                if(this_->height != IMAGE_W_H_UNSET)
-                    this_->height = graphics_dpi_unscale(gra,this_->height);
-            }
-        }
+
+
+        this_->hot = graphics_dpi_scale_point(gra,&this_->hot);
+        if(this_->width != IMAGE_W_H_UNSET)
+            this_->width = graphics_dpi_scale(gra,this_->width);
+        if(this_->height != IMAGE_W_H_UNSET)
+            this_->height = graphics_dpi_scale(gra,this_->height);
+        this_->priv=gra->meth.image_new(gra->priv, &this_->meth, new_name, &this_->width, &this_->height, &this_->hot, rotate);
+        this_->hot = graphics_dpi_unscale_point(gra,&this_->hot);
+        if(this_->width != IMAGE_W_H_UNSET)
+            this_->width = graphics_dpi_unscale(gra,this_->width);
+        if(this_->height != IMAGE_W_H_UNSET)
+            this_->height = graphics_dpi_unscale(gra,this_->height);
+
         if (this_->priv) {
             dbg(lvl_info,"Using image '%s' for '%s' at %dx%d", new_name, path, width, height);
             g_free(new_name);
@@ -999,9 +977,7 @@ struct graphics_image * graphics_image_new_scaled_rotated(struct graphics *gra, 
             newheight=h;
 
         name=g_strndup(pathi,s-pathi);
-        image_new_helper(gra, this_, pathi, name, newwidth, newheight, rotate, 0);
-        if (!this_->priv && strstr(pathi, ".zip/"))
-            image_new_helper(gra, this_, pathi, name, newwidth, newheight, rotate, 1);
+        image_new_helper(gra, this_, pathi, name, newwidth, newheight, rotate);
         g_free(name);
     }
 
@@ -1694,6 +1670,67 @@ static void display_draw_arrows(struct graphics *gra, struct display_context *dc
                 p.x-=dx*15;
                 p.y-=dy*15;
                 display_draw_arrow(&p, dx, dy, 20, dc, gra, filled);
+            }
+        }
+    }
+}
+
+static void display_draw_spike(struct point *p, navit_float dx, navit_float dy, navit_float width,
+                               struct display_context *dc,
+                               struct graphics *gra) {
+    struct point pnt[2];
+    navit_float l=navit_sqrt(dx*dx+dy*dy);
+    pnt[0]=pnt[1]=*p;
+    pnt[1].x+=(-dy/l)*width;
+    pnt[1].y+=(dx/l)*width;
+    graphics_draw_lines(gra, dc->gc, pnt, 2);
+}
+
+/**
+ * @brief draw spikes along a multi polygon line
+ *
+ * This function draws spikes along a multi polygon line, and scales the
+ * spikes according to current view settings by interpolating sizes at
+ * given spike position,
+ *
+ * @param gra current graphics instance handle
+ * @param dc current drawing context
+ * @param pnt array of points for this polyline
+ * @param count number of points in pnt
+ * @param width array of integers giving the expected line width at the corresponding point
+ * @param distance giving the distance between spikes
+ */
+static void display_draw_spikes(struct graphics *gra, struct display_context *dc, struct point *pnt, int count,
+                                int *width, int distance) {
+    navit_float dx,dy,dw,l;
+    int i;
+    struct point p;
+    int w;
+    for (i = 0 ; i < count-1 ; i++) {
+        /* get the X and Y size */
+        dx=pnt[i+1].x-pnt[i].x;
+        dy=pnt[i+1].y-pnt[i].y;
+        dw=width[i+1] - width[i];
+        /* calculate the length of the way segment */
+        l=navit_sqrt(dx*dx+dy*dy);
+        if (l != 0) {
+            /* length is not zero */
+            if(l > width[i]) {
+                /* length is bigger than the length of one spike */
+                int a;
+                int spike_count = l / distance;
+                /* calculate the vector per spike */
+                dx=dx/spike_count;
+                dy=dy/spike_count;
+                dw=dw/spike_count;
+                for( a=0; a < spike_count; a++ ) {
+                    p=pnt[i];
+                    p.x+=dx*a;
+                    p.y+=dy*a;
+                    w=width[i];
+                    w+=dw*a;
+                    display_draw_spike(&p, dx, dy, w, dc, gra);
+                }
             }
         }
     }
@@ -2670,15 +2707,26 @@ static inline void displayitem_transform_holes(struct transformation *trans, enu
     out->ccount=NULL;
     out->coords=NULL;
     if((in != NULL) && (in->count > 0)) {
-        int a;
+        int a, transform_res;
         /* alloc space for hole conversion. To be freed with displayitem_free_holes later*/
         out->count = in->count;
         out->ccount = g_malloc0(sizeof(*(out->ccount)) * in->count);
         out->coords = g_malloc0(sizeof(*(out->coords)) * in->count);
         for(a = 0; a < in->count; a ++) {
+            int buf_size=sizeof(*(out->coords[a])) * in->ccount[a];
             in->ccount[a]=limit_count(in->coords[a], in->ccount[a]);
-            out->coords[a]=g_malloc0(sizeof(*(out->coords[a])) * in->ccount[a]);
-            out->ccount[a]=transform(trans, pro, in->coords[a], (struct point *)(out->coords[a]), in->ccount[a], mindist, 0, NULL);
+            out->coords[a]=g_malloc0(buf_size);
+            transform_res=transform_point_buf(trans, pro, in->coords[a], (struct point *)(out->coords[a]), buf_size, in->ccount[a],
+                                              mindist, 0, NULL);
+            /* if we did not have enough buf space for transfrom_point_buf, we try again with double the buffer size,
+               until we succeed. */
+            while (transform_res == TRANSFORM_ERR_BUF_SPACE) {
+                buf_size *= 2;
+                out->coords[a] = g_realloc(out->coords[a], buf_size);
+                transform_res=transform_point_buf(trans, pro, in->coords[a], (struct point *)(out->coords[a]), buf_size,
+                                                  in->ccount[a], mindist, 0, NULL);
+            }
+            out->ccount[a] = transform_res;
         }
     }
 }
@@ -2862,13 +2910,14 @@ static void displayitem_draw(struct displayitem *di, struct layout *l, struct di
     struct graphics *gra=dc->gra;
     struct element *e=dc->e;
     int draw_underground=0;
+    long pa_buf_size=sizeof(struct point)*dc->maxlen;
 
     if (dc->maxlen < ALLOCA_COORD_LIMIT) {
         width=g_alloca(sizeof(int)*dc->maxlen);
-        pa=g_alloca(sizeof(struct point)*dc->maxlen);
+        pa=g_alloca(pa_buf_size);
     } else {
         width=g_malloc(sizeof(int)*dc->maxlen);
-        pa=g_malloc(sizeof(struct point)*dc->maxlen);
+        pa=g_malloc(pa_buf_size);
     }
 
     while (di) {
@@ -2916,11 +2965,16 @@ static void displayitem_draw(struct displayitem *di, struct layout *l, struct di
         if (dc->type == type_poly_water_tiled)
             mindist=0;
         if (dc->e->type == element_polyline)
-            count=transform(dc->trans, dc->pro, di->c, pa, count, mindist, e->u.polyline.width, width);
+            count=transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, e->u.polyline.width,
+                                      width);
         else if (dc->e->type == element_arrows)
-            count=transform(dc->trans, dc->pro, di->c, pa, count, mindist, e->u.arrows.width, width);
+            count=transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, e->u.arrows.width,
+                                      width);
+        else if (dc->e->type == element_spikes)
+            count=transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, e->u.spikes.width,
+                                      width);
         else
-            count=transform(dc->trans, dc->pro, di->c, pa, count, mindist, 0, NULL);
+            count=transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
         switch (e->type) {
         case element_polygon:
             displayitem_draw_polygon(dc, gra, pa, count, &t_holes);
@@ -2942,6 +2996,9 @@ static void displayitem_draw(struct displayitem *di, struct layout *l, struct di
             break;
         case element_arrows:
             display_draw_arrows(gra,dc,pa,count, width, e->oneway);
+            break;
+        case element_spikes:
+            display_draw_spikes(gra,dc,pa,count, width, e->u.spikes.distance);
             break;
         default:
             dbg(lvl_error, "Unhandled element type %d", e->type);
@@ -3678,13 +3735,15 @@ int graphics_displayitem_within_dist(struct displaylist *displaylist, struct dis
     int result;
     struct point *pa;
     int count;
+    long pa_buf_size=sizeof(struct point)*displaylist->dc.maxlen;
+
     if (displaylist->dc.maxlen < ALLOCA_COORD_LIMIT) {
-        pa=g_alloca(sizeof(struct point)*displaylist->dc.maxlen);
+        pa=g_alloca(pa_buf_size);
     } else {
-        pa=g_malloc(sizeof(struct point)*displaylist->dc.maxlen);
+        pa=g_malloc(pa_buf_size);
     }
 
-    count=transform(displaylist->dc.trans, displaylist->dc.pro, di->c, pa, di->count, 0, 0, NULL);
+    count=transform_point_buf(displaylist->dc.trans, displaylist->dc.pro, di->c, pa, pa_buf_size, di->count, 0, 0, NULL);
 
     if (di->item.type < type_line) {
         result =  within_dist_point(p, &pa[0], dist);

@@ -173,6 +173,9 @@ struct navit {
     int waypoints_flag;
     struct coord_geo center;
     int auto_switch; /*auto switching between day/night layout enabled ?*/
+    int tunnel_nightlayout; /* switch to nightlayout if we are in a tunnel? */
+    char* layout_before_tunnel;
+    int sunrise_degrees;
 };
 
 struct gui *main_loop_gui;
@@ -367,7 +370,7 @@ char* navit_get_user_data_directory(int create) {
     dir = getenv("NAVIT_USER_DATADIR");
     if (create && !file_exists(dir)) {
         dbg(lvl_debug,"creating dir %s", dir);
-        if (file_mkdir(dir,0)) {
+        if (file_mkdir(dir,1)) {
             dbg(lvl_error,"failed creating dir %s", dir);
             return NULL;
         }
@@ -452,8 +455,27 @@ void navit_handle_resize(struct navit *this_, int w, int h) {
     int callback=(this_->ready == 1);
     this_->ready |= 2;
     memset(&sel, 0, sizeof(sel));
+    int firstcall = 0;
+    struct attr attr;
+
+    /* Fix for #1135: Check if pitch was set while w and h were 0. In this case set pitch
+     * again so transformation value is set correctly */
+    if(this_->w==0 && this_->h==0) {
+        firstcall=1;
+    }
+
     this_->w=w;
     this_->h=h;
+
+    /* Fix for #1135: Now w and h are set initially, we can set pitch value again
+     *
+     */
+    if(firstcall) {
+        attr.type=attr_pitch;
+        attr.u.num=this_->pitch;
+        navit_set_attr(this_, &attr); // Set pitch again
+    }
+
     sel.u.p_rect.rl.x=w;
     sel.u.p_rect.rl.y=h;
     transform_set_screen_selection(this_->trans, &sel);
@@ -461,8 +483,12 @@ void navit_handle_resize(struct navit *this_, int w, int h) {
     graphics_set_rect(this_->gra, &sel.u.p_rect);
     if (callback)
         callback_list_call_attr_1(this_->attr_cbl, attr_graphics_ready, this_);
-    if (this_->ready == 3)
+    if (this_->ready == 3) {
+        /* About to resize. Cancel drawing whatever it is */
+        graphics_draw_cancel(this_->gra, this_->displaylist);
+        /* draw again even if we did not cancel anything */
         navit_draw_async(this_, 1);
+    }
 }
 
 static void navit_resize(void *data, int w, int h) {
@@ -640,7 +666,7 @@ static void navit_autozoom(struct navit *this_, struct coord *center, int speed,
     distance = speed * this_->autozoom_secs;
 
     transform_get_size(this_->trans, &w, &h);
-    transform(this_->trans, transform_get_projection(this_->trans), center, &pc, 1, 0, 0, NULL);
+    transform_point(this_->trans, transform_get_projection(this_->trans), center, &pc);
     scale = transform_get_scale(this_->trans);
 
     /* We make sure that the point we want to see is within a certain range
@@ -1395,6 +1421,9 @@ navit_new(struct attr *parent, struct attr **attrs) {
     this_->radius = 30;
     this_->border = 2;
     this_->auto_switch = TRUE;
+    this_->tunnel_nightlayout = FALSE;
+    this_->layout_before_tunnel = "";
+    this_->sunrise_degrees = -5;
 
     transform_from_geo(pro, &g, &co);
     center.x=co.x;
@@ -1507,7 +1536,6 @@ void navit_set_destination(struct navit *this_, struct pcoord *c, const char *de
     }
     g_free(destination_file);
 
-
     if (this_->route) {
         struct attr attr;
         int dstcount;
@@ -1530,12 +1558,12 @@ void navit_set_destination(struct navit *this_, struct pcoord *c, const char *de
             g_free(pc);
             g_free(destination_file);
         }
-
-        if (this_->ready == 3 && !(this_->flags & 4))
-            navit_draw(this_);
     }
 
     callback_list_call_attr_0(this_->attr_cbl, attr_destination);
+
+    if (this_->route && this_->ready == 3 && !(this_->flags & 4))
+        navit_draw(this_);
 }
 
 /**
@@ -1579,15 +1607,30 @@ void navit_set_destinations(struct navit *this_, struct pcoord *c, int count, co
         g_free(destination_file);
     } else
         this_->destination_valid=0;
-    if (this_->route) {
+    if (this_->route)
         route_set_destinations(this_->route, c, count, async);
 
-        if (this_->ready == 3)
-            navit_draw(this_);
-    }
     callback_list_call_attr_0(this_->attr_cbl, attr_destination);
+    if (this_->route && this_->ready == 3)
+        navit_draw(this_);
 }
 
+/**
+ * @brief Retrieves destinations from the route
+ *
+ * Prior to calling this method, you may want to retrieve the number of destinations by calling
+ * {@link navit_get_destination_count(struct navit *)} and assigning a buffer of sufficient capacity.
+ *
+ * If the return value equals `count`, the buffer was either just large enough or too small to hold the
+ * entire list of destinations; there is no way to tell from the result which is the case.
+ *
+ * If the Navit instance does not have a route, the result is 0.
+ *
+ * @param this_ The Navit instance
+ * @param pc Pointer to an array of projected coordinates which will receive the destination coordinates
+ * @param count Capacity of `pc`
+ * @return The number of destinations stored in `pc`, never greater than `count`
+ */
 int navit_get_destinations(struct navit *this_, struct pcoord *pc, int count) {
     if(!this_->route)
         return 0;
@@ -1595,6 +1638,12 @@ int navit_get_destinations(struct navit *this_, struct pcoord *pc, int count) {
 
 }
 
+/**
+ * @brief Get the destinations count for the route
+ *
+ * @param this The Navit instance
+ * @return destination count for the route, or 0 if the Navit instance has no route
+ */
 int navit_get_destination_count(struct navit *this_) {
     if(!this_->route)
         return 0;
@@ -1652,7 +1701,9 @@ static int navit_former_destinations_active(struct navit *this_) {
     if (destination_file) {
         while(fgets(lastline, sizeof(lastline), destination_file));
         fclose(destination_file);
-        if ((lastline != NULL) && (strcmp(lastline, TEXTFILE_COMMENT_NAVI_STOPPED))) {
+        /*forcefully terminate the string, there is no proper fgets error handling.*/
+        lastline[sizeof(lastline) -1] = 0;
+        if (strcmp(lastline, TEXTFILE_COMMENT_NAVI_STOPPED)) {
             active=1;
         }
     }
@@ -1955,6 +2006,10 @@ int navit_init(struct navit *this_) {
     struct attr *attr;
     struct traffic * traffic;
 
+    this_->w=0;
+    this_->h=0;
+
+
     dbg(lvl_info,"enter graphics %p",this_->gra);
 
     // if (!this_->gra && !(this_->flags & 1)) {
@@ -2105,8 +2160,8 @@ void navit_zoom_to_rect(struct navit *this_, struct coord_rect *r) {
         struct point p1,p2;
         transform_set_scale(this_->trans, scale);
         transform_setup_source_rect(this_->trans);
-        transform(this_->trans, transform_get_projection(this_->trans), &r->lu, &p1, 1, 0, 0, NULL);
-        transform(this_->trans, transform_get_projection(this_->trans), &r->rl, &p2, 1, 0, 0, NULL);
+        transform_point(this_->trans, transform_get_projection(this_->trans), &r->lu, &p1);
+        transform_point(this_->trans, transform_get_projection(this_->trans), &r->rl, &p2);
         dbg(lvl_debug,"%d,%d-%d,%d",p1.x,p1.y,p2.x,p2.y);
         if (p1.x < 0 || p2.x < 0 || p1.x > w || p2.x > w ||
                 p1.y < 0 || p2.y < 0 || p1.y > h || p2.y > h)
@@ -2608,6 +2663,18 @@ static int navit_set_attr_do(struct navit *this_, struct attr *attr, int init) {
         attr_updated=(this_->waypoints_flag != !!attr->u.num);
         this_->waypoints_flag=!!attr->u.num;
         break;
+    case attr_tunnel_nightlayout:
+        attr_updated = (this_->tunnel_nightlayout != !!attr->u.num);
+        this_->tunnel_nightlayout = !!attr->u.num;
+        break;
+    case attr_layout_daynightauto:
+        attr_updated = (this_->auto_switch != !!attr->u.num);
+        this_->auto_switch = !!attr->u.num;
+        break;
+    case attr_sunrise_degrees:
+        attr_updated = (this_->sunrise_degrees != attr->u.num);
+        this_->sunrise_degrees = attr->u.num;
+        break;
     default:
         dbg(lvl_debug, "calling generic setter method for attribute type %s", attr_to_name(attr->type))
         return navit_object_set_attr((struct navit_object *) this_, attr);
@@ -2814,6 +2881,15 @@ int navit_get_attr(struct navit *this_, enum attr_type type, struct attr *attr, 
         break;
     case attr_waypoints_flag:
         attr->u.num=this_->waypoints_flag;
+        break;
+    case attr_tunnel_nightlayout:
+        attr->u.num=this_->tunnel_nightlayout;
+        break;
+    case attr_layout_daynightauto:
+        attr->u.num=this_->auto_switch;
+        break;
+    case attr_sunrise_degrees:
+        attr->u.num=this_->sunrise_degrees;
         break;
     default:
         dbg(lvl_debug, "calling generic getter method for attribute type %s", attr_to_name(type))
@@ -3036,7 +3112,7 @@ static void navit_vehicle_draw(struct navit *this_, struct navit_vehicle *nv, st
         pro=transform_get_projection(this_->trans_cursor);
         if (!pro)
             return;
-        transform(this_->trans_cursor, pro, &nv->coord, &cursor_pnt, 1, 0, 0, NULL);
+        transform_point(this_->trans_cursor, pro, &nv->coord, &cursor_pnt);
     }
     vehicle_draw(nv->vehicle, this_->gra, &cursor_pnt, nv->dir-transform_get_yaw(this_->trans_cursor), nv->speed);
 }
@@ -3118,8 +3194,11 @@ static void navit_vehicle_update_position(struct navit *this_, struct navit_vehi
     callback_list_call_attr_0(this_->attr_cbl, attr_position);
     navit_textfile_debug_log(this_, "type=trackpoint_tracked");
     if (this_->ready == 3) {
-        transform(this_->trans_cursor, pro, &nv->coord, &cursor_pnt, 1, 0, 0, NULL);
-        if (this_->follow_cursor && nv->follow_curr <= nv->follow &&
+        if (this_->gui && nv->speed > 2)
+            navit_disable_suspend();
+
+        transform_point(this_->trans_cursor, pro, &nv->coord, &cursor_pnt);
+        if (this_->button_pressed != 1 && this_->follow_cursor && nv->follow_curr <= nv->follow &&
                 (nv->follow_curr == 1 || !transform_within_border(this_->trans_cursor, &cursor_pnt, this_->border)))
             navit_set_center_cursor_draw(this_);
         else
@@ -3324,16 +3403,16 @@ navit_get_displaylist(struct navit *this_) {
     return this_->displaylist;
 }
 
-/*todo : make it switch to nightlayout when we are in a tunnel */
 void navit_layout_switch(struct navit *n) {
 
     int currTs=0;
     struct attr iso8601_attr,geo_attr,valid_attr,layout_attr;
-    double trise,tset,trise_actual;
+    double trise,tset;
     struct layout *l;
     int year, month, day;
     int after_sunrise = FALSE;
     int after_sunset = FALSE;
+    int tunnel = tracking_get_current_tunnel(n->tracking);
 
     if (navit_get_attr(n,attr_layout,&layout_attr,NULL)!=1) {
         return; //No layout - nothing to switch
@@ -3348,12 +3427,39 @@ void navit_layout_switch(struct navit *n) {
         //Check that we aren't calculating too fast
         if (vehicle_get_attr(n->vehicle->vehicle, attr_position_time_iso8601,&iso8601_attr,NULL)==1) {
             currTs=iso8601_to_secs(iso8601_attr.u.str);
-            dbg(lvl_debug,"currTs: %u:%u",currTs%86400/3600,((currTs%86400)%3600)/60);
+            dbg(lvl_debug,"currTs: %02u:%02u",currTs%86400/3600,((currTs%86400)%3600)/60);
         }
-        dbg(lvl_debug,"prevTs: %u:%u",n->prevTs%86400/3600,((n->prevTs%86400)%3600)/60);
+        dbg(lvl_debug,"prevTs: %02u:%02u",n->prevTs%86400/3600,((n->prevTs%86400)%3600)/60);
 
         if (n->auto_switch == FALSE)
             return;
+
+        if (n->tunnel_nightlayout) {
+            if (tunnel) {
+                // store the current layout name
+                if(!strcmp(n->layout_before_tunnel, ""))
+                    n->layout_before_tunnel = n->layout_current->name;
+
+                // We are in a tunnel and if we have a nightlayout -> switch to nightlayout
+                if (l->nightname) {
+                    navit_set_layout_by_name(n, l->nightname);
+                    dbg(lvl_debug, "tunnel -> nightlayout");
+                }
+                return;
+
+            } else {
+                if (l->dayname) {
+                    if (!strcmp(l->dayname, n->layout_before_tunnel)) {
+                        // restore previous layout
+                        navit_set_layout_by_name(n, l->dayname);
+                        dbg(lvl_debug, "tunnel end -> daylayout");
+                    }
+
+                    // We were in nightlayout before the tunnel, keep it
+                    n->layout_before_tunnel="";
+                }
+            }
+        }
 
         if (currTs-(n->prevTs)<60) {
             //We've have to wait a little
@@ -3366,31 +3472,57 @@ void navit_layout_switch(struct navit *n) {
                 && valid_attr.u.num==attr_position_valid_invalid) {
             return; //No valid fix yet
         }
+
         if (vehicle_get_attr(n->vehicle->vehicle, attr_position_coord_geo,&geo_attr,NULL)!=1) {
             //No position - no sun
             return;
         }
+
         //We calculate sunrise anyway, cause it is needed both for day and for night
-        if (__sunriset__(year,month,day,geo_attr.u.coord_geo->lng,geo_attr.u.coord_geo->lat,-5,1,&trise,&tset)!=0) {
+        if (__sunriset__(year,month,day,geo_attr.u.coord_geo->lng,geo_attr.u.coord_geo->lat,n->sunrise_degrees,1,&trise,
+                         &tset)!=0) {
             dbg(lvl_debug,"near the pole sun never rises/sets, so we should never switch profiles");
-            dbg(lvl_debug,"trise: %u:%u",HOURS(trise),MINUTES(trise));
-            dbg(lvl_debug,"tset: %u:%u",HOURS(tset),MINUTES(tset));
+            dbg(lvl_debug,"trise: %02u:%02u",HOURS(trise),MINUTES(trise));
+            dbg(lvl_debug,"tset: %02u:%02u",HOURS(tset),MINUTES(tset));
             n->prevTs=currTs;
             return;
         }
-        trise_actual=trise;
-        dbg(lvl_debug,"trise: %u:%u",HOURS(trise),MINUTES(trise));
-        dbg(lvl_debug,"tset: %u:%u",HOURS(tset),MINUTES(tset));
+
+        dbg(lvl_debug,"trise: %02u:%02u",HOURS(trise),MINUTES(trise));
+        dbg(lvl_debug,"tset: %02u:%02u",HOURS(tset),MINUTES(tset));
         dbg(lvl_debug,"dayname = %s, name =%s ",l->dayname, l->name);
         dbg(lvl_debug,"nightname = %s, name = %s ",l->nightname, l->name);
-        if (HOURS(trise)*60+MINUTES(trise)<(currTs%86400)/60) {
+
+        // We want any times to be in [0;1439].
+        if(trise<0)
+            trise+=24;
+        if(tset>=24)
+            tset-=24;
+
+        int trmin=HOURS(trise)*60+MINUTES(trise); // rise time in minutes
+        int tsmin=HOURS(tset)*60+MINUTES(tset);   // set time in minutes
+        int tcur=(currTs%86400)/60;               // minutes elapsed today
+
+        if (trmin<=tcur) { // use <= to have defined values for after_sunrise for any value of tcur
             after_sunrise = TRUE;
         }
 
-        if (((HOURS(tset)*60+MINUTES(tset)<(currTs%86400)/60)) ||
-                ((HOURS(trise_actual)*60+MINUTES(trise_actual)>(currTs%86400)/60))) {
-            after_sunset = TRUE;
+        if (tsmin>trmin) { // set > rise
+            if (trmin<=tcur) {
+                after_sunrise = TRUE;
+            }
+            if (tsmin<=tcur || trmin>tcur) {
+                after_sunset = TRUE;
+            }
+        } else { // rise > set
+            if((tcur<=tsmin) || (tcur>=trmin)) {
+                after_sunrise = TRUE;
+            }
+            if(tcur>tsmin && tcur<trmin) {
+                after_sunset = TRUE;
+            }
         }
+
         if (after_sunrise && !after_sunset && l->dayname) {
             navit_set_layout_by_name(n,l->dayname);
             dbg(lvl_debug,"layout set to day");
@@ -3563,7 +3695,36 @@ int navit_get_blocked(struct navit *this_) {
 
 void navit_destroy(struct navit *this_) {
     dbg(lvl_debug,"enter %p",this_);
+    GList *mapsets;
+    struct map * map;
+    struct attr attr;
     graphics_draw_cancel(this_->gra, this_->displaylist);
+
+    mapsets = this_->mapsets;
+    while (mapsets) {
+        GList *maps = NULL;
+        struct mapset_handle *msh;
+        msh = mapset_open(mapsets->data);
+        while (msh && (map = mapset_next(msh, 0))) {
+            /* Add traffic map (identified by the `attr_traffic` attribute) to list of maps to remove */
+            if (map_get_attr(map, attr_traffic, &attr, NULL))
+                maps = g_list_append(maps, map);
+        }
+        mapset_close(msh);
+
+        /* Remove traffic maps, if any */
+        while (maps) {
+            attr.type = attr_map;
+            attr.u.map = maps->data;
+            mapset_remove_attr(mapsets->data, &attr);
+            attr_free_content(&attr);
+            maps = g_list_next(maps);
+        }
+        if (maps)
+            g_list_free(maps);
+        mapsets = g_list_next(mapsets);
+    }
+
     callback_list_call_attr_1(this_->attr_cbl, attr_destroy, this_);
     attr_list_free(this_->attrs);
 

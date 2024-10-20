@@ -43,6 +43,8 @@ set(TEXTURE_DIR share/navit/textures CACHE PATH "Navit texture path")
 add_definitions ("-DTEXTURE_DIR=\"${TEXTURE_DIR}\"")
 set(MAN_DIR share/man/man1 CACHE PATH "Navit man path")
 add_definitions ("-DMAN_DIR=\"${MAN_DIR}\"")
+set(HOMECONFIG_DIR .navit CACHE PATH "Navit config path in home dir")
+add_definitions ("-DHOMECONFIG_DIR=\"${HOMECONFIG_DIR}\"")
 # LIB_DIR
 IF(UNIX AND NOT ANDROID AND NOT APPLE)
 	IF (NOT LIBDIR)
@@ -130,6 +132,12 @@ INCLUDE (CheckLibraryExists)
 INCLUDE (CheckFunctionExists)
 INCLUDE (CheckSymbolExists)
 
+if(ANDROID)
+	set(ENV{PKG_CONFIG_DIR} "")
+	set(ENV{PKG_CONFIG_LIBDIR} "${CMAKE_SYSROOT}/usr/lib/pkgconfig:${CMAKE_SYSROOT}/usr/share/pkgconfig")
+	set(ENV{PKG_CONFIG_SYSROOT_DIR} ${CMAKE_SYSROOT})
+endif(ANDROID)
+
 ################################
 #  pkg-config based detection  #
 ################################
@@ -161,7 +169,6 @@ if(PKG_CONFIG_FOUND)
 	endif()
 
 	pkg_check_modules(LIBLOCATION liblocation)
-	pkg_check_modules(LIBOSSO libosso)
 	# Accept even old versions of libgps, because N810 uses an old version (see #1179).
 	pkg_check_modules(LIBGPS libgps)
 	pkg_check_modules(LIBGPS19 libgps>=2.90)
