@@ -81,34 +81,34 @@ void event_remove_watch(struct event_watch *ev) {
  */
 struct event_timeout *
 event_add_timeout(int timeout, int multi, struct callback *cb) {
-    require_method2(add_timeout, NULL);
+    // require_method2(add_timeout, NULL);
     return event_methods.add_timeout(timeout, multi, cb);
 }
 
 void event_remove_timeout(struct event_timeout *ev) {
-    require_method(remove_timeout);
+    // require_method(remove_timeout);
     event_methods.remove_timeout(ev);
 }
 
 struct event_idle *
 event_add_idle(int priority, struct callback *cb) {
-    require_method2(add_idle, NULL);
+    // require_method2(add_idle, NULL);
     return event_methods.add_idle(priority,cb);
 }
 
 
 struct event_thread *event_add_thread(struct callback *cb) {
-    require_method(add_thread);
+    // require_method(add_thread);
     return event_methods.add_thread(cb);
 }
 
 void event_remove_idle(struct event_idle *ev) {
-    require_method(remove_idle);
+    // require_method(remove_idle);
     event_methods.remove_idle(ev);
 }
 
 void event_call_callback(struct callback_list *cb) {
-    require_method(call_callback);
+    // require_method(call_callback);
     event_methods.call_callback(cb);
 }
 

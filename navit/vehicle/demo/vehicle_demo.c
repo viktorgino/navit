@@ -306,7 +306,7 @@ static struct vehicle_priv *vehicle_demo_new(struct vehicle_methods
 
 void plugin_init(void) {
     dbg(lvl_debug, "enter");
-    plugin_register_category_vehicle("demo", vehicle_demo_new);
+    plugin_register_category(plugin_category_vehicle, "demo", vehicle_demo_new);
 }
 
 
