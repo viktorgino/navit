@@ -22,7 +22,6 @@ extern "C" {
 #include "mapset.h"
 #include "search.h"
 
-#include "proxy.h"
 }
 
 

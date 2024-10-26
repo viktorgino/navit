@@ -29,7 +29,8 @@
 
 #include <QThread>
 
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -40,19 +41,20 @@ extern "C" {
 #include "gui/navithelper.h"
 #include "qt5graphicsworker.h"
 
-class QNavitQuick_2 : public QQuickPaintedItem {
+class QNavitQuick_2 : public QQuickPaintedItem
+{
     Q_OBJECT
-    Q_PROPERTY(int  pitch           MEMBER m_pitch          WRITE setPitch          NOTIFY propertiesChanged)
-    Q_PROPERTY(bool autoZoom        MEMBER m_autoZoom       WRITE setAutozoom       NOTIFY propertiesChanged)
-    Q_PROPERTY(bool followVehicle   MEMBER m_followVehicle  WRITE setFollowVehicle  NOTIFY propertiesChanged)
-    Q_PROPERTY(bool tracking        MEMBER m_tracking       WRITE setTracking       NOTIFY propertiesChanged)
-    Q_PROPERTY(int  orientation     MEMBER m_orientation    WRITE setOrientation    NOTIFY propertiesChanged)
-    Q_PROPERTY(long zoomLevel       READ   getZoomLevel                             NOTIFY zoomLevelChanged)
-    Q_PROPERTY(NavitInstance *navit READ   navitInstance    WRITE setNavitInstance)
+    Q_PROPERTY(int pitch MEMBER m_pitch WRITE setPitch NOTIFY propertiesChanged)
+    Q_PROPERTY(bool autoZoom MEMBER m_autoZoom WRITE setAutozoom NOTIFY propertiesChanged)
+    Q_PROPERTY(bool followVehicle MEMBER m_followVehicle WRITE setFollowVehicle NOTIFY propertiesChanged)
+    Q_PROPERTY(bool tracking MEMBER m_tracking WRITE setTracking NOTIFY propertiesChanged)
+    Q_PROPERTY(int orientation MEMBER m_orientation WRITE setOrientation NOTIFY propertiesChanged)
+    Q_PROPERTY(long zoomLevel READ getZoomLevel NOTIFY zoomLevelChanged)
+    Q_PROPERTY(NavitInstance *navit READ navitInstance WRITE setNavitInstance)
 
 public:
-    void paint(QPainter* painter);
-    QNavitQuick_2(QQuickItem* parent = 0);
+    void paint(QPainter *painter);
+    QNavitQuick_2(QQuickItem *parent = 0);
 
     Q_INVOKABLE void zoomIn(int zoomLevel, point *p = nullptr);
     Q_INVOKABLE void zoomOut(int zoomLevel, point *p = nullptr);
@@ -71,21 +73,23 @@ public:
     void setOrientation(int orientation);
     NavitInstance *navitInstance();
     void setNavitInstance(NavitInstance *navit);
-    int getZoomLevel() {
+    int getZoomLevel()
+    {
         return m_zoomLevel;
     }
 
     static void attributeCallbackHandler(QNavitQuick_2 *navitGraph, navit *this_, attr *attr);
     void attributeCallback(attr *attr);
+
 protected:
-    virtual void geometryChanged(const QRectF& newGeometry, const QRectF& oldGeometry);
-    virtual void mousePressEvent(QMouseEvent* event);
-    virtual void mouseReleaseEvent(QMouseEvent* event);
-    virtual void mouseMoveEvent(QMouseEvent* event);
-    virtual void wheelEvent(QWheelEvent* event);
+    virtual void geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry);
+    virtual void mousePressEvent(QMouseEvent *event);
+    virtual void mouseReleaseEvent(QMouseEvent *event);
+    virtual void mouseMoveEvent(QMouseEvent *event);
+    virtual void wheelEvent(QWheelEvent *event);
 
 private:
-    struct graphics_priv* graphics_priv;
+    struct graphics_priv *graphics_priv;
     int m_pitch;
     bool m_autoZoom;
     bool m_followVehicle;
@@ -93,7 +97,7 @@ private:
     int m_orientation;
     void setNavitNumProperty(enum attr_type type, int value);
     int getNavitNumProperty(enum attr_type type);
-    void paintOverlays(QPainter* painter, struct graphics_priv* gp, QPaintEvent* event);
+    void paintOverlays(QPainter *painter, struct graphics_priv *gp, QPaintEvent *event);
     NavitInstance *m_navitInstance;
     long m_zoomLevel = 0;
     int m_moveX;
@@ -107,8 +111,8 @@ private slots:
 signals:
     void leftButtonClicked(QPoint position);
     void rightButtonClicked(QPoint position);
-    void positionChanged(QMouseEvent* mouse);
-    void pressAndHold(QMouseEvent* mouse);
+    void positionChanged(QMouseEvent *mouse);
+    void pressAndHold(QMouseEvent *mouse);
     void propertiesChanged();
     void zoomLevelChanged();
 
@@ -116,7 +120,7 @@ signals:
     void onMapMove(struct NavitInstance *navitInstance, struct point *origin, struct point *destination);
     void onZoomIn(struct NavitInstance *navitInstance, int zoomLevel, struct point *p);
     void onZoomOut(struct NavitInstance *navitInstance, int zoomLevel, struct point *p);
-    void onZoomToRoute(struct NavitInstance* navitInstance);
+    void onZoomToRoute(struct NavitInstance *navitInstance);
     void onSetNumAttr(struct NavitInstance *navitInstance, struct attr *attr);
     void onCenterOnPosition(struct NavitInstance *navitInstance);
 };

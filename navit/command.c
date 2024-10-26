@@ -6,7 +6,7 @@
 #include "item.h"
 #include "xmlconfig.h"
 #include "main.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 #include "vehicle.h"
 #include "speech.h"
 #include "debug.h"
@@ -1756,8 +1756,7 @@ command_saved_attr_new(char *command, struct attr *attr, struct callback *cb, in
     return ret;
 }
 
-struct command_saved *
-command_saved_new(char *command, struct navit *navit, struct callback *cb, int async) {
+struct command_saved *command_saved_new(char *command, NavitHandle navit, struct callback *cb, int async) {
     struct attr attr=ATTR_OBJECT(navit, navit);
     return command_saved_attr_new(command, &attr, cb, async);
 }

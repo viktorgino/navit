@@ -5,7 +5,8 @@
 #include <QDebug>
 
 #include <glib.h>
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -20,8 +21,6 @@ extern "C" {
 #include "mapset.h"
 #include "search.h"
 #include "bookmarks.h"
-
-#include "proxy.h"
 }
 
 #include "navitinstance.h"
@@ -30,18 +29,19 @@ extern "C" {
 class NavitFavouritesModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(NavitInstance * navit MEMBER m_navitInstance WRITE setNavit)
+    Q_PROPERTY(NavitInstance *navit MEMBER m_navitInstance WRITE setNavit)
 public:
-    enum FavouriteModelRoles {
+    enum FavouriteModelRoles
+    {
         LabelRole = Qt::UserRole + 1,
         CoordinatesRole
     };
 
     NavitFavouritesModel(QObject *parent = 0);
 
-    int rowCount(const QModelIndex & parent = QModelIndex()) const override;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QHash<int, QByteArray> roleNames() const override;
-    QVariant data(const QModelIndex & index, int role) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
 
@@ -49,13 +49,14 @@ public:
     QModelIndex parent(const QModelIndex &child) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
-    void setNavit(NavitInstance * navit);
+    void setNavit(NavitInstance *navit);
 
     Q_INVOKABLE void showFavourites();
     Q_INVOKABLE void setAsDestination(int index);
     Q_INVOKABLE void setAsPosition(int index);
     Q_INVOKABLE void addAsBookmark(int index);
-    Q_INVOKABLE void addStop(int index,  int position);
+    Q_INVOKABLE void addStop(int index, int position);
+
 private:
     QList<QVariantMap> m_favourites;
     NavitInstance *m_navitInstance = nullptr;

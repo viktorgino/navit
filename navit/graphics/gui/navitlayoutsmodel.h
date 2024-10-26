@@ -8,7 +8,8 @@
 #include "navithelper.h"
 
 #include <glib.h>
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -22,26 +23,25 @@ extern "C" {
 
 #include "mapset.h"
 #include "search.h"
-
-#include "proxy.h"
 }
 
 class NavitLayoutsModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(NavitInstance * navit MEMBER m_navitInstance WRITE setNavit)
+    Q_PROPERTY(NavitInstance *navit MEMBER m_navitInstance WRITE setNavit)
 public:
     NavitLayoutsModel(QObject *parent = 0);
 
-    enum LayoutsModelRoles {
+    enum LayoutsModelRoles
+    {
         NameRole = Qt::UserRole + 1,
         ActionRole,
         ImageUrlRole
     };
 
-    int rowCount(const QModelIndex & parent = QModelIndex()) const override;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QHash<int, QByteArray> roleNames() const override;
-    QVariant data(const QModelIndex & index, int role) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
 
@@ -49,10 +49,11 @@ public:
     QModelIndex parent(const QModelIndex &child) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
-    void setNavit(NavitInstance * navit);
+    void setNavit(NavitInstance *navit);
     Q_INVOKABLE void setLayout(QString name);
 signals:
     void layoutChanged();
+
 private:
     QList<QVariantMap> m_layouts;
     NavitInstance *m_navitInstance = nullptr;
@@ -61,5 +62,3 @@ private:
 };
 
 #endif // NAVITLAYOUTSMODEL_H
-
-

@@ -8,7 +8,8 @@
 #include "navitinstance.h"
 
 #include <glib.h>
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -24,10 +25,9 @@ extern "C" {
 #include "search.h"
 #include "bookmarks.h"
 
-#include "proxy.h"
-
 #include "event.h"
 #include "callback.h"
+#include "layout.h"
 }
 
 class NavitHelper
@@ -35,17 +35,18 @@ class NavitHelper
 public:
     NavitHelper();
 
-    static QString getAddress(NavitInstance * navitInstance, struct coord center, QString filter = "");
-    static QVariantMap getPOI(NavitInstance *navitInstance, struct coord center, int distance = 2);
+    static QString getAddress(Navit &navit, struct coord center, QString filter = "");
+    static QVariantMap getPOI(Navit &navit, struct coord center, int distance = 2);
     static QString getClosest(QList<QVariantMap> items, int maxDistance = -1);
     static QString formatDist(int dist);
-    static pcoord positionToPcoord (navit *navit, int x, int y);
-    static coord positionToCoord (navit *navit, int x, int y);
-    static pcoord coordToPcoord(navit *navit, int x, int y);
-    static void setDestination(NavitInstance *navitInstance, QString label, int x, int y);
-    static void setPosition(NavitInstance *navitInstance, int x, int y);
-    static void addBookmark(NavitInstance *navitInstance, QString label, int x, int y);
-    static void addStop(NavitInstance *navitInstance, int position, QString label, int x, int y);
+    static pcoord positionToPcoord(Navit &navit, int x, int y);
+    static coord positionToCoord(Navit &navit, int x, int y);
+    static pcoord coordToPcoord(Navit &navit, int x, int y);
+    static void setDestination(Navit &navit, QString label, int x, int y);
+    static void setPosition(Navit &navit, int x, int y);
+    static void addBookmark(Navit &navit, QString label, int x, int y);
+    static void addStop(Navit &navit, int position, QString label, int x, int y);
+    static char *get_icon(Navit &navit, struct item *item);
 };
 
 #endif // NAVITHELPER_H

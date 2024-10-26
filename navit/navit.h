@@ -20,121 +20,234 @@
 #ifndef NAVIT_NAVIT_H
 #define NAVIT_NAVIT_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-extern struct gui *main_loop_gui;
+#include "coord.h"
+#include "point.h"
+#include "attr.h"
+
 // defined in glib.h.
 #ifndef __G_LIST_H__
 struct _GList;
 typedef struct _GList GList;
 #endif
 
-/* prototypes */
-enum attr_type;
-struct attr;
-struct attr_iter;
-struct callback;
-struct coord_rect;
-struct displaylist;
-struct graphics;
-struct gui;
-struct layout;
-struct mapset;
-struct message;
-struct navigation;
-struct navit;
-struct pcoord;
-struct point;
-struct route;
-struct tracking;
-struct transformation;
-struct vehicleprofile;
-struct command_table;
-struct item;
-void navit_add_mapset(struct navit *this_, struct mapset *ms);
-struct mapset *navit_get_mapset(struct navit *this_);
-struct map *navit_get_search_results_map(struct navit *this_);
-int navit_populate_search_results_map(struct navit *navit, GList *search_results, struct coord_rect *r);
-struct tracking *navit_get_tracking(struct navit *this_);
-char *navit_get_user_data_directory(int create);
-void navit_draw_async(struct navit *this_, int async);
-void navit_draw(struct navit *this_);
-int navit_get_ready(struct navit *this_);
-void navit_draw_displaylist(struct navit *this_);
-void navit_handle_resize(struct navit *this_, int w, int h);
-int navit_get_width(struct navit *this_);
-int navit_get_height(struct navit *this_);
-void navit_ignore_graphics_events(struct navit *this_, int ignore);
-void navit_set_timeout(struct navit *this_);
-void navit_handle_motion(struct navit *this_, struct point *p);
-void navit_zoom_level(struct navit *this_, int level, struct point *p);
-void navit_zoom_in(struct navit *this_, int factor, struct point *p);
-void navit_zoom_out(struct navit *this_, int factor, struct point *p);
-void navit_zoom_in_cursor(struct navit *this_, int factor);
-void navit_zoom_out_cursor(struct navit *this_, int factor);
-struct navit *navit_new(struct attr *parent, struct attr **attrs);
-void navit_add_message(struct navit *this_, const char *message);
-struct message *navit_get_messages(struct navit *this_);
-struct graphics *navit_get_graphics(struct navit *this_);
-struct vehicleprofile *navit_get_vehicleprofile(struct navit *this_);
-GList *navit_get_vehicleprofiles(struct navit *this_);
-void navit_set_destination(struct navit *this_, struct pcoord *c, const char *description, int async);
-void navit_set_destinations(struct navit *this_, struct pcoord *c, int count, const char *description, int async);
-void navit_add_destination_description(struct navit *this_, struct pcoord *c, const char *description);
-int navit_get_destinations(struct navit *this_, struct pcoord *pc, int count);
-int navit_get_destination_count(struct navit *this_);
-char* navit_get_destination_description(struct navit *this_, int n);
-void navit_remove_nth_waypoint(struct navit *this_, int n);
-void navit_remove_waypoint(struct navit *this_);
-char* navit_get_coord_description(struct navit *this_, struct pcoord *c);
-int navit_check_route(struct navit *this_);
-struct map* read_former_destinations_from_file(void);
-void navit_textfile_debug_log(struct navit *this_, const char *fmt, ...);
-void navit_textfile_debug_log_at(struct navit *this_, struct pcoord *pc, const char *fmt, ...);
-int navit_speech_estimate(struct navit *this_, char *str);
-void navit_say(struct navit *this_, const char *text);
-void navit_speak(struct navit *this_);
-void navit_window_roadbook_destroy(struct navit *this_);
-void navit_window_roadbook_new(struct navit *this_);
-int navit_init(struct navit *this_);
-void navit_zoom_to_rect(struct navit *this_, struct coord_rect *r);
-void navit_zoom_to_route(struct navit *this_, int orientation);
-void navit_set_center(struct navit *this_, struct pcoord *center, int set_timeout);
-void navit_set_center_cursor(struct navit *this_, int autozoom, int keep_orientation);
-void navit_set_center_screen(struct navit *this_, struct point *p, int set_timeout);
-void navit_drag_map(struct navit *this_, struct point *origin, struct point *destination);
-void navit_set_center_cursor_draw(struct navit *this_);
-int navit_set_attr(struct navit *this_, struct attr *attr);
-int navit_get_attr(struct navit *this_, enum attr_type type, struct attr *attr, struct attr_iter *iter);
-struct layout *navit_get_layout_by_name(struct navit *this_, const char *layout_name);
-void navit_update_current_layout(struct navit *this_, struct layout *layout);
-int navit_add_attr(struct navit *this_, struct attr *attr);
-int navit_remove_attr(struct navit *this_, struct attr *attr);
-struct attr_iter *navit_attr_iter_new(void * unused);
-void navit_attr_iter_destroy(struct attr_iter *iter);
-void navit_add_callback(struct navit *this_, struct callback *cb);
-void navit_remove_callback(struct navit *this_, struct callback *cb);
-void navit_set_position(struct navit *this_, struct pcoord *c);
-struct gui *navit_get_gui(struct navit *this_);
-struct transformation *navit_get_trans(struct navit *this_);
-struct route *navit_get_route(struct navit *this_);
-struct navigation *navit_get_navigation(struct navit *this_);
-struct displaylist *navit_get_displaylist(struct navit *this_);
-void navit_layout_switch(struct navit *n);
-int navit_set_vehicle_by_name(struct navit *n, const char *name);
-int navit_set_vehicleprofile_name(struct navit *this_, char *name);
-int navit_set_layout_by_name(struct navit *n, const char *name);
-int navit_block(struct navit *this_, int block);
-int navit_get_blocked(struct navit *this_);
-void navit_destroy(struct navit *this_);
-void navit_command_add_table(struct navit*this_, struct command_table *commands, int count);
-struct navit * navit_ref(struct navit *this_);
-void navit_unref(struct navit *this_);
-/* end of prototypes */
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    /* prototypes */
+    enum attr_type;
+    struct attr;
+    struct attr_iter;
+    struct callback;
+    struct coord_rect;
+    struct displaylist;
+    struct graphics;
+    struct gui;
+    struct layout;
+    struct mapset;
+    struct message;
+    struct navigation;
+    struct route;
+    struct tracking;
+    struct transformation;
+    struct vehicleprofile;
+    struct command_table;
+    struct item;
+    struct object_func;
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+class Navit
+{
+public:
+    Navit(struct attr *parent, struct attr **attrs);
+    ~Navit();
+    void add_mapset(struct mapset *ms);
+    struct mapset *get_mapset();
+    struct map *get_search_results_map();
+    int populate_search_results_map(GList *search_results, struct coord_rect *r);
+    struct tracking *get_tracking();
+    void draw_async(int async);
+    void draw();
+    int get_ready();
+    void draw_displaylist();
+    void handle_resize(int w, int h);
+    int get_width();
+    int get_height();
+    void ignore_graphics_events(int ignore);
+    void set_timeout();
+    void handle_motion(struct point *p);
+    void zoom_level(int level, struct point *p);
+    void zoom_in(int factor, struct point *p);
+    void zoom_out(int factor, struct point *p);
+    void zoom_in_cursor(int factor);
+    void zoom_out_cursor(int factor);
+    void add_message(const char *message);
+    struct message *get_messages();
+    struct graphics *get_graphics();
+    struct vehicleprofile *get_vehicleprofile();
+    GList *get_vehicleprofiles();
+    void set_destination(struct pcoord *c, const char *description, int async);
+    void set_destinations(struct pcoord *c, int count, const char *description, int async);
+    void add_destination_description(struct pcoord *c, const char *description);
+    int get_destinations(struct pcoord *pc, int count);
+    int get_destination_count();
+    char *get_destination_description(int n);
+    void remove_nth_waypoint(int n);
+    void remove_waypoint();
+    char *get_coord_description(struct pcoord *c);
+    int check_route();
+    struct map *read_former_destinations_from_file(void);
+    void textfile_debug_log(const char *fmt, ...);
+    void textfile_debug_log_at(struct pcoord *pc, const char *fmt, ...);
+    int speech_estimate(char *str);
+    void say(const char *text);
+    void speak();
+    void window_roadbook_destroy();
+    void window_roadbook_new();
+    int init();
+    void zoom_to_rect(struct coord_rect *r);
+    void zoom_to_route(int orientation);
+    void set_center(struct pcoord *center, int set_timeout_);
+    void set_center_cursor(int autozoom_, int keep_orientation);
+    void set_center_screen(struct point *p, int set_timeout_);
+    void drag_map(struct point *origin, struct point *destination);
+    void set_center_cursor_draw();
+    int set_attr(struct attr *attr);
+    int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter);
+    struct layout *get_layout_by_name(const char *layout_name);
+    void update_current_layout(struct layout *layout);
+    int add_attr(struct attr *attr);
+    int remove_attr(struct attr *attr);
+    void add_callback(struct callback *cb);
+    void remove_callback(struct callback *cb);
+    void set_position(struct pcoord *c);
+    struct gui *get_gui();
+    struct transformation *get_trans();
+    struct route *get_route();
+    struct navigation *get_navigation();
+    struct displaylist *get_displaylist();
+    void layout_switch();
+    int set_vehicle_by_name(const char *name);
+    int set_vehicleprofile_name(char *name);
+    int set_layout_by_name(const char *name);
+    int block(int block);
+    int get_blocked();
+    void destroy();
+    Navit *ref();
+    void unref();
+    void motion_timeout();
+    void predraw();
+    void window_roadbook_update();
+    void map_progress();
+    void redraw_route(struct route *route, struct attr *attr);
+    void vehicle_update_status(struct navit_vehicle *nv, enum attr_type type);
+    void vehicle_update_position(struct navit_vehicle *nv);
 
+    static char *get_user_data_directory(int create);
+    static struct attr_iter *attr_iter_new();
+    static void attr_iter_destroy(struct attr_iter *iter);
+
+    int m_ignore_graphics_events;
+
+private:
+    object_func *m_func;
+    int m_refcount;
+    struct attr **m_attrs;
+    struct attr m_self;
+
+    GList *m_mapsets;
+    GList *m_layouts;
+    char *m_default_layout_name;     /*!< The default layout indicated by the config file (if any) */
+    struct layout *m_layout_current; /*!< The current layout theme used to display the map */
+    struct graphics *m_gra;
+    struct action *m_action;
+    struct transformation *m_trans, *m_trans_cursor;
+    struct compass *m_compass;
+    struct route *m_route;
+    struct navigation *m_navigation;
+    struct speech *m_speech;
+    struct tracking *m_tracking;
+    int m_ready;
+    struct window *m_win;
+    struct displaylist *m_displaylist;
+    int m_tracking_flag;
+    int m_orientation;
+    int m_recentdest_count;
+    GList *m_vehicles;
+    GList *m_windows_items;
+    struct navit_vehicle *m_vehicle;
+    struct callback_list *m_attr_cbl;
+    struct callback *m_nav_speech_cb, *m_roadbook_callback, *m_route_cb;
+    struct datawindow *m_roadbook_window;
+    struct map *m_former_destination;
+    struct point m_pressed, m_last, m_current;
+    int m_center_timeout;
+    int m_autozoom_secs;
+    int m_autozoom_min;
+    int m_autozoom_max;
+    int m_autozoom_active;
+    int m_autozoom_paused;
+    struct event_timeout *m_button_timeout, *m_motion_timeout;
+    struct callback *m_motion_timeout_callback;
+    struct log *m_textfile_debug_log;
+    struct pcoord m_destination;
+    int m_destination_valid;
+    int m_blocked; /**< Whether draw operations are currently blocked. This can be a combination of the
+                      following flags:
+                      1: draw operations are blocked
+                      2: draw operations are pending, requiring a redraw once draw operations are unblocked */
+    int m_w, m_h;
+    int m_drag_bitmap;
+    int m_use_mousewheel;
+    struct messagelist *m_messages;
+    struct callback *m_resize_callback, *m_motion_callback, *m_predraw_callback;
+    struct vehicleprofile *m_vehicleprofile;
+    GList *m_vehicleprofiles;
+    int m_pitch;
+    int m_follow_cursor;
+    int m_prevTs;
+    int m_graphics_flags;
+    int m_zoom_min, m_zoom_max;
+    int m_radius;
+    struct bookmarks *m_bookmarks;
+    int m_flags;
+    /* 1=No graphics ok */
+    /* 2=No gui ok */
+    int m_border;
+    int m_imperial;
+    int m_waypoints_flag;
+    struct coord_geo m_center;
+    int m_auto_switch;        /*auto switching between day/night layout enabled ?*/
+    int m_tunnel_nightlayout; /* switch to nightlayout if we are in a tunnel? */
+    char *m_layout_before_tunnel;
+    int m_sunrise_degrees;
+
+    void draw_vehicle(struct navit_vehicle *nv, struct point *pnt);
+    int add_vehicle(struct vehicle *v);
+    int set_attr_do(struct attr *attr, int init);
+    int get_cursor_pnt(struct point *p, int keep_orientation, int *dir);
+    void set_cursors();
+    void set_vehicle(struct navit_vehicle *nv);
+    int set_vehicleprofile(struct vehicleprofile *vp);
+
+    int restrict_to_range(int value, int min, int max);
+    void restrict_map_center_to_world_boundingbox(struct transformation *tr, struct coord *new_center);
+    void update_transformation(struct transformation *tr, struct point *old, struct point *new_);
+
+    void scale(long scale, struct point *p, int draw_);
+    void autozoom(struct coord *center, int speed);
+    int set_graphics(struct graphics *gra);
+    void projection_set(enum projection pro, int draw_);
+    void mark_navigation_stopped(char *former_destination_file);
+    int former_destinations_active();
+    void add_former_destinations_from_file();
+    void set_center_coord_screen(struct coord *c, struct point *p, int set_timeout_);
+    int add_layout(struct layout *layout);
+    int add_log(struct log *log);
+};
+/* end of prototypes */
+
+#endif

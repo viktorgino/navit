@@ -25,7 +25,6 @@ extern "C" {
 #include "map.h"
 #include "mapset.h"
 
-#include "proxy.h"
 }
 
 class NavitMapsModel : public QAbstractItemModel

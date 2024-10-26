@@ -51,7 +51,7 @@
 #include "callback.h"
 #include "file.h"
 #include "event.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 
 /**
  * @brief maximum amount of coordinates to allocate on stack using g_alloca
@@ -334,7 +334,7 @@ static void graphics_dpi_patch (struct callback_list *l, enum attr_type type, in
 struct graphics * graphics_new(struct attr *parent, struct attr **attrs) {
     struct graphics *this_;
     struct attr *type_attr, cbl_attr, *real_dpi_attr, *virtual_dpi_attr;
-    struct graphics_priv * (*graphicstype_new)(struct navit *nav, struct graphics_methods *meth, struct attr **attrs,
+    struct graphics_priv * (*graphicstype_new)(NavitHandle nav, struct graphics_methods *meth, struct attr **attrs,
             struct callback_list *cbl);
 
     if (! (type_attr=attr_search(attrs, attr_type))) {

@@ -27,6 +27,7 @@
  * @{
  */
 
+static GList *plugin_categories[plugin_category_last];
 
 struct plugin {
     int active;

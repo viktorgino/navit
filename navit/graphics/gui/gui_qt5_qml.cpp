@@ -18,36 +18,36 @@
 // */
 //// style with: clang-format -style=WebKit -i *
 
-//#include <QQmlApplicationEngine>
-//#include <QQmlContext>
-//#include <QQmlEngine>
+// #include <QQmlApplicationEngine>
+// #include <QQmlContext>
+// #include <QQmlEngine>
 
-//#include <glib.h>
+// #include <glib.h>
 
-//extern "C" {
-//#include "item.h" /* needs to be first, as attr.h depends on it */
+// extern "C" {
+// #include "item.h" /* needs to be first, as attr.h depends on it */
 
-//#include "debug.h"
+// #include "debug.h"
 
-//#include "point.h" /* needs to be before graphics.h */
+// #include "point.h" /* needs to be before graphics.h */
 
-//#include "navit.h"
-//#include "graphics.h"
-//}
+// #include "navit.h"
+// #include "graphics.h"
+// }
 
-//#include "navitinstance.h"
-//#include "navitpoimodel.h"
-//#include "navitrecentsmodel.h"
-//#include "navitfavouritesmodel.h"
-//#include "navitsearchmodel.h"
-//#include "navitroute.h"
-//#include "navitlayoutsmodel.h"
-//#include "navitlayersmodel.h"
-//#include "navitvehiclesmodel.h"
-//#include "navitmapsmodel.h"
+// #include "navitinstance.h"
+// #include "navitpoimodel.h"
+// #include "navitrecentsmodel.h"
+// #include "navitfavouritesmodel.h"
+// #include "navitsearchmodel.h"
+// #include "navitroute.h"
+// #include "navitlayoutsmodel.h"
+// #include "navitlayersmodel.h"
+// #include "navitvehiclesmodel.h"
+// #include "navitmapsmodel.h"
 
-//static int init_qml_gui(struct navit* nav, struct graphics* gra) {
-//    dbg(lvl_debug, "enter");
+// static int init_qml_gui(struct navit* nav, struct graphics* gra) {
+//     dbg(lvl_debug, "enter");
 
 //    /* expect to have qt5 graphics. So get the qml engine prepared by graphics */
 //    QQmlApplicationEngine* engine = (QQmlApplicationEngine*)graphics_get_data(gra, "engine");

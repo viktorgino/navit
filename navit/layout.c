@@ -25,7 +25,7 @@
 #include "layout.h"
 #include "coord.h"
 #include "debug.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 
 /**
  * @brief Create a new layout object and attach it to a navit parent
@@ -37,7 +37,7 @@
 struct layout *
 layout_new(struct attr *parent, struct attr **attrs) {
     struct layout *l;
-    struct navit *navit;
+    NavitHandle navit;
     struct color def_color = {COLOR_BACKGROUND_};
     int def_underground_alpha = UNDERGROUND_ALPHA_;
     struct attr *name_attr,*color_attr,*order_delta_attr,*font_attr,*day_attr,*night_attr,*active_attr,

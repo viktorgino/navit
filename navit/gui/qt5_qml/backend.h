@@ -89,7 +89,7 @@ public slots:
     void block_draw();
 
 private:
-    struct navit *nav;
+    NavitHandle nav;
     struct point *p;
     struct coord_geo g;
     struct pcoord c;

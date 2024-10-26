@@ -47,7 +47,7 @@
 #include "callback.h"
 #include "vehicle.h"
 #include "debug.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 #include "util.h"
 
 /**
@@ -58,7 +58,7 @@
  *
  * The actual subscription area around the current location is stored in
  * {@link struct traffic_priv::position_rect} and updated in
- * {@link traffic_traff_android_position_callback(struct traffic_priv *, struct navit *, struct vehicle *)}.
+ * {@link traffic_traff_android_position_callback(struct traffic_priv *, NavitHandle, struct vehicle *)}.
  */
 #define POSITION_RECT_SIZE 100000
 
@@ -66,7 +66,7 @@
  * @brief Stores information about the plugin instance.
  */
 struct traffic_priv {
-    struct navit * nav;         /**< The navit instance */
+    NavitHandle nav;         /**< The navit instance */
     struct callback * cbid;     /**< The callback function for TraFF feeds **/
     int position_valid;         /**< Whether Navit currently has a valid position */
     struct coord_rect * position_rect; /**< Rectangle around last known vehicle position (in `projection_mg`) */
@@ -131,7 +131,7 @@ static void traffic_traff_android_on_feed_received(struct traffic_priv * this_, 
 
     dbg(lvl_debug, "enter");
     attr = g_new0(struct attr, 1);
-    a_iter = navit_attr_iter_new(NULL);
+    a_iter = navit_attr_iter_new();
     if (navit_get_attr(this_->nav, attr_traffic, attr, a_iter))
         traffic = (struct traffic *) attr->u.navit_object;
     navit_attr_iter_destroy(a_iter);
@@ -242,7 +242,7 @@ static void traffic_traff_android_status_callback(struct traffic_priv * this_, i
  * @param navit The Navit instance
  * @param vehicle The vehicle which delivered the position update and from which the position can be queried
  */
-static void traffic_traff_android_position_callback(struct traffic_priv * this_, struct navit *navit,
+static void traffic_traff_android_position_callback(struct traffic_priv * this_, NavitHandle navit,
         struct vehicle *vehicle) {
     struct attr attr;
     struct coord c;
@@ -319,7 +319,7 @@ static int traffic_traff_android_init(struct traffic_priv * this_) {
  *
  * @return A pointer to a `traffic_priv` structure for the plugin instance
  */
-static struct traffic_priv * traffic_traff_android_new(struct navit *nav, struct traffic_methods *meth,
+static struct traffic_priv * traffic_traff_android_new(NavitHandle nav, struct traffic_methods *meth,
         struct attr **attrs, struct callback_list *cbl) {
     struct traffic_priv *ret;
 

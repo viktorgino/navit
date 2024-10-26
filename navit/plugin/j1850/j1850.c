@@ -41,7 +41,7 @@
 #include <navit/main.h>
 #include <navit/debug.h>
 #include <navit/map.h>
-#include <navit/navit.h>
+#include <navit/navit_wrapper.h>
 #include <navit/callback.h>
 #include <navit/file.h>
 #include <navit/plugin.h>
@@ -53,7 +53,7 @@
 #include "osd.h"
 
 struct j1850 {
-    struct navit *nav;
+    NavitHandle nav;
     int status;
     int device;
     int index;
@@ -266,7 +266,7 @@ static void j1850_idle(struct j1850 *j1850) {
  * Draws the j1850 OSD. Currently it only displays the last parsed message
  *
  */
-static void osd_j1850_draw(struct j1850 *this, struct navit *nav,
+static void osd_j1850_draw(struct j1850 *this, NavitHandle nav,
                            struct vehicle *v) {
     osd_std_draw(&this->osd_item);
 
@@ -292,7 +292,7 @@ static void osd_j1850_draw(struct j1850 *this, struct navit *nav,
  * Initialize the j1850 OSD
  *
  */
-static void osd_j1850_init(struct j1850 *this, struct navit *nav) {
+static void osd_j1850_init(struct j1850 *this, NavitHandle nav) {
 
     struct color c;
     osd_set_std_graphic(nav, &this->osd_item, (struct osd_priv *)this);
@@ -442,7 +442,7 @@ void j1850_init_serial_port(struct j1850 *j1850) {
  * Creates the j1850 OSD and set some default properties
  *
  */
-static struct osd_priv *osd_j1850_new(struct navit *nav, struct osd_methods *meth,
+static struct osd_priv *osd_j1850_new(NavitHandle nav, struct osd_methods *meth,
                                       struct attr **attrs) {
     struct j1850 *this=g_new0(struct j1850, 1);
     this->nav=nav;

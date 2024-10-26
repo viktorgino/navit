@@ -152,7 +152,7 @@ Example :
   * @param p The invariant point (if set to NULL, default to center)
   * @returns nothing
   */
-  void navit_zoom_in(struct navit *this_, int factor, struct point *p)
+  void navit_zoom_in(NavitHandlethis_, int factor, struct point *p)
 
 Templates
 `````````

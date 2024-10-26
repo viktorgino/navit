@@ -16,7 +16,8 @@
 #include "navithelper.h"
 
 #include <glib.h>
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -31,18 +32,16 @@ extern "C" {
 #include "mapset.h"
 #include "search.h"
 
-#include "proxy.h"
 #include "callback.h"
 #include "event.h"
 }
-
 
 class POISearchWorker : public QObject
 {
     Q_OBJECT
 public:
-    POISearchWorker (NavitInstance * navit, QString filter, int screenX, int screenY, int distance);
-    ~POISearchWorker ();
+    POISearchWorker(NavitInstance *navitInstance, QString filter, int screenX, int screenY, int distance);
+    ~POISearchWorker();
     void start();
     void proccess();
     void proccessMapset();
@@ -51,23 +50,24 @@ public:
     static void callbackHandler(POISearchWorker this_);
 signals:
     void gotSearchResult(QVariantMap poi);
+
 private:
-    NavitInstance * m_navitInstance;
+    NavitInstance *m_navitInstance;
     QString m_filter;
     int m_screenX;
     int m_screenY;
     int m_distance;
     enum projection m_pro;
-    struct mapset_handle * m_h = nullptr;
-    struct map_selection * m_sel = nullptr;
+    struct mapset_handle *m_h = nullptr;
+    struct map_selection *m_sel = nullptr;
     struct coord m_center;
 
     struct map *m_m = nullptr;
 
-    struct callback * m_idleCallback = nullptr;
-    struct event_idle * m_idle = nullptr;
+    struct callback *m_idleCallback = nullptr;
+    struct event_idle *m_idle = nullptr;
 
-    struct item * m_item = nullptr;
+    struct item *m_item = nullptr;
     struct map_rect *m_mr = nullptr;
 
     struct map_selection *m_selm = nullptr;
@@ -76,9 +76,10 @@ private:
 class NavitPOIModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(NavitInstance * navit MEMBER m_navitInstance WRITE setNavit)
+    Q_PROPERTY(NavitInstance *navit MEMBER m_navitInstance WRITE setNavit)
 public:
-    enum POIModelRoles {
+    enum POIModelRoles
+    {
         NameRole = Qt::UserRole + 1,
         TypeRole,
         DistanceRole,
@@ -90,9 +91,9 @@ public:
 
     NavitPOIModel(QObject *parent = 0);
     ~NavitPOIModel() override;
-    int rowCount(const QModelIndex & parent = QModelIndex()) const override;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QHash<int, QByteArray> roleNames() const override;
-    QVariant data(const QModelIndex & index, int role) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
 
@@ -104,11 +105,12 @@ public slots:
     void setAsDestination(int index);
     void setAsPosition(int index);
     void addAsBookmark(int index);
-    void addStop(int index,  int position);
-    void setNavit(NavitInstance * navit);
+    void addStop(int index, int position);
+    void setNavit(NavitInstance *navit);
     void reset();
 private slots:
     void receiveSearchResult(QVariantMap poi);
+
 private:
     QList<QVariantMap> m_pois;
     NavitInstance *m_navitInstance = nullptr;
@@ -117,7 +119,6 @@ private:
     void stopWorker(bool clearModel = false);
     POISearchWorker *m_poiWorker = nullptr;
     QMutex modelMutex;
-
 };
 
 #endif // NAVITPOIMODEL_H

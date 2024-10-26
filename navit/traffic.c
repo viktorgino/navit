@@ -35,7 +35,7 @@
 #include <sys/time.h>
 #include "glib_slice.h"
 #include "config.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 #include "util.h"
 #include "coord.h"
 #include "item.h"
@@ -114,7 +114,7 @@ struct traffic_shared_priv {
  */
 struct traffic {
     NAVIT_OBJECT
-    struct navit *navit;         /**< The navit instance */
+    NavitHandle navit;         /**< The navit instance */
     struct traffic_shared_priv *shared; /**< Private data shared between all instances */
     struct traffic_priv *priv;   /**< Private data used by the plugin */
     struct traffic_methods meth; /**< Methods implemented by the plugin */
@@ -4161,7 +4161,7 @@ static void traffic_set_shared(struct traffic *this_) {
     dbg(lvl_debug, "enter");
 
     if (!this_->shared) {
-        iter = navit_attr_iter_new(NULL);
+        iter = navit_attr_iter_new();
         while (navit_get_attr(this_->navit, attr_traffic, &attr, iter)) {
             traffic = (struct traffic *) attr.u.navit_object;
             if (traffic->shared)
@@ -4602,7 +4602,7 @@ static void traffic_loop(struct traffic * this_) {
  */
 static struct traffic * traffic_new(struct attr *parent, struct attr **attrs) {
     struct traffic *this_;
-    struct traffic_priv *(*traffic_new)(struct navit *nav, struct traffic_methods *meth,
+    struct traffic_priv *(*traffic_new)(NavitHandle nav, struct traffic_methods *meth,
                                         struct attr **attrs, struct callback_list *cbl);
     struct attr *attr;
 

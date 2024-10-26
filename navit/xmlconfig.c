@@ -36,7 +36,7 @@
 #include "projection.h"
 #include "map.h"
 #include "navigation.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 #include "plugin.h"
 #include "route.h"
 #include "speech.h"

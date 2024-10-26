@@ -2,10 +2,10 @@
 
 NavitLayersModel::NavitLayersModel(QObject *parent)
 {
-
 }
 
-QHash<int, QByteArray> NavitLayersModel::roleNames() const{
+QHash<int, QByteArray> NavitLayersModel::roleNames() const
+{
     QHash<int, QByteArray> roles;
     roles[NameRole] = "name";
     roles[ActionRole] = "action";
@@ -13,7 +13,8 @@ QHash<int, QByteArray> NavitLayersModel::roleNames() const{
     return roles;
 }
 
-QVariant NavitLayersModel::data(const QModelIndex & index, int role) const {
+QVariant NavitLayersModel::data(const QModelIndex &index, int role) const
+{
     if (index.row() < 0 || index.row() >= m_layers.count())
         return QVariant();
 
@@ -28,56 +29,69 @@ QVariant NavitLayersModel::data(const QModelIndex & index, int role) const {
     return QVariant();
 }
 
-
-int NavitLayersModel::rowCount(const QModelIndex & parent) const {
+int NavitLayersModel::rowCount(const QModelIndex &parent) const
+{
     return m_layers.count();
 }
 
-Qt::ItemFlags NavitLayersModel::flags(const QModelIndex &index) const {
+Qt::ItemFlags NavitLayersModel::flags(const QModelIndex &index) const
+{
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-bool NavitLayersModel::setData(const QModelIndex &index, const QVariant &value, int role) {
+bool NavitLayersModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
     return false;
 }
 
-QModelIndex NavitLayersModel::index(int row, int column, const QModelIndex &parent) const {
+QModelIndex NavitLayersModel::index(int row, int column, const QModelIndex &parent) const
+{
     return createIndex(row, column);
 }
 
-QModelIndex NavitLayersModel::parent(const QModelIndex &child) const {
+QModelIndex NavitLayersModel::parent(const QModelIndex &child) const
+{
     return QModelIndex();
 }
 
-int NavitLayersModel::columnCount(const QModelIndex &parent) const {
+int NavitLayersModel::columnCount(const QModelIndex &parent) const
+{
     return 0;
 }
 
-void NavitLayersModel::setNavitLayers(NavitLayoutsModel * navitLayouts){
+void NavitLayersModel::setNavitLayers(NavitLayoutsModel *navitLayouts)
+{
     m_navitLayoutsInstance = navitLayouts;
     update();
     connect(m_navitLayoutsInstance, &NavitLayoutsModel::layoutChanged, this, &NavitLayersModel::update);
 }
-void NavitLayersModel::update() {
-    if(m_navitLayoutsInstance && m_navitLayoutsInstance->m_navitInstance){
+void NavitLayersModel::update()
+{
+    if (m_navitLayoutsInstance && m_navitLayoutsInstance->m_navitInstance)
+    {
+        Navit &navit = m_navitLayoutsInstance->m_navitInstance->getNavit();
         struct attr attr;
 
         beginResetModel();
         m_layers.clear();
         endResetModel();
 
-        navit_get_attr(m_navitLayoutsInstance->m_navitInstance->getNavit(), attr_layout, &attr, nullptr);
-        GList * layers = attr.u.layout->layers;
+        navit.get_attr(attr_layout, &attr, nullptr);
+        GList *layers = attr.u.layout->layers;
 
-        while(layers){
+        while (layers)
+        {
             QVariantMap layerMap;
             GList *next = layers->next;
-            struct layer* layer = (struct layer*)layers->data;
+            struct layer *layer = (struct layer *)layers->data;
             layerMap.insert("name", layer->name);
             layerMap.insert("action", "toggleLayer");
-            if(layer->active){
+            if (layer->active)
+            {
                 layerMap.insert("imageUrl", "qrc:/NavitGUI/assets/ionicons/md-checkmark-circle-outline.svg");
-            } else {
+            }
+            else
+            {
                 layerMap.insert("imageUrl", "");
             }
             beginInsertRows(QModelIndex(), rowCount(), rowCount());
@@ -88,21 +102,25 @@ void NavitLayersModel::update() {
     }
 }
 
-
-void NavitLayersModel::toggleLayer(QString name){
-    if(m_navitLayoutsInstance && m_navitLayoutsInstance->m_navitInstance){
+void NavitLayersModel::toggleLayer(QString name)
+{
+    if (m_navitLayoutsInstance && m_navitLayoutsInstance->m_navitInstance)
+    {
+        Navit &navit = m_navitLayoutsInstance->m_navitInstance->getNavit();
         struct attr attr;
-        char* layerName = name.toUtf8().data();
+        char *layerName = name.toUtf8().data();
 
-        navit_get_attr(m_navitLayoutsInstance->m_navitInstance->getNavit(), attr_layout, &attr, nullptr);
-        GList * layers = attr.u.layout->layers;
-        while (layers) {
-            struct layer*l = (struct layer*)layers->data;
-            if(l && !strcmp(l->name,layerName) ) {
+        navit.get_attr(attr_layout, &attr, nullptr);
+        GList *layers = attr.u.layout->layers;
+        while (layers)
+        {
+            struct layer *l = (struct layer *)layers->data;
+            if (l && !strcmp(l->name, layerName))
+            {
                 l->active ^= 1;
-                navit_draw(m_navitLayoutsInstance->m_navitInstance->getNavit());
+                navit.draw();
             }
-            layers=g_list_next(layers);
+            layers = g_list_next(layers);
         }
 
         update();

@@ -37,7 +37,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "browserplugin.h"
-#include <navit/navit.h>
+#include <navit/navit_wrapper.h>
 #include <navit/item.h>
 #include <navit/config_.h>
 #include <navit/callback.h>

@@ -12,7 +12,8 @@
 #include "navithelper.h"
 
 #include <glib.h>
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -35,13 +36,15 @@ extern "C" {
 
 Q_DECLARE_METATYPE(struct item *)
 
-struct Address{
+struct Address
+{
     QString country;
     QString town;
     QString street;
     QString house;
 };
-struct SearchResult{
+struct SearchResult
+{
     int index;
     QString distance;
     QString addressString;
@@ -57,12 +60,13 @@ class SearchWorker : public QThread
 {
     Q_OBJECT
 public:
-    SearchWorker (NavitInstance * navit, struct search_list *searchResultList, QString searchQuery, enum attr_type search_type);
+    SearchWorker(NavitInstance *navit, struct search_list *searchResultList, QString searchQuery, enum attr_type search_type);
     void run() override;
 signals:
     void gotSearchResult(SearchResult result);
+
 private:
-    NavitInstance * m_navitInstance;
+    NavitInstance *m_navitInstance;
     struct search_list *m_searchResultList;
     QString m_searchQuery;
     enum attr_type m_search_type;
@@ -71,7 +75,7 @@ private:
 class NavitSearchModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(NavitInstance * navit MEMBER m_navitInstance WRITE setNavit)
+    Q_PROPERTY(NavitInstance *navit MEMBER m_navitInstance WRITE setNavit)
     Q_PROPERTY(SearchType currentSearchType READ getSearchType WRITE changeSearchType NOTIFY searchTypeChanged)
     Q_PROPERTY(QString searchQuery MEMBER m_searchQuery NOTIFY searchQueryChanged)
     Q_PROPERTY(QString country READ getCountry NOTIFY addressChanged)
@@ -80,7 +84,8 @@ class NavitSearchModel : public QAbstractItemModel
     Q_PROPERTY(QString house READ getHouse NOTIFY addressChanged)
 
 public:
-    enum SearchModelRoles {
+    enum SearchModelRoles
+    {
         LabelRole = Qt::UserRole + 1,
         NameRole,
         IconRole,
@@ -88,19 +93,20 @@ public:
         DistanceRole
     };
 
-    enum SearchType {
+    enum SearchType
+    {
         SearchCountry = attr_country_all,
-        SearchTown = attr_town_or_district_name,//attr_town_or_district_name or attr_town_postal
+        SearchTown = attr_town_or_district_name, // attr_town_or_district_name or attr_town_postal
         SearchStreet = attr_street_name,
         SearchHouse = attr_house_number
     };
 
     Q_ENUMS(SearchType)
     explicit NavitSearchModel(QObject *parent = 0);
-    ~NavitSearchModel ();
-    int rowCount(const QModelIndex & parent = QModelIndex()) const override;
+    ~NavitSearchModel();
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QHash<int, QByteArray> roleNames() const override;
-    QVariant data(const QModelIndex & index, int role) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
 
@@ -108,13 +114,13 @@ public:
     QModelIndex parent(const QModelIndex &child) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
-    void setNavit(NavitInstance * navit);
+    void setNavit(NavitInstance *navitInstance);
     void search_list_set_default_country();
 public slots:
     void setAsDestination(int index);
     void setAsPosition(int index);
     void addAsBookmark(int index);
-    void addStop(int index,  int position);
+    void addStop(int index, int position);
     void setAddressAsDestination();
     void setAddressAsPosition();
     void addAddressAsBookmark();
@@ -131,6 +137,7 @@ signals:
     void addressChanged();
 private slots:
     void receiveSearchResult(SearchResult result);
+
 private:
     NavitInstance *m_navitInstance = nullptr;
 
@@ -162,16 +169,20 @@ private:
 
     void viewOnMap(SearchResult pointMap);
 
-    QString getCountry(){
+    QString getCountry()
+    {
         return m_address.address.country;
     }
-    QString getTown(){
+    QString getTown()
+    {
         return m_address.address.town;
     }
-    QString getStreet(){
+    QString getStreet()
+    {
         return m_address.address.street;
     }
-    QString getHouse(){
+    QString getHouse()
+    {
         return m_address.address.house;
     }
 };

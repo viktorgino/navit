@@ -1,27 +1,28 @@
 #include "navitpoimodel.h"
 
-POISearchWorker::POISearchWorker (NavitInstance * navit, QString filter, int screenX, int screenY, int distance) :
-    m_navitInstance(navit),
-    m_filter(filter),
-    m_screenX(screenX),
-    m_screenY(screenY),
-    m_distance(distance){
-
+POISearchWorker::POISearchWorker(NavitInstance *navitInstance, QString filter, int screenX, int screenY, int distance) : m_navitInstance(navitInstance),
+                                                                                                                         m_filter(filter),
+                                                                                                                         m_screenX(screenX),
+                                                                                                                         m_screenY(screenY),
+                                                                                                                         m_distance(distance)
+{
+    Navit &navit = m_navitInstance->getNavit();
     struct point p;
-    struct transformation * trans;
+    struct transformation *trans;
 
     struct coord center;
     struct pcoord pcenter;
 
-    if(m_screenX < 0) {
-        m_screenX = navit_get_width(m_navitInstance->getNavit()) / 2;
-        m_screenY = navit_get_height(m_navitInstance->getNavit()) / 2;
+    if (m_screenX < 0)
+    {
+        m_screenX = navit.get_width() / 2;
+        m_screenY = navit.get_height() / 2;
     }
 
     p.x = m_screenX;
     p.y = m_screenY;
 
-    trans = navit_get_trans(m_navitInstance->getNavit());
+    trans = navit.get_trans();
     m_pro = transform_get_projection(trans);
     transform_reverse(trans, &p, &center);
 
@@ -29,70 +30,85 @@ POISearchWorker::POISearchWorker (NavitInstance * navit, QString filter, int scr
     pcenter.y = center.y;
     pcenter.pro = m_pro;
 
-    int distanceSel =  m_distance * transform_scale(abs(center.y) + m_distance * 1.5);
+    int distanceSel = m_distance * transform_scale(abs(center.y) + m_distance * 1.5);
     qDebug() << "distanceSel : " << distanceSel;
     m_sel = map_selection_rect_new(&(pcenter), distanceSel, 18);
 
     dbg(lvl_debug, "screenX : %d screenY : %d center is at %x, %x", m_screenX, m_screenY, center.x, center.y);
 
-    m_h = mapset_open(navit_get_mapset(m_navitInstance->getNavit()));
+    m_h = mapset_open(navit.get_mapset());
 }
 
-POISearchWorker::~POISearchWorker (){
+POISearchWorker::~POISearchWorker()
+{
     qDebug() << "Deleting POISearchWorker";
     finish();
 
-//    if(m_sel){
-//        map_selection_destroy(m_sel);
-//    }
-//    if(m_h){
-//        mapset_close(m_h);
-//    }
-//    if (m_idleCallback){
-//        callback_destroy(m_idleCallback);
-//    }
+    //    if(m_sel){
+    //        map_selection_destroy(m_sel);
+    //    }
+    //    if(m_h){
+    //        mapset_close(m_h);
+    //    }
+    //    if (m_idleCallback){
+    //        callback_destroy(m_idleCallback);
+    //    }
 }
-void POISearchWorker::start(){
+void POISearchWorker::start()
+{
     qDebug() << "Starting POISearchWorker";
-    this->m_idleCallback=callback_new_1(callback_cast(POISearchWorker::callbackHandler), this);
-    this->m_idle=event_add_idle(100,this->m_idleCallback);
+    this->m_idleCallback = callback_new_1(callback_cast(POISearchWorker::callbackHandler), this);
+    this->m_idle = event_add_idle(100, this->m_idleCallback);
 }
 
-void POISearchWorker::callbackHandler(POISearchWorker this_){
+void POISearchWorker::callbackHandler(POISearchWorker this_)
+{
     this_.proccess();
 }
-void POISearchWorker::proccess(){
-    if(!m_idle || !m_idleCallback){
+void POISearchWorker::proccess()
+{
+    if (!m_idle || !m_idleCallback)
+    {
         qDebug() << "  m_idle or m_idleCallbackis null returning";
         return;
     }
-    if(!m_mr){
+    if (!m_mr)
+    {
         qDebug() << "  m_mr is null, proccessMapset";
         proccessMapset();
-    } else if(!m_item){
+    }
+    else if (!m_item)
+    {
         qDebug() << "  m_item is null, proccessMapset";
         map_rect_destroy(m_mr);
         proccessMapset();
     }
 
-    if(m_mr){
-        for(int i = 0; i < 100; i++){
+    if (m_mr)
+    {
+        for (int i = 0; i < 100; i++)
+        {
             proccessMapsetItem();
-            if(!m_item){
+            if (!m_item)
+            {
                 return;
             }
         }
-    } else {
+    }
+    else
+    {
         qDebug() << "  mr is null, destroying";
         map_selection_destroy(m_sel);
         finish();
     }
 }
 
-void POISearchWorker::proccessMapset(){
+void POISearchWorker::proccessMapset()
+{
     qDebug() << "    Processing mapset";
     m_m = mapset_next(m_h, 1);
-    if(!m_m){
+    if (!m_m)
+    {
         qDebug() << "  Mapset is null";
         m_selm = nullptr;
         m_mr = nullptr;
@@ -104,43 +120,51 @@ void POISearchWorker::proccessMapset(){
     dbg(lvl_debug, "mr=%p", m_mr)
 }
 
-
-void POISearchWorker::proccessMapsetItem(){
-//    qDebug() << "      Processing mapset Item";
-    if(!m_mr){
+void POISearchWorker::proccessMapsetItem()
+{
+    //    qDebug() << "      Processing mapset Item";
+    if (!m_mr)
+    {
         return;
     }
     m_item = map_rect_get_item(m_mr);
-    if(!m_item){
+    if (!m_item)
+    {
         return;
     }
-    if(!m_filter.isEmpty() && m_filter != item_to_name(m_item->type)){
+    if (!m_filter.isEmpty() && m_filter != item_to_name(m_item->type))
+    {
         return;
     }
+    Navit &navit = m_navitInstance->getNavit();
     struct coord c;
     int idist = 0;
 
-    if ( item_is_poi(*m_item) &&
-         item_coord_get_pro(m_item, &c, 1, m_pro) &&
-         coord_rect_contains(&m_sel->u.c_rect, &c) &&
-         (idist = transform_distance(m_pro, &m_center, &c))/* < m_distance*/) {
+    if (item_is_poi(*m_item) &&
+        item_coord_get_pro(m_item, &c, 1, m_pro) &&
+        coord_rect_contains(&m_sel->u.c_rect, &c) &&
+        (idist = transform_distance(m_pro, &m_center, &c)) /* < m_distance*/)
+    {
 
         item_attr_rewind(m_item);
         struct attr attr;
-        char * name;
-        char * icon = get_icon(m_navitInstance->getNavit(), m_item);
+        char *name;
+        char *icon = NavitHelper::get_icon(navit, m_item);
 
-        if (item_attr_get(m_item, attr_label, &attr)) {
+        if (item_attr_get(m_item, attr_label, &attr))
+        {
             name = map_convert_string(m_item->map, attr.u.str);
 
-            if(m_item->type==type_poly_building && item_attr_get(m_item, attr_house_number, &attr) ) {
-                if(strcmp(name,map_convert_string_tmp(m_item->map,attr.u.str))==0) {
+            if (m_item->type == type_poly_building && item_attr_get(m_item, attr_house_number, &attr))
+            {
+                if (strcmp(name, map_convert_string_tmp(m_item->map, attr.u.str)) == 0)
+                {
                     g_free(name);
                     return;
                 }
             }
 
-            QString address = NavitHelper::getAddress(m_navitInstance, c,"");
+            QString address = NavitHelper::getAddress(navit, c, "");
             QString label = QString("%0, %1").arg(name).arg(address);
             QVariantMap coords;
             coords.insert("x", c.x);
@@ -159,11 +183,13 @@ void POISearchWorker::proccessMapsetItem(){
     }
 }
 
-void POISearchWorker::finish(){
+void POISearchWorker::finish()
+{
     qDebug() << "Finishing worker";
-    if (m_idle) {
+    if (m_idle)
+    {
         event_remove_idle(m_idle);
-        m_idle=nullptr;
+        m_idle = nullptr;
     }
 }
 
@@ -171,17 +197,21 @@ NavitPOIModel::NavitPOIModel(QObject *parent)
 {
 }
 
-NavitPOIModel::~NavitPOIModel(){
-    if(m_poiWorker){
+NavitPOIModel::~NavitPOIModel()
+{
+    if (m_poiWorker)
+    {
         delete m_poiWorker;
     }
 }
 
-void NavitPOIModel::setNavit(NavitInstance * navit){
+void NavitPOIModel::setNavit(NavitInstance *navit)
+{
     m_navitInstance = navit;
 }
 
-QHash<int, QByteArray> NavitPOIModel::roleNames() const{
+QHash<int, QByteArray> NavitPOIModel::roleNames() const
+{
     QHash<int, QByteArray> roles;
     roles[NameRole] = "name";
     roles[TypeRole] = "type";
@@ -193,7 +223,8 @@ QHash<int, QByteArray> NavitPOIModel::roleNames() const{
     return roles;
 }
 
-QVariant NavitPOIModel::data(const QModelIndex & index, int role) const {
+QVariant NavitPOIModel::data(const QModelIndex &index, int role) const
+{
     if (index.row() < 0 || index.row() >= m_pois.count())
         return QVariant();
 
@@ -217,72 +248,82 @@ QVariant NavitPOIModel::data(const QModelIndex & index, int role) const {
     return QVariant();
 }
 
-
-int NavitPOIModel::rowCount(const QModelIndex & parent) const {
+int NavitPOIModel::rowCount(const QModelIndex &parent) const
+{
     return m_pois.count();
 }
 
-Qt::ItemFlags NavitPOIModel::flags(const QModelIndex &index) const {
+Qt::ItemFlags NavitPOIModel::flags(const QModelIndex &index) const
+{
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-bool NavitPOIModel::setData(const QModelIndex &index, const QVariant &value, int role) {
+bool NavitPOIModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
     return false;
 }
 
-QModelIndex NavitPOIModel::index(int row, int column, const QModelIndex &parent) const {
+QModelIndex NavitPOIModel::index(int row, int column, const QModelIndex &parent) const
+{
     return createIndex(row, column);
 }
 
-QModelIndex NavitPOIModel::parent(const QModelIndex &child) const {
+QModelIndex NavitPOIModel::parent(const QModelIndex &child) const
+{
     return QModelIndex();
 }
 
-int NavitPOIModel::columnCount(const QModelIndex &parent) const {
+int NavitPOIModel::columnCount(const QModelIndex &parent) const
+{
     return 0;
 }
 
-QString NavitPOIModel::getAddressString(struct item *item, int prependPostal) {
+QString NavitPOIModel::getAddressString(struct item *item, int prependPostal)
+{
     struct attr attr;
     QStringList address;
 
     item_attr_rewind(item);
-    if(prependPostal && item_attr_get(item, attr_postal, &attr))
-        address << map_convert_string_tmp(item->map,attr.u.str);
-    if(item_attr_get(item, attr_house_number, &attr))
-        address << map_convert_string_tmp(item->map,attr.u.str);
-    if(item_attr_get(item, attr_street_name, &attr))
-        address << map_convert_string_tmp(item->map,attr.u.str);
-    if(item_attr_get(item, attr_street_name_systematic, &attr))
-        address << map_convert_string_tmp(item->map,attr.u.str);
-    if(item_attr_get(item, attr_district_name, &attr))
-        address << map_convert_string_tmp(item->map,attr.u.str);
-    if(item_attr_get(item, attr_town_name, &attr))
-        address << map_convert_string_tmp(item->map,attr.u.str);
-    if(item_attr_get(item, attr_county_name, &attr))
-        address << map_convert_string_tmp(item->map,attr.u.str);
-    if(item_attr_get(item, attr_country_name, &attr))
-        address << map_convert_string_tmp(item->map,attr.u.str);
-    if(item_attr_get(item, attr_address, &attr))
-        address << " | " << map_convert_string_tmp(item->map,attr.u.str);
+    if (prependPostal && item_attr_get(item, attr_postal, &attr))
+        address << map_convert_string_tmp(item->map, attr.u.str);
+    if (item_attr_get(item, attr_house_number, &attr))
+        address << map_convert_string_tmp(item->map, attr.u.str);
+    if (item_attr_get(item, attr_street_name, &attr))
+        address << map_convert_string_tmp(item->map, attr.u.str);
+    if (item_attr_get(item, attr_street_name_systematic, &attr))
+        address << map_convert_string_tmp(item->map, attr.u.str);
+    if (item_attr_get(item, attr_district_name, &attr))
+        address << map_convert_string_tmp(item->map, attr.u.str);
+    if (item_attr_get(item, attr_town_name, &attr))
+        address << map_convert_string_tmp(item->map, attr.u.str);
+    if (item_attr_get(item, attr_county_name, &attr))
+        address << map_convert_string_tmp(item->map, attr.u.str);
+    if (item_attr_get(item, attr_country_name, &attr))
+        address << map_convert_string_tmp(item->map, attr.u.str);
+    if (item_attr_get(item, attr_address, &attr))
+        address << " | " << map_convert_string_tmp(item->map, attr.u.str);
 
     return address.join(" ");
 }
 
-void NavitPOIModel::stopWorker(bool clearModel){
-    if(m_poiWorker){
+void NavitPOIModel::stopWorker(bool clearModel)
+{
+    if (m_poiWorker)
+    {
         m_poiWorker->finish();
         m_poiWorker->deleteLater();
         m_poiWorker = nullptr;
     }
-    if(clearModel){
+    if (clearModel)
+    {
         beginResetModel();
         m_pois.clear();
         m_poiTypes.clear();
         endResetModel();
     }
 }
-void NavitPOIModel::search(QString filter, int screenX, int screenY, int distance){
+void NavitPOIModel::search(QString filter, int screenX, int screenY, int distance)
+{
     stopWorker(true);
 
     m_poiWorker = new POISearchWorker(m_navitInstance, filter, screenX, screenY, distance);
@@ -290,13 +331,16 @@ void NavitPOIModel::search(QString filter, int screenX, int screenY, int distanc
     m_poiWorker->start();
 }
 
-void NavitPOIModel::receiveSearchResult(QVariantMap poi){
+void NavitPOIModel::receiveSearchResult(QVariantMap poi)
+{
     modelMutex.lock();
     int index = 0;
     int poiDist = poi.value("distance").toInt();
-    for(; index < m_pois.length(); index++){
+    for (; index < m_pois.length(); index++)
+    {
         int itemDist = m_pois.at(index).value("distance").toInt();
-        if(poiDist < itemDist){
+        if (poiDist < itemDist)
+        {
             break;
         }
     }
@@ -307,10 +351,12 @@ void NavitPOIModel::receiveSearchResult(QVariantMap poi){
     modelMutex.unlock();
 }
 
-void NavitPOIModel::setAsDestination(int index){
-    if(m_pois.size() > index){
+void NavitPOIModel::setAsDestination(int index)
+{
+    if (m_pois.size() > index)
+    {
         stopWorker();
-        NavitHelper::setDestination(m_navitInstance,
+        NavitHelper::setDestination(m_navitInstance->getNavit(),
                                     m_pois[index]["label"].toString(),
                                     m_pois[index]["coords"].toMap()["x"].toInt(),
                                     m_pois[index]["coords"].toMap()["y"].toInt());
@@ -318,20 +364,24 @@ void NavitPOIModel::setAsDestination(int index){
     }
 }
 
-void NavitPOIModel::setAsPosition(int index){
-    if(m_pois.size() > index){
+void NavitPOIModel::setAsPosition(int index)
+{
+    if (m_pois.size() > index)
+    {
         stopWorker();
-        NavitHelper::setPosition(m_navitInstance,
+        NavitHelper::setPosition(m_navitInstance->getNavit(),
                                  m_pois[index]["coords"].toMap()["x"].toInt(),
                                  m_pois[index]["coords"].toMap()["y"].toInt());
         stopWorker(true);
     }
 }
 
-void NavitPOIModel::addAsBookmark(int index){
-    if(m_pois.size() > index){
+void NavitPOIModel::addAsBookmark(int index)
+{
+    if (m_pois.size() > index)
+    {
         stopWorker();
-        NavitHelper::addBookmark(m_navitInstance,
+        NavitHelper::addBookmark(m_navitInstance->getNavit(),
                                  m_pois[index]["label"].toString(),
                                  m_pois[index]["coords"].toMap()["x"].toInt(),
                                  m_pois[index]["coords"].toMap()["y"].toInt());
@@ -339,18 +389,21 @@ void NavitPOIModel::addAsBookmark(int index){
     }
 }
 
-void NavitPOIModel::addStop(int index,  int position){
-    if(m_pois.size() > index){
+void NavitPOIModel::addStop(int index, int position)
+{
+    if (m_pois.size() > index)
+    {
         stopWorker();
-        NavitHelper::addStop(m_navitInstance,
+        NavitHelper::addStop(m_navitInstance->getNavit(),
                              position,
-                                    m_pois[index]["label"].toString(),
-                                    m_pois[index]["coords"].toMap()["x"].toInt(),
-                                    m_pois[index]["coords"].toMap()["y"].toInt());
+                             m_pois[index]["label"].toString(),
+                             m_pois[index]["coords"].toMap()["x"].toInt(),
+                             m_pois[index]["coords"].toMap()["y"].toInt());
         stopWorker(true);
     }
 }
 
-void NavitPOIModel::reset(){
+void NavitPOIModel::reset()
+{
     stopWorker(true);
 }

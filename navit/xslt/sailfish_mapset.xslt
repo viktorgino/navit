@@ -19,7 +19,7 @@
          <xsl:text>&#x0A; 			</xsl:text>
 			<map type="binfile" enabled="yes" data="~/Documents/map.navit.bin"/>
          <xsl:text>&#x0A; 			</xsl:text>
-			<map type="binfile" enabled="yes" active="no" name="map.navit.heightlines.bin" data="~/Documents/map.navit.heightlines.bin"/>
+			<map type="binfile" enabled="yes" active="no" name="map.navit_wrapper.heightlines.bin" data="~/Documents/map.navit_wrapper.heightlines.bin"/>
          <xsl:text>&#x0A; 		</xsl:text>
 		</mapset>
       <xsl:text>&#x0A; 		</xsl:text>

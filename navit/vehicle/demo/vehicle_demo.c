@@ -24,7 +24,7 @@
 #include "debug.h"
 #include "coord.h"
 #include "item.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 #include "map.h"
 #include "route.h"
 #include "callback.h"
@@ -46,7 +46,7 @@ struct vehicle_priv {
     int interval;
     int position_set;
     struct callback_list *cbl;
-    struct navit *navit;
+    NavitHandle navit;
     struct route *route;
     struct coord_geo geo;
     struct coord last;

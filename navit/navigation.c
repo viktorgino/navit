@@ -34,7 +34,7 @@
 #include "mapset.h"
 #include "projection.h"
 #include "map.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 #include "event.h"
 #include "callback.h"
 #include "speech.h"
@@ -170,7 +170,7 @@ struct navigation {
     struct navigation_command *cmd_last;
     struct callback_list *callback_speech;
     struct callback_list *callback;
-    struct navit *navit;
+    NavitHandle navit;
     struct speech *speech;
     int level_last;
     struct item item_last;

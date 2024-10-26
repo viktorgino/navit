@@ -34,7 +34,7 @@
 #include "map.h"
 #include "command.h"
 #include "bookmarks.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 #include "navit_nls.h"
 #include "util.h"
 

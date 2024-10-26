@@ -2,8 +2,10 @@
 #define NAVITINSTANCE_H
 
 #include <QObject>
+#include "navit.h"
 
-extern "C" {
+extern "C"
+{
 #include "../config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 
@@ -24,19 +26,22 @@ class NavitInstance : public QObject
 {
     Q_OBJECT
 public:
-    explicit NavitInstance(struct navit* nav, struct graphics_priv* gp, QObject *parent = nullptr): m_graphics_priv(gp), m_navit(nav) {}
-    navit *getNavit() {
+    explicit NavitInstance(Navit &nav, struct graphics_priv *gp, QObject *parent = nullptr) : m_graphics_priv(gp), m_navit(nav) {}
+    Navit &getNavit()
+    {
         return m_navit;
     }
-    void emit_update() {
+    void emit_update()
+    {
         emit update();
     }
-    struct graphics_priv* m_graphics_priv = nullptr;
+    struct graphics_priv *m_graphics_priv = nullptr;
     QPixmap getPixmap();
 signals:
     void update();
+
 private:
-    navit * m_navit = nullptr;
+    Navit &m_navit;
 };
 
 #endif // NAVITINSTANCE_H

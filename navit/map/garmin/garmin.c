@@ -44,7 +44,7 @@
 #include "coord.h"
 #include <libgarmin.h>
 #include "garmin.h"
-#include "gar2navit.h"
+#include "gar2navit_wrapper.h"
 
 
 static int map_id;

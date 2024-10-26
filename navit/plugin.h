@@ -21,7 +21,8 @@
 #define PLUGIN_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <string.h>
@@ -36,67 +37,67 @@ extern "C" {
 
 #include "plugin_def.h"
 
-struct plugin;
+    struct plugin;
 
-/**
- * @brief All existing plugin categories.
- *
- * Plugins are grouped into categories. Plugins within one category offer the same
- * functionality (GUI, graphics, map etc.). Consequently the category determines the API
- * offered by a plugin.
- */
-enum plugin_category {
-    /** Category for plugins which implement a graphics backend. */
-    plugin_category_graphics,
-    /** Category for plugins which implement a GUI frontend. */
-    plugin_category_gui,
-    /** Category for plugins which implement a driver for providing/loading map data. */
-    plugin_category_map,
-    /** Category for plugins which implement an OSD. */
-    plugin_category_osd,
-    /** Category for plugins which implement speech output. */
-    plugin_category_speech,
-    /** Category for plugins which supply position data (typically from a GPS receiver). */
-    plugin_category_vehicle,
-    /** Category for plugins which implement/wrap an event subsystem. */
-    plugin_category_event,
-    /** Category for plugins which load fonts. */
-    plugin_category_font,
-    /** Category for plugins which retrieve traffic information. */
-    plugin_category_traffic,
-    /** Dummy for last entry. */
-    plugin_category_last,
-};
+    /**
+     * @brief All existing plugin categories.
+     *
+     * Plugins are grouped into categories. Plugins within one category offer the same
+     * functionality (GUI, graphics, map etc.). Consequently the category determines the API
+     * offered by a plugin.
+     */
+    enum plugin_category
+    {
+        /** Category for plugins which implement a graphics backend. */
+        plugin_category_graphics,
+        /** Category for plugins which implement a GUI frontend. */
+        plugin_category_gui,
+        /** Category for plugins which implement a driver for providing/loading map data. */
+        plugin_category_map,
+        /** Category for plugins which implement an OSD. */
+        plugin_category_osd,
+        /** Category for plugins which implement speech output. */
+        plugin_category_speech,
+        /** Category for plugins which supply position data (typically from a GPS receiver). */
+        plugin_category_vehicle,
+        /** Category for plugins which implement/wrap an event subsystem. */
+        plugin_category_event,
+        /** Category for plugins which load fonts. */
+        plugin_category_font,
+        /** Category for plugins which retrieve traffic information. */
+        plugin_category_traffic,
+        /** Dummy for last entry. */
+        plugin_category_last,
+    };
 
-struct container;
+    struct container;
 
+    struct name_val
+    {
+        char *name;
+        void *val;
+    };
 
-struct name_val {
-    char *name;
-    void *val;
-};
+    struct attr;
 
-static GList *plugin_categories[plugin_category_last];
-
-struct attr;
-
-/* prototypes */
-void plugin_init(void);
-int plugin_load(struct plugin *pl);
-char *plugin_get_name(struct plugin *pl);
-int plugin_get_active(struct plugin *pl);
-void plugin_set_active(struct plugin *pl, int active);
-void plugin_set_lazy(struct plugin *pl, int lazy);
-void plugin_call_init(struct plugin *pl);
-void plugin_unload(struct plugin *pl);
-void plugin_destroy(struct plugin *pl);
-struct plugins *plugins_new(struct attr *, struct attr **);
-struct plugin *plugin_new(struct attr *parent, struct attr ** attrs);
-int plugins_init(struct plugins *pls);
-void plugins_destroy(struct plugins *pls);
-void *plugin_get_category(enum plugin_category category, const char *name);
-void plugin_register_category(enum plugin_category category, const char *name, void *plugin_new);
-/* end of prototypes */
+    /* prototypes */
+    void plugin_init(void);
+    int plugin_load(struct plugin *pl);
+    char *plugin_get_name(struct plugin *pl);
+    int plugin_get_active(struct plugin *pl);
+    void plugin_set_active(struct plugin *pl, int active);
+    void plugin_set_lazy(struct plugin *pl, int lazy);
+    void plugin_call_init(struct plugin *pl);
+    void plugin_unload(struct plugin *pl);
+    void plugin_destroy(struct plugin *pl);
+    struct plugins *plugins_new(struct attr *, struct attr **);
+    struct plugin *plugin_new(struct attr *parent, struct attr **attrs);
+    int plugins_init(struct plugins *pls);
+    void plugins_destroy(struct plugins *pls);
+    void *plugin_get_category(enum plugin_category category, const char *name);
+    void plugin_register_category(enum plugin_category category, const char *name, void *plugin_new);
+    const char * plugin_category_to_category_name(enum plugin_category category);
+    /* end of prototypes */
 
 #ifdef __cplusplus
 }

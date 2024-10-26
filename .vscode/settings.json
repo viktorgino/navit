@@ -5,6 +5,20 @@
     "files.associations": {
         "*.cpp": "cpp",
         "*.h": "c",
-        "*.c": "c"
+        "*.c": "c",
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "ranges": "cpp",
+        "span": "cpp",
+        "charconv": "cpp",
+        "compare": "cpp",
+        "complex": "cpp",
+        "functional": "cpp",
+        "ratio": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "variant": "cpp"
     }
 }

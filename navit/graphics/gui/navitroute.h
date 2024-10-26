@@ -8,7 +8,8 @@
 #include "navitinstance.h"
 
 #include <glib.h>
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -33,8 +34,6 @@ extern "C" {
 #include "vehicleprofile.h"
 #include "roadprofile.h"
 #include "track.h"
-
-#include "proxy.h"
 }
 
 #include "navithelper.h"
@@ -42,29 +41,30 @@ extern "C" {
 class NavitRoute : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(NavitInstance * navit            MEMBER m_navitInstance     WRITE setNavit)
-    Q_PROPERTY(QStringList     directions       READ   getDirections       NOTIFY propertiesChanged)
-    Q_PROPERTY(QString         distance         READ   getDistance         NOTIFY propertiesChanged)
-    Q_PROPERTY(QString         timeLeft         READ   getTimeLeft         NOTIFY propertiesChanged)
-    Q_PROPERTY(QString         arrivalTime      READ   getArrivalTime      NOTIFY propertiesChanged)
-    Q_PROPERTY(QString         currentStreet    READ   getCurrentStreet    NOTIFY propertiesChanged)
-    Q_PROPERTY(int             speed            READ   getSpeed            NOTIFY propertiesChanged)
-    Q_PROPERTY(int             speedLimit       READ   getSpeedLimit       NOTIFY propertiesChanged)
-    Q_PROPERTY(Status          status           READ   getStatus           NOTIFY statusChanged)
-    Q_PROPERTY(QUrl            nextTurnIcon     READ   getNextTurnIcon     NOTIFY nextTurnChanged)
-    Q_PROPERTY(QString         nextTurn         READ   getNextTurn         NOTIFY nextTurnChanged)
-    Q_PROPERTY(QString         nextTurnDistance READ   getNextTurnDistance NOTIFY nextTurnChanged)
+    Q_PROPERTY(NavitInstance *navit MEMBER m_navitInstance WRITE setNavit)
+    Q_PROPERTY(QStringList directions READ getDirections NOTIFY propertiesChanged)
+    Q_PROPERTY(QString distance READ getDistance NOTIFY propertiesChanged)
+    Q_PROPERTY(QString timeLeft READ getTimeLeft NOTIFY propertiesChanged)
+    Q_PROPERTY(QString arrivalTime READ getArrivalTime NOTIFY propertiesChanged)
+    Q_PROPERTY(QString currentStreet READ getCurrentStreet NOTIFY propertiesChanged)
+    Q_PROPERTY(int speed READ getSpeed NOTIFY propertiesChanged)
+    Q_PROPERTY(int speedLimit READ getSpeedLimit NOTIFY propertiesChanged)
+    Q_PROPERTY(Status status READ getStatus NOTIFY statusChanged)
+    Q_PROPERTY(QUrl nextTurnIcon READ getNextTurnIcon NOTIFY nextTurnChanged)
+    Q_PROPERTY(QString nextTurn READ getNextTurn NOTIFY nextTurnChanged)
+    Q_PROPERTY(QString nextTurnDistance READ getNextTurnDistance NOTIFY nextTurnChanged)
 public:
     NavitRoute();
-    void setNavit(NavitInstance * navit);
-    static void routeCallbackHandler(NavitRoute * navitRoute);
-    static void destinationCallbackHandler(NavitRoute * navitRoute);
-    static void statusCallbackHandler(NavitRoute * navitRoute, int status);
+    void setNavit(NavitInstance *navitInstance);
+    static void routeCallbackHandler(NavitRoute *navitRoute);
+    static void destinationCallbackHandler(NavitRoute *navitRoute);
+    static void statusCallbackHandler(NavitRoute *navitRoute, int status);
     void routeUpdate();
     void destinationUpdate();
     void statusUpdate();
 
-    enum Status {
+    enum Status
+    {
         Invalid = status_invalid,
         NoRoute = status_no_route,
         Idle = status_no_destination,
@@ -106,38 +106,49 @@ private:
     int m_destCount;
 
     QString getLastDestination(pcoord *pc);
-    void updateNextTurn(struct map * map);
-    QStringList getDirections() {
+    void updateNextTurn(struct map *map);
+    QStringList getDirections()
+    {
         return m_directions;
     }
-    QString getDistance() {
+    QString getDistance()
+    {
         return m_distance;
     }
-    QString getTimeLeft() {
+    QString getTimeLeft()
+    {
         return m_timeLeft;
     }
-    QString getArrivalTime() {
+    QString getArrivalTime()
+    {
         return m_arrivalTime;
     }
-    QString getCurrentStreet() {
+    QString getCurrentStreet()
+    {
         return m_currentStreet;
     }
-    QString getNextTurn() {
+    QString getNextTurn()
+    {
         return m_nextTurn;
     }
-    QString getNextTurnDistance() {
+    QString getNextTurnDistance()
+    {
         return m_nextTurnDistance;
     }
-    int getSpeed() {
+    int getSpeed()
+    {
         return m_speed;
     }
-    int getSpeedLimit() {
+    int getSpeedLimit()
+    {
         return m_speedLimit;
     }
-    Status getStatus(){
+    Status getStatus()
+    {
         return m_status;
     }
-    QUrl getNextTurnIcon(){
+    QUrl getNextTurnIcon()
+    {
         return m_nextTurnIcon;
     }
 };

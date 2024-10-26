@@ -2,10 +2,10 @@
 
 NavitLayoutsModel::NavitLayoutsModel(QObject *parent)
 {
-
 }
 
-QHash<int, QByteArray> NavitLayoutsModel::roleNames() const{
+QHash<int, QByteArray> NavitLayoutsModel::roleNames() const
+{
     QHash<int, QByteArray> roles;
     roles[NameRole] = "name";
     roles[ActionRole] = "action";
@@ -13,7 +13,8 @@ QHash<int, QByteArray> NavitLayoutsModel::roleNames() const{
     return roles;
 }
 
-QVariant NavitLayoutsModel::data(const QModelIndex & index, int role) const {
+QVariant NavitLayoutsModel::data(const QModelIndex &index, int role) const
+{
     if (index.row() < 0 || index.row() >= m_layouts.count())
         return QVariant();
 
@@ -28,37 +29,46 @@ QVariant NavitLayoutsModel::data(const QModelIndex & index, int role) const {
     return QVariant();
 }
 
-
-int NavitLayoutsModel::rowCount(const QModelIndex & parent) const {
+int NavitLayoutsModel::rowCount(const QModelIndex &parent) const
+{
     return m_layouts.count();
 }
 
-Qt::ItemFlags NavitLayoutsModel::flags(const QModelIndex &index) const {
+Qt::ItemFlags NavitLayoutsModel::flags(const QModelIndex &index) const
+{
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-bool NavitLayoutsModel::setData(const QModelIndex &index, const QVariant &value, int role) {
+bool NavitLayoutsModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
     return false;
 }
 
-QModelIndex NavitLayoutsModel::index(int row, int column, const QModelIndex &parent) const {
+QModelIndex NavitLayoutsModel::index(int row, int column, const QModelIndex &parent) const
+{
     return createIndex(row, column);
 }
 
-QModelIndex NavitLayoutsModel::parent(const QModelIndex &child) const {
+QModelIndex NavitLayoutsModel::parent(const QModelIndex &child) const
+{
     return QModelIndex();
 }
 
-int NavitLayoutsModel::columnCount(const QModelIndex &parent) const {
+int NavitLayoutsModel::columnCount(const QModelIndex &parent) const
+{
     return 0;
 }
 
-void NavitLayoutsModel::setNavit(NavitInstance * navit){
+void NavitLayoutsModel::setNavit(NavitInstance *navit)
+{
     m_navitInstance = navit;
     update();
 }
-void NavitLayoutsModel::update() {
-    if(m_navitInstance){
+void NavitLayoutsModel::update()
+{
+    if (m_navitInstance)
+    {
+        Navit &navit = m_navitInstance->getNavit();
         struct attr attr;
         struct attr_iter *iter;
 
@@ -66,22 +76,27 @@ void NavitLayoutsModel::update() {
         m_layouts.clear();
         endResetModel();
 
-        iter=navit_attr_iter_new(nullptr);
-        navit_get_attr(m_navitInstance->getNavit(), attr_layout, &attr, nullptr);
+        iter = navit.attr_iter_new();
+        navit.get_attr(attr_layout, &attr, nullptr);
 
-        if(!attr.u.layout) {
+        if (!attr.u.layout)
+        {
             return;
         }
 
         QString activeLayout = QString::fromLocal8Bit(attr.u.layout->name);
-        while(navit_get_attr(m_navitInstance->getNavit(), attr_layout, &attr, iter)) {
+        while (navit.get_attr(attr_layout, &attr, iter))
+        {
             QVariantMap layouts;
             QString layout = QString::fromLocal8Bit(attr.u.layout->name);
-            layouts.insert("name",layout);
+            layouts.insert("name", layout);
             layouts.insert("action", "setLayout");
-            if(layout == activeLayout){
+            if (layout == activeLayout)
+            {
                 layouts.insert("imageUrl", "qrc:/NavitGUI/assets/ionicons/md-checkmark-circle-outline.svg");
-            } else {
+            }
+            else
+            {
                 layouts.insert("imageUrl", "");
             }
 
@@ -89,14 +104,17 @@ void NavitLayoutsModel::update() {
             m_layouts.append(layouts);
             endInsertRows();
         }
-        navit_attr_iter_destroy(iter);
+        navit.attr_iter_destroy(iter);
         emit layoutChanged();
     }
 }
 
-void NavitLayoutsModel::setLayout(QString name){
-    if(m_navitInstance){
-        navit_set_layout_by_name(m_navitInstance->getNavit(), name.toUtf8().data());
+void NavitLayoutsModel::setLayout(QString name)
+{
+    if (m_navitInstance)
+    {
+        Navit &navit = m_navitInstance->getNavit();
+        navit.set_layout_by_name(name.toUtf8().data());
         update();
     }
 }

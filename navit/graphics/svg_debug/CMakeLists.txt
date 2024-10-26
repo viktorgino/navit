@@ -1,2 +1,0 @@
-module_add_library(graphics_svg_debug graphics_svg_debug.c)
-

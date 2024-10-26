@@ -20,44 +20,47 @@
 #ifndef NAVIT_COMMAND_H
 #define NAVIT_COMMAND_H
 
+#include "navit_wrapper.h"
+
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-struct command_table {
-	const char *command;
-	int (*func)(void *data, char *cmd, struct attr **in, struct attr ***out);
-};
+	struct command_table
+	{
+		const char *command;
+		int (*func)(void *data, char *cmd, struct attr **in, struct attr ***out);
+	};
 
 #define command_cast(x) (int (*)(void *, char *, struct attr **, struct attr ***))(x)
 
-/* prototypes */
-enum attr_type;
-struct attr;
-struct callback;
-struct callback_list;
-struct command_saved;
-struct command_table;
-struct navit;
-char *command_error_to_text(int err);
-enum attr_type command_evaluate_to_attr(struct attr *attr, char *expr, int *error, struct attr *ret);
-void command_evaluate_to_void(struct attr *attr, char *expr, int *error);
-char *command_evaluate_to_string(struct attr *attr, char *expr, int *error);
-int command_evaluate_to_int(struct attr *attr, char *expr, int *error);
-int command_evaluate_to_boolean(struct attr *attr, const char *expr, int *error);
-int command_evaluate_to_length(const char *expr, int *error);
-void command_evaluate(struct attr *attr, const char *expr);
-void command_add_table_attr(struct command_table *table, int count, void *data, struct attr *attr);
-void command_add_table(struct callback_list *cbl, struct command_table *table, int count, void *data);
-void command_saved_set_cb(struct command_saved *cs, struct callback *cb);
-int command_saved_get_int(struct command_saved *cs);
-int command_saved_error(struct command_saved *cs);
-struct command_saved *command_saved_attr_new(char *command, struct attr *context, struct callback *cb, int async);
-struct command_saved *command_saved_new(char *command, struct navit *navit, struct callback *cb, int async);
-void command_saved_destroy(struct command_saved *cs);
+	/* prototypes */
+	enum attr_type;
+	struct attr;
+	struct callback;
+	struct callback_list;
+	struct command_saved;
+	struct command_table;
+	char *command_error_to_text(int err);
+	enum attr_type command_evaluate_to_attr(struct attr *attr, char *expr, int *error, struct attr *ret);
+	void command_evaluate_to_void(struct attr *attr, char *expr, int *error);
+	char *command_evaluate_to_string(struct attr *attr, char *expr, int *error);
+	int command_evaluate_to_int(struct attr *attr, char *expr, int *error);
+	int command_evaluate_to_boolean(struct attr *attr, const char *expr, int *error);
+	int command_evaluate_to_length(const char *expr, int *error);
+	void command_evaluate(struct attr *attr, const char *expr);
+	void command_add_table_attr(struct command_table *table, int count, void *data, struct attr *attr);
+	void command_add_table(struct callback_list *cbl, struct command_table *table, int count, void *data);
+	void command_saved_set_cb(struct command_saved *cs, struct callback *cb);
+	int command_saved_get_int(struct command_saved *cs);
+	int command_saved_error(struct command_saved *cs);
+	struct command_saved *command_saved_attr_new(char *command, struct attr *context, struct callback *cb, int async);
+	struct command_saved *command_saved_new(char *command, NavitHandle navit, struct callback *cb, int async);
+	void command_saved_destroy(struct command_saved *cs);
 /* end of prototypes */
 #ifdef __cplusplus
 }
 #endif
 
- #endif /* NAVIT_COMMAND_H */
+#endif /* NAVIT_COMMAND_H */

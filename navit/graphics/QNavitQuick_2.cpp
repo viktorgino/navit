@@ -22,7 +22,8 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -50,11 +51,12 @@ extern "C" {
 #include <QPainter>
 
 #include <QOpenGLFramebufferObject>
-QNavitQuick_2::QNavitQuick_2(QQuickItem* parent)
+QNavitQuick_2::QNavitQuick_2(QQuickItem *parent)
     : QQuickPaintedItem(parent),
       graphics_priv(nullptr),
       m_moveX(0),
-      m_moveY(0) {
+      m_moveY(0)
+{
     setAcceptedMouseButtons(Qt::AllButtons);
 
     connect(this, &QNavitQuick_2::onResizeEvent, qt5_timer, &Qt5GraphicsWorker::resizeEvent);
@@ -66,18 +68,22 @@ QNavitQuick_2::QNavitQuick_2(QQuickItem* parent)
     connect(this, &QNavitQuick_2::onCenterOnPosition, qt5_timer, &Qt5GraphicsWorker::centerOnPosition);
 }
 
-void QNavitQuick_2::paintOverlays(QPainter* painter, struct graphics_priv* gp, QPaintEvent* event) {
+void QNavitQuick_2::paintOverlays(QPainter *painter, struct graphics_priv *gp, QPaintEvent *event)
+{
     GHashTableIter iter;
     struct graphics_priv *key, *value;
     g_hash_table_iter_init(&iter, gp->overlays);
-    while (g_hash_table_iter_next(&iter, (void**)&key, (void**)&value)) {
-        if (!value->disable) {
+    while (g_hash_table_iter_next(&iter, (void **)&key, (void **)&value))
+    {
+        if (!value->disable)
+        {
             QRect rr(value->x, value->y, value->pixmap->width(), value->pixmap->height());
-            if (event->rect().intersects(rr)) {
+            if (event->rect().intersects(rr))
+            {
                 dbg(lvl_debug, "draw overlay (%d, %d, %d, %d)", value->x + value->scroll_x, value->y + value->scroll_y,
                     value->pixmap->width(), value->pixmap->height())
 
-                painter->drawPixmap(value->x, value->y, *value->pixmap);
+                    painter->drawPixmap(value->x, value->y, *value->pixmap);
                 /* draw overlays of overlay if any by recursive calling */
                 paintOverlays(painter, value, event);
             }
@@ -85,15 +91,17 @@ void QNavitQuick_2::paintOverlays(QPainter* painter, struct graphics_priv* gp, Q
     }
 }
 
-void QNavitQuick_2::paint(QPainter* painter) {
+void QNavitQuick_2::paint(QPainter *painter)
+{
     QPaintEvent event = QPaintEvent(QRect(boundingRect().x(), boundingRect().y(), boundingRect().width(),
                                           boundingRect().height()));
 
     dbg(lvl_debug, "enter (%f, %f, %f, %f)", boundingRect().x(), boundingRect().y(), boundingRect().width(),
         boundingRect().height())
 
-    /* color background if any */
-    if (graphics_priv->background_graphics_gc_priv != nullptr) {
+        /* color background if any */
+        if (graphics_priv->background_graphics_gc_priv != nullptr)
+    {
         painter->setPen(*graphics_priv->background_graphics_gc_priv->pen);
         painter->fillRect(boundingRect(), *graphics_priv->background_graphics_gc_priv->brush);
     }
@@ -103,81 +111,103 @@ void QNavitQuick_2::paint(QPainter* painter) {
                         boundingRect().width(), boundingRect().height());
 
     /* disable on root pane disables ALL overlays (for drag of background) */
-    if(!(graphics_priv->disable)) {
+    if (!(graphics_priv->disable))
+    {
         paintOverlays(painter, graphics_priv, &event);
     }
     // qDebug() << "Painting thread : " << QThread::currentThread();
     updateZoomLevel();
 }
 
-void QNavitQuick_2::geometryChanged(const QRectF& newGeometry, const QRectF& oldGeometry) {
+void QNavitQuick_2::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)
+{
     dbg(lvl_debug, "enter")
-    QPainter* painter = nullptr;
-    if (graphics_priv == nullptr) {
-        dbg(lvl_debug, "Context not set, aborting")
-        return;
+        QPainter *painter = nullptr;
+    if (graphics_priv == nullptr)
+    {
+        dbg(lvl_debug, "Context not set, aborting") return;
     }
-    if (graphics_priv->pixmap != nullptr) {
-        if((width() != graphics_priv->pixmap->width()) || (height() != graphics_priv->pixmap->height())) {
+    if (graphics_priv->pixmap != nullptr)
+    {
+        if ((width() != graphics_priv->pixmap->width()) || (height() != graphics_priv->pixmap->height()))
+        {
             delete graphics_priv->pixmap;
             graphics_priv->pixmap = nullptr;
         }
     }
-    if (graphics_priv->pixmap == nullptr) {
+    if (graphics_priv->pixmap == nullptr)
+    {
         graphics_priv->pixmap = new QPixmap(width(), height());
     }
     painter = new QPainter(graphics_priv->pixmap);
-    if (painter != nullptr) {
+    if (painter != nullptr)
+    {
         QBrush brush;
         painter->fillRect(0, 0, width(), height(), brush);
         delete painter;
     }
     dbg(lvl_debug, "size %fx%f", width(), height())
-    dbg(lvl_debug, "pixmap %p %dx%d", graphics_priv->pixmap, graphics_priv->pixmap->width(),
-        graphics_priv->pixmap->height())
-    /* if the root window got resized, tell navit about it */
-    if (graphics_priv->root){
+        dbg(lvl_debug, "pixmap %p %dx%d", graphics_priv->pixmap, graphics_priv->pixmap->width(),
+            graphics_priv->pixmap->height())
+        /* if the root window got resized, tell navit about it */
+        if (graphics_priv->root)
+    {
         emit onResizeEvent(m_navitInstance, width(), height());
     }
 }
 
-void QNavitQuick_2::mousePressEvent(QMouseEvent* event) {
+void QNavitQuick_2::mousePressEvent(QMouseEvent *event)
+{
     QPoint loc;
     loc.setX(event->x());
     loc.setY(event->y());
-    if(event->button() == Qt::LeftButton){
+    if (event->button() == Qt::LeftButton)
+    {
         m_originX = event->x();
         m_originY = event->y();
         emit leftButtonClicked(loc);
-    } else if (event->button() == Qt::RightButton) {
+    }
+    else if (event->button() == Qt::RightButton)
+    {
         emit rightButtonClicked(loc);
     }
 }
 
-void QNavitQuick_2::mouseReleaseEvent(QMouseEvent* event) {
-    if(event->button() == Qt::LeftButton){
+void QNavitQuick_2::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton)
+    {
         mapMove(m_originX, m_originY, event->x(), event->y());
     }
 }
 
-void QNavitQuick_2::mouseMoveEvent(QMouseEvent* event) {
-    if(event->buttons() == Qt::LeftButton){
+void QNavitQuick_2::mouseMoveEvent(QMouseEvent *event)
+{
+    if (event->buttons() == Qt::LeftButton)
+    {
         setFollowVehicle(false);
-        if(event->modifiers() & Qt::ShiftModifier){
+        if (event->modifiers() & Qt::ShiftModifier)
+        {
             int pitch = qFloor((m_originY - event->y()) / 10);
-            int orientation =  m_orientation + ( qFloor((event->x() - m_originX)) / 10 );
+            int orientation = m_orientation + (qFloor((event->x() - m_originX)) / 10);
 
-            if(m_pitch + pitch < 0 ) {
+            if (m_pitch + pitch < 0)
+            {
                 setPitch(0);
-            } else if(m_pitch + pitch > 60 ) {
+            }
+            else if (m_pitch + pitch > 60)
+            {
                 setPitch(60);
-            } else {
+            }
+            else
+            {
                 setPitch(m_pitch + pitch);
             }
 
             setOrientation(orientation % 360);
-
-        } else {
+        }
+        else
+        {
             m_moveX = event->x() - m_originX;
             m_moveY = event->y() - m_originY;
             update();
@@ -186,20 +216,26 @@ void QNavitQuick_2::mouseMoveEvent(QMouseEvent* event) {
     }
 }
 
-void QNavitQuick_2::wheelEvent(QWheelEvent* event) {
-    if (event->angleDelta().y() > 0){
+void QNavitQuick_2::wheelEvent(QWheelEvent *event)
+{
+    if (event->angleDelta().y() > 0)
+    {
         zoomInToPoint(2, event->position().x(), event->position().y());
-    } else {
+    }
+    else
+    {
         zoomOutFromPoint(2, event->position().x(), event->position().y());
     }
 }
 
-void QNavitQuick_2::draw(){
+void QNavitQuick_2::draw()
+{
     m_moveX = 0;
     m_moveY = 0;
     update();
 }
-void QNavitQuick_2::mapMove(int originX, int originY, int destinationX, int destinationY) {
+void QNavitQuick_2::mapMove(int originX, int originY, int destinationX, int destinationY)
+{
     struct point *origin = new struct point;
     origin->x = originX;
     origin->y = originY;
@@ -211,17 +247,21 @@ void QNavitQuick_2::mapMove(int originX, int originY, int destinationX, int dest
     // navit_drag_map(m_navitInstance->getNavit(), origin, destination);
 }
 
-void QNavitQuick_2::zoomIn(int zoomLevel, point *p){
+void QNavitQuick_2::zoomIn(int zoomLevel, point *p)
+{
     emit onZoomIn(m_navitInstance, zoomLevel, p);
     // navit_zoom_in(m_navitInstance->getNavit(), zoomLevel, p);
 }
-void QNavitQuick_2::zoomOut(int zoomLevel, point *p){
+void QNavitQuick_2::zoomOut(int zoomLevel, point *p)
+{
     emit onZoomOut(m_navitInstance, zoomLevel, p);
     // navit_zoom_out(m_navitInstance->getNavit(), zoomLevel, p);
 }
 
-void QNavitQuick_2::zoomInToPoint(int zoomLevel, int x, int y){
-    if(m_navitInstance){
+void QNavitQuick_2::zoomInToPoint(int zoomLevel, int x, int y)
+{
+    if (m_navitInstance)
+    {
         struct point *p = new struct point;
         p->x = x;
         p->y = y;
@@ -229,21 +269,26 @@ void QNavitQuick_2::zoomInToPoint(int zoomLevel, int x, int y){
     }
 }
 
-void QNavitQuick_2::zoomOutFromPoint(int zoomLevel, int x, int y){
-    if(m_navitInstance){
+void QNavitQuick_2::zoomOutFromPoint(int zoomLevel, int x, int y)
+{
+    if (m_navitInstance)
+    {
         struct point *p = new struct point;
         p->x = x;
         p->y = y;
         zoomOut(zoomLevel, p);
     }
 }
-void QNavitQuick_2::zoomToRoute(){
+void QNavitQuick_2::zoomToRoute()
+{
     emit onZoomToRoute(m_navitInstance);
     // navit_zoom_to_route(m_navitInstance->getNavit(), 1);
 }
 
-void QNavitQuick_2::setNavitNumProperty(enum attr_type type, int value){
-    if(m_navitInstance){
+void QNavitQuick_2::setNavitNumProperty(enum attr_type type, int value)
+{
+    if (m_navitInstance)
+    {
         struct attr attr;
 
         attr.type = type;
@@ -254,94 +299,112 @@ void QNavitQuick_2::setNavitNumProperty(enum attr_type type, int value){
     }
 }
 
-int QNavitQuick_2::getNavitNumProperty(enum attr_type type){
+int QNavitQuick_2::getNavitNumProperty(enum attr_type type)
+{
     struct attr attr;
-    if(m_navitInstance){
-        navit_get_attr(m_navitInstance->getNavit(), type, &attr, nullptr);
+    if (m_navitInstance)
+    {
+        m_navitInstance->getNavit().get_attr(type, &attr, nullptr);
     }
     return attr.u.num;
 }
 
-void QNavitQuick_2::setPitch(int pitch){
+void QNavitQuick_2::setPitch(int pitch)
+{
     setNavitNumProperty(attr_pitch, pitch);
 }
 
-void QNavitQuick_2::setFollowVehicle(bool followVehicle){
+void QNavitQuick_2::setFollowVehicle(bool followVehicle)
+{
     // qDebug() << "setFollowVehicle " << followVehicle;
     setNavitNumProperty(attr_follow, followVehicle);
     setNavitNumProperty(attr_follow_cursor, followVehicle);
 }
 
-void QNavitQuick_2::setTracking(bool tracking) {
+void QNavitQuick_2::setTracking(bool tracking)
+{
     setNavitNumProperty(attr_tracking, tracking);
 }
 
-void QNavitQuick_2::setAutozoom(bool autoZoom){
+void QNavitQuick_2::setAutozoom(bool autoZoom)
+{
     setNavitNumProperty(attr_autozoom_active, (int)autoZoom);
 }
 
-void QNavitQuick_2::setOrientation(int orientation){
+void QNavitQuick_2::setOrientation(int orientation)
+{
     setNavitNumProperty(attr_orientation, orientation);
 }
 
-void QNavitQuick_2::addBookmark(QString label, int x, int y){
-    NavitHelper::addBookmark(m_navitInstance, label, x, y);
+void QNavitQuick_2::addBookmark(QString label, int x, int y)
+{
+    NavitHelper::addBookmark(m_navitInstance->getNavit(), label, x, y);
 }
-NavitInstance* QNavitQuick_2::navitInstance(){
+NavitInstance *QNavitQuick_2::navitInstance()
+{
     return m_navitInstance;
 }
 
-void QNavitQuick_2::setNavitInstance(NavitInstance *navit){
-    m_navitInstance=navit;
-    if(m_navitInstance) {
+void QNavitQuick_2::setNavitInstance(NavitInstance *navit)
+{
+    m_navitInstance = navit;
+    if (m_navitInstance)
+    {
+        Navit &navit = m_navitInstance->getNavit();
         graphics_priv = navit->m_graphics_priv;
 
         QObject::connect(navit, SIGNAL(update()), this, SLOT(draw()));
 
-        navit_add_callback(m_navitInstance->getNavit(),callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                                                           attr_orientation,this));
-        navit_add_callback(m_navitInstance->getNavit(),callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                                                           attr_follow_cursor,this));
-        navit_add_callback(m_navitInstance->getNavit(),callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                                                           attr_tracking,this));
-        navit_add_callback(m_navitInstance->getNavit(),callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                                                           attr_autozoom_active,this));
-        navit_add_callback(m_navitInstance->getNavit(),callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                                                           attr_pitch,this));
+        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                               attr_orientation, this));
+        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                               attr_follow_cursor, this));
+        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                               attr_tracking, this));
+        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                               attr_autozoom_active, this));
+        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                               attr_pitch, this));
         m_orientation = getNavitNumProperty(attr_orientation);
         m_followVehicle = getNavitNumProperty(attr_follow_cursor);
         m_tracking = getNavitNumProperty(attr_tracking);
         m_autoZoom = getNavitNumProperty(attr_autozoom_active);
         m_pitch = getNavitNumProperty(attr_pitch);
 
-        setNavitNumProperty(attr_autozoom, 1); //Sets auto zoom secs
-        setNavitNumProperty(attr_autozoom_min, 0); //Set auto zoom minimum distance
-        setNavitNumProperty(attr_autozoom_max, 30); //Set auto zoom minimum distanceattr_timeout
-        setNavitNumProperty(attr_timeout, 1); //Set auto zoom minimum distance
+        setNavitNumProperty(attr_autozoom, 1);      // Sets auto zoom secs
+        setNavitNumProperty(attr_autozoom_min, 0);  // Set auto zoom minimum distance
+        setNavitNumProperty(attr_autozoom_max, 30); // Set auto zoom minimum distanceattr_timeout
+        setNavitNumProperty(attr_timeout, 1);       // Set auto zoom minimum distance
         emit propertiesChanged();
     }
 }
 
-QString QNavitQuick_2::getAddress(int x, int y){
-    if(m_navitInstance){
+QString QNavitQuick_2::getAddress(int x, int y)
+{
+    if (m_navitInstance)
+    {
         coord c = NavitHelper::positionToCoord(m_navitInstance->getNavit(), x, y);
-        return NavitHelper::getAddress(m_navitInstance, c);
+        return NavitHelper::getAddress(m_navitInstance->getNavit(), c);
     }
     return "";
 }
 
-void QNavitQuick_2::centerOnPosition(){
+void QNavitQuick_2::centerOnPosition()
+{
     emit onCenterOnPosition(m_navitInstance);
     // navit_set_center_cursor_draw(m_navitInstance->getNavit());
 }
 
-void QNavitQuick_2::updateZoomLevel(){
-    if(m_navitInstance) {
-        struct transformation * trans = navit_get_trans(m_navitInstance->getNavit());
+void QNavitQuick_2::updateZoomLevel()
+{
+    if (m_navitInstance)
+    {
+        struct transformation *trans = m_navitInstance->getNavit().get_trans();
         long scale = transform_get_scale(trans);
 
         int i = 0;
-        while(scale >> i){
+        while (scale >> i)
+        {
             i++;
         }
 
@@ -350,24 +413,27 @@ void QNavitQuick_2::updateZoomLevel(){
     }
 }
 
-void QNavitQuick_2::attributeCallbackHandler(QNavitQuick_2 *navitGraph, navit *this_, attr *attr){
+void QNavitQuick_2::attributeCallbackHandler(QNavitQuick_2 *navitGraph, navit *this_, attr *attr)
+{
     navitGraph->attributeCallback(attr);
 }
-void QNavitQuick_2::attributeCallback(attr *attr){
-    switch(attr->type){
-    case attr_orientation :
+void QNavitQuick_2::attributeCallback(attr *attr)
+{
+    switch (attr->type)
+    {
+    case attr_orientation:
         m_orientation = attr->u.num;
         break;
-    case attr_follow_cursor :
+    case attr_follow_cursor:
         m_followVehicle = attr->u.num;
         break;
-    case attr_tracking :
+    case attr_tracking:
         m_tracking = attr->u.num;
         break;
-    case attr_autozoom_active :
+    case attr_autozoom_active:
         m_autoZoom = attr->u.num;
         break;
-    case attr_pitch :
+    case attr_pitch:
         m_pitch = attr->u.num;
         break;
     default:

@@ -39,7 +39,6 @@
 #include "file.h"
 #include "debug.h"
 #include "main.h"
-#include "navit.h"
 #include "item.h"
 #include "xmlconfig.h"
 #include "coord.h"

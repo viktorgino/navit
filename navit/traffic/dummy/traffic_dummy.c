@@ -44,7 +44,7 @@
  * @brief Stores information about the plugin instance.
  */
 struct traffic_priv {
-    struct navit * nav;         /*!< The navit instance */
+    NavitHandle nav;         /*!< The navit instance */
     int reports_requested;      /*!< How many reports have been requested */
 };
 
@@ -167,7 +167,7 @@ static struct traffic_methods traffic_dummy_meth = {
  *
  * @return A pointer to a `traffic_priv` structure for the plugin instance
  */
-static struct traffic_priv * traffic_dummy_new(struct navit *nav, struct traffic_methods *meth,
+static struct traffic_priv * traffic_dummy_new(NavitHandle nav, struct traffic_methods *meth,
         struct attr **attrs, struct callback_list *cbl) {
     struct traffic_priv *ret;
 

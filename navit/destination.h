@@ -20,9 +20,9 @@
 #ifndef NAVIT_DESTINATION_H
 #define NAVIT_DESTINATION_H
 
+#include "navit_wrapper.h"
 /* prototypes */
-struct navit;
-int destination_address(struct navit *nav);
+int destination_address(NavitHandle nav);
 /* end of prototypes */
 
 #endif

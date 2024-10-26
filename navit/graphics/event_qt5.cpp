@@ -170,5 +170,5 @@ static struct event_priv *event_qt5_new(struct event_methods *meth)
 
 void qt5_event_init(void)
 {
-    plugin_register_category(plugin_category_event, "qt5", (void*) event_qt5_new);
+    plugin_register_category(plugin_category_event, "qt5", (void *)event_qt5_new);
 }

@@ -22,13 +22,13 @@
 #include "config.h"
 #include "item.h"
 #include "plugin.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 #include "attr.h"
 #include "callback.h"
 #include "speech.h"
 
 struct speech_priv {
-    struct navit *nav;
+    NavitHandle nav;
 };
 
 static int speech_dbus_say(struct speech_priv *this, const char *text) {

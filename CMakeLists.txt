@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.5)
 
 message(STATUS "Building with CMake V${CMAKE_VERSION}")
 project(navit C CXX)

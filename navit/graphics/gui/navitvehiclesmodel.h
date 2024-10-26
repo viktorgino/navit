@@ -8,7 +8,8 @@
 #include "navithelper.h"
 
 #include <glib.h>
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -23,26 +24,25 @@ extern "C" {
 #include "mapset.h"
 #include "search.h"
 #include "vehicleprofile.h"
-
-#include "proxy.h"
 }
 
 class NavitVehiclesModel : public QAbstractItemModel
 {
     Q_OBJECT
-    Q_PROPERTY(NavitInstance * navit MEMBER m_navitInstance WRITE setNavit)
+    Q_PROPERTY(NavitInstance *navit MEMBER m_navitInstance WRITE setNavit)
 public:
     NavitVehiclesModel(QObject *parent = 0);
 
-    enum VehiclesModelRoles {
+    enum VehiclesModelRoles
+    {
         NameRole = Qt::UserRole + 1,
         ActionRole,
         ImageUrlRole
     };
 
-    int rowCount(const QModelIndex & parent = QModelIndex()) const override;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QHash<int, QByteArray> roleNames() const override;
-    QVariant data(const QModelIndex & index, int role) const override;
+    QVariant data(const QModelIndex &index, int role) const override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override;
 
@@ -50,9 +50,10 @@ public:
     QModelIndex parent(const QModelIndex &child) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
-    void setNavit(NavitInstance * navit);
+    void setNavit(NavitInstance *navitInstance);
     Q_INVOKABLE void setVehicle(QString name);
     Q_INVOKABLE void update();
+
 private:
     QList<QVariantMap> m_vehicles;
     NavitInstance *m_navitInstance = nullptr;

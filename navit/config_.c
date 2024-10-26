@@ -24,7 +24,7 @@
 #include "item.h"
 #include "xmlconfig.h"
 #include "callback.h"
-#include "navit.h"
+#include "navit_wrapper.h"
 #include "config_.h"
 #include "file.h"
 #ifdef HAVE_API_WIN32_CE
