@@ -119,7 +119,7 @@ struct attr_iter
 
 struct object_func navit_func;
 
-Navit::Navit(struct attr *parent, struct attr **attrs)
+Navit::Navit(struct attr *parent, struct attr **attrs) : m_displaylist(m_graphics)
 {
     struct pcoord center;
     struct coord co;
@@ -172,7 +172,6 @@ Navit::Navit(struct attr *parent, struct attr **attrs)
     {
         set_attr_do(*attrs, 1);
     }
-    m_displaylist = graphics_displaylist_new();
 
     m_messages = messagelist_new(attrs);
 
@@ -377,8 +376,7 @@ void Navit::draw_async(int async)
         return;
     }
     transform_setup_source_rect(m_trans);
-    graphics_draw(m_gra, m_displaylist, (mapset *)m_mapsets->data, m_trans, m_layout_current, async, NULL,
-                  m_graphics_flags | 1);
+    m_displaylist.draw_graphics((mapset *)m_mapsets->data, m_trans, m_layout_current, async, NULL, m_graphics_flags | 1);
 }
 
 void Navit::draw()
@@ -395,7 +393,7 @@ int Navit::get_ready()
 void Navit::draw_displaylist()
 {
     if (m_ready == 3)
-        graphics_displaylist_draw(m_gra, m_displaylist, m_trans, m_layout_current, m_graphics_flags | 1);
+        m_displaylist.draw(m_trans, m_layout_current, m_graphics_flags | 1);
 }
 
 void Navit::map_progress()
@@ -417,11 +415,11 @@ void Navit::map_progress()
         if (map_get_attr(map, attr_progress, &attr, NULL))
         {
             char *str = g_strdup_printf("%s           ", attr.u.str);
-            graphics_draw_mode(m_gra, draw_mode_begin);
-            graphics_draw_text_std(m_gra, 16, str, &p);
+            m_graphics.draw_mode(draw_mode_begin);
+            m_graphics.draw_text_std(16, str, &p);
             g_free(str);
             p.y += 32;
-            graphics_draw_mode(m_gra, draw_mode_end);
+            m_graphics.draw_mode(draw_mode_end);
         }
     }
     mapset_close(msh);
@@ -479,14 +477,14 @@ void Navit::handle_resize(int w, int h)
     sel.u.p_rect.rl.x = w;
     sel.u.p_rect.rl.y = h;
     transform_set_screen_selection(m_trans, &sel);
-    graphics_init(m_gra);
-    graphics_set_rect(m_gra, &sel.u.p_rect);
+    m_graphics.init();
+    m_graphics.set_rect(&sel.u.p_rect);
     if (callback)
         callback_list_call_attr_1(m_attr_cbl, attr_graphics_ready, this);
     if (m_ready == 3)
     {
         /* About to resize. Cancel drawing whatever it is */
-        graphics_draw_cancel(m_gra, m_displaylist);
+        m_displaylist.draw_cancel();
         /* draw again even if we did not cancel anything */
         draw_async(1);
     }
@@ -563,10 +561,10 @@ void Navit::motion_timeout()
         struct point point;
         point.x = (m_current.x - m_pressed.x);
         point.y = (m_current.y - m_pressed.y);
-        if (graphics_draw_drag(m_gra, &point))
+        if (m_graphics.draw_drag(&point))
         {
-            graphics_overlay_disable(m_gra, 1);
-            graphics_draw_mode(m_gra, draw_mode_end);
+            m_graphics.overlay_disable(1);
+            m_graphics.draw_mode(draw_mode_end);
             m_motion_timeout = NULL;
             return;
         }
@@ -577,11 +575,11 @@ void Navit::motion_timeout()
     {
         struct transformation *tr;
         m_last = m_current;
-        graphics_overlay_disable(m_gra, 1);
+        m_graphics.overlay_disable(1);
         tr = transform_dup(m_trans);
         update_transformation(tr, &m_pressed, &m_current);
-        graphics_draw_cancel(m_gra, m_displaylist);
-        graphics_displaylist_draw(m_gra, m_displaylist, tr, m_layout_current, m_graphics_flags | 512);
+        m_displaylist.draw_cancel();
+        m_displaylist.draw(tr, m_layout_current, m_graphics_flags | 512);
         transform_destroy(tr);
     }
     m_motion_timeout = NULL;
@@ -848,23 +846,21 @@ static void navit_predraw(void *data)
     navit->predraw();
 }
 
-int Navit::set_graphics(struct graphics *gra)
+int Navit::set_graphics(Graphics &gra)
 {
-    if (m_gra)
-        return 0;
-    m_gra = gra;
+    m_graphics = gra;
     m_resize_callback = callback_new_attr_1(callback_cast(navit_resize), attr_resize, this);
-    graphics_add_callback(gra, m_resize_callback);
+    m_graphics.add_callback(m_resize_callback);
     m_motion_callback = callback_new_attr_1(callback_cast(navit_motion), attr_motion, this);
-    graphics_add_callback(gra, m_motion_callback);
+    m_graphics.add_callback(m_motion_callback);
     m_predraw_callback = callback_new_attr_1(callback_cast(navit_predraw), attr_predraw, this);
-    graphics_add_callback(gra, m_predraw_callback);
+    m_graphics.add_callback(m_predraw_callback);
     return 1;
 }
 
-struct graphics *Navit::get_graphics()
+Graphics &Navit::get_graphics()
 {
-    return m_gra;
+    return m_graphics;
 }
 
 struct vehicleprofile *Navit::get_vehicleprofile()
@@ -1482,7 +1478,7 @@ int Navit::init()
     m_w = 0;
     m_h = 0;
 
-    dbg(lvl_info, "enter graphics %p", m_gra);
+    dbg(lvl_info, "enter graphics %p", &m_graphics);
 
     // if (!m_gra && !(m_flags & 1)) {
     //     dbg(lvl_error,"FATAL: No graphics subsystem available.");
@@ -1816,12 +1812,7 @@ int Navit::get_cursor_pnt(struct point *p, int keep_orientation, int *dir)
     }
 #endif
 
-    if (m_gra)
-    {
-        padding = (struct padding *)graphics_get_data(m_gra, "padding");
-    }
-    else
-        dbg(lvl_warning, "cannot get padding: this->gra is NULL");
+    padding = (struct padding *)m_graphics.get_data("padding");
 
     transform_get_size(m_trans, &width, &height);
     dbg(lvl_debug, "width=%d height=%d", width, height);
@@ -1916,9 +1907,9 @@ void Navit::set_center_cursor(int autozoom_, int keep_orientation)
 void Navit::drag_map(struct point *origin, struct point *destination)
 {
     update_transformation(m_trans, origin, destination);
-    graphics_draw_drag(m_gra, NULL);
+    m_graphics.draw_drag(NULL);
     transform_copy(m_trans, m_trans_cursor);
-    graphics_overlay_disable(m_gra, 0);
+    m_graphics.overlay_disable(0);
     set_timeout();
     draw();
 }
@@ -2011,7 +2002,7 @@ int Navit::set_attr_do(struct attr *attr, int init)
         if (m_layout_current != attr->u.layout)
         {
             update_current_layout(attr->u.layout);
-            graphics_font_destroy_all(m_gra);
+            m_graphics.font_destroy_all();
             set_cursors();
             if (m_ready == 3)
                 draw();
@@ -2270,7 +2261,7 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         attr->u.pcoord = &m_destination;
         break;
     case attr_displaylist:
-        attr->u.displaylist = m_displaylist;
+        attr->u.displaylist = &m_displaylist;
         return (attr->u.displaylist != NULL);
     case attr_follow:
         if (!m_vehicle)
@@ -2281,7 +2272,7 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         attr->u.map = m_former_destination;
         break;
     case attr_graphics:
-        attr->u.graphics = m_gra;
+        attr->u.graphics = &m_graphics;
         ret = (attr->u.graphics != NULL);
         break;
     case attr_gui:
@@ -2577,8 +2568,14 @@ int Navit::add_attr(struct attr *attr)
     case attr_gui:
         break;
     case attr_graphics:
-        ret = set_graphics(attr->u.graphics);
+    {
+        Graphics *graphics = static_cast<Graphics *>(attr->u.graphics);
+        if (graphics == nullptr)
+        {
+            ret = set_graphics(*graphics);
+        }
         break;
+    }
     case attr_layout:
         add_layout(attr->u.layout);
         break;
@@ -3019,7 +3016,7 @@ struct navigation *Navit::get_navigation()
     return m_navigation;
 }
 
-struct displaylist *Navit::get_displaylist()
+GraphicsDisplayList &Navit::get_displaylist()
 {
     return m_displaylist;
 }
@@ -3265,7 +3262,7 @@ int Navit::block(int block)
     if (block > 0)
     {
         m_blocked |= 1;
-        if (graphics_draw_cancel(m_gra, m_displaylist))
+        if (m_displaylist.draw_cancel())
             m_blocked |= 2;
         return 0;
     }
@@ -3293,7 +3290,7 @@ void Navit::destroy()
     GList *mapsets;
     struct map *map;
     struct attr attr;
-    graphics_draw_cancel(m_gra, m_displaylist);
+    m_displaylist.draw_cancel();
 
     mapsets = m_mapsets;
     while (mapsets)
@@ -3338,12 +3335,9 @@ void Navit::destroy()
     callback_destroy(m_roadbook_callback);
     callback_destroy(m_motion_timeout_callback);
 
-    if (m_gra)
-    {
-        graphics_remove_callback(m_gra, m_resize_callback);
-        graphics_remove_callback(m_gra, m_motion_callback);
-        graphics_remove_callback(m_gra, m_predraw_callback);
-    }
+    m_graphics.remove_callback(m_resize_callback);
+    m_graphics.remove_callback(m_motion_callback);
+    m_graphics.remove_callback(m_predraw_callback);
 
     callback_destroy(m_resize_callback);
     callback_destroy(m_motion_callback);
@@ -3355,9 +3349,9 @@ void Navit::destroy()
 
     map_destroy(m_former_destination);
 
-    graphics_displaylist_destroy(m_displaylist);
+    m_displaylist.destroy();
 
-    graphics_free(m_gra);
+    m_graphics.free();
 
     // g_free();
 }

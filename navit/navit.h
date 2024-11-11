@@ -23,6 +23,8 @@
 #include "coord.h"
 #include "point.h"
 #include "attr.h"
+#include "graphics.h"
+#include "graphics_displaylist.h"
 
 // defined in glib.h.
 #ifndef __G_LIST_H__
@@ -40,7 +42,6 @@ extern "C"
     struct attr_iter;
     struct callback;
     struct coord_rect;
-    struct displaylist;
     struct graphics;
     struct gui;
     struct layout;
@@ -86,7 +87,7 @@ public:
     void zoom_out_cursor(int factor);
     void add_message(const char *message);
     struct message *get_messages();
-    struct graphics *get_graphics();
+    Graphics &get_graphics();
     struct vehicleprofile *get_vehicleprofile();
     GList *get_vehicleprofiles();
     void set_destination(struct pcoord *c, const char *description, int async);
@@ -128,7 +129,7 @@ public:
     struct transformation *get_trans();
     struct route *get_route();
     struct navigation *get_navigation();
-    struct displaylist *get_displaylist();
+    GraphicsDisplayList &get_displaylist();
     void layout_switch();
     int set_vehicle_by_name(const char *name);
     int set_vehicleprofile_name(char *name);
@@ -153,6 +154,9 @@ public:
     int m_ignore_graphics_events;
 
 private:
+    Graphics m_graphics;
+    GraphicsDisplayList m_displaylist;
+
     object_func *m_func;
     int m_refcount;
     struct attr **m_attrs;
@@ -162,7 +166,6 @@ private:
     GList *m_layouts;
     char *m_default_layout_name;     /*!< The default layout indicated by the config file (if any) */
     struct layout *m_layout_current; /*!< The current layout theme used to display the map */
-    struct graphics *m_gra;
     struct action *m_action;
     struct transformation *m_trans, *m_trans_cursor;
     struct compass *m_compass;
@@ -172,7 +175,6 @@ private:
     struct tracking *m_tracking;
     int m_ready;
     struct window *m_win;
-    struct displaylist *m_displaylist;
     int m_tracking_flag;
     int m_orientation;
     int m_recentdest_count;
@@ -239,7 +241,7 @@ private:
 
     void scale(long scale, struct point *p, int draw_);
     void autozoom(struct coord *center, int speed);
-    int set_graphics(struct graphics *gra);
+    int set_graphics(Graphics &graphics);
     void projection_set(enum projection pro, int draw_);
     void mark_navigation_stopped(char *former_destination_file);
     int former_destinations_active();

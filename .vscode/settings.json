@@ -2,6 +2,9 @@
     "[cpp]":{
         "editor.formatOnSave": true,
     },
+    "[c]":{
+        "editor.formatOnSave": true,
+    },
     "files.associations": {
         "*.cpp": "cpp",
         "*.h": "c",
@@ -19,6 +22,10 @@
         "tuple": "cpp",
         "type_traits": "cpp",
         "utility": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "any": "cpp",
+        "future": "cpp",
+        "memory": "cpp",
+        "stop_token": "cpp"
     }
 }

@@ -163,7 +163,7 @@ extern "C"
             struct coord *coord;
             struct pcoord *pcoord;
             struct gui *gui;
-            struct graphics *graphics;
+            void *graphics;
             struct tracking *tracking;
             struct itemgra *itemgra;
             struct plugin *plugin;
@@ -179,7 +179,7 @@ extern "C"
             struct element *element;
             struct speech *speech;
             struct cursor *cursor;
-            struct displaylist *displaylist;
+            void *displaylist;
             struct transformation *transformation;
             struct vehicleprofile *vehicleprofile;
             struct roadprofile *roadprofile;
