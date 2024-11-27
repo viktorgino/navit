@@ -69,7 +69,7 @@ void NavitLayersModel::update()
 {
     if (m_navitLayoutsInstance && m_navitLayoutsInstance->m_navitInstance)
     {
-        Navit &navit = m_navitLayoutsInstance->m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitLayoutsInstance->m_navitInstance->getNavit();
         struct attr attr;
 
         beginResetModel();
@@ -106,7 +106,7 @@ void NavitLayersModel::toggleLayer(QString name)
 {
     if (m_navitLayoutsInstance && m_navitLayoutsInstance->m_navitInstance)
     {
-        Navit &navit = m_navitLayoutsInstance->m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitLayoutsInstance->m_navitInstance->getNavit();
         struct attr attr;
         char *layerName = name.toUtf8().data();
 

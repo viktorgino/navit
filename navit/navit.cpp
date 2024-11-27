@@ -858,11 +858,6 @@ int Navit::set_graphics(Graphics &gra)
     return 1;
 }
 
-Graphics &Navit::get_graphics()
-{
-    return m_graphics;
-}
-
 struct vehicleprofile *Navit::get_vehicleprofile()
 {
     return m_vehicleprofile;
@@ -3014,11 +3009,6 @@ struct route *Navit::get_route()
 struct navigation *Navit::get_navigation()
 {
     return m_navigation;
-}
-
-GraphicsDisplayList &Navit::get_displaylist()
-{
-    return m_displaylist;
 }
 
 void Navit::layout_switch()

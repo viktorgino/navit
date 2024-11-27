@@ -47,7 +47,7 @@ void NavitRoute::setNavit(NavitInstance *navitInstance)
 {
     m_navitInstance = navitInstance;
 
-    Navit &navit = m_navitInstance->getNavit();
+    NavitInterface &navit = m_navitInstance->getNavit();
 
     struct callback *cb = callback_new_attr_1(callback_cast(NavitRoute::routeCallbackHandler),
                                               attr_position_coord_geo, this);
@@ -100,7 +100,7 @@ void NavitRoute::updateNextTurn(struct map *map)
 
 void NavitRoute::routeUpdate()
 {
-    Navit &navit = m_navitInstance->getNavit();
+    NavitInterface &navit = m_navitInstance->getNavit();
     struct map *map = nullptr;
     struct map_rect *mr = nullptr;
     struct navigation *nav = nullptr;
@@ -265,7 +265,7 @@ QString NavitRoute::getLastDestination(struct pcoord *pc)
 {
     if (m_navitInstance)
     {
-        Navit &navit = m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitInstance->getNavit();
         struct map *formerdests;
         struct map_rect *mr_formerdests;
         struct item *item;
@@ -308,7 +308,7 @@ QString NavitRoute::getLastDestination(struct pcoord *pc)
 }
 void NavitRoute::destinationUpdate()
 {
-    Navit &navit = m_navitInstance->getNavit();
+    NavitInterface &navit = m_navitInstance->getNavit();
     struct route *route = navit.get_route();
     int destCount = route_get_destination_count(route);
 
@@ -333,7 +333,7 @@ void NavitRoute::destinationUpdate()
 
 void NavitRoute::statusUpdate()
 {
-    Navit &navit = m_navitInstance->getNavit();
+    NavitInterface &navit = m_navitInstance->getNavit();
     struct navigation *nav = nullptr;
     nav = navit.get_navigation();
     if (!nav)
@@ -370,7 +370,7 @@ void NavitRoute::cancelNavigation()
 {
     if (m_navitInstance)
     {
-        Navit &navit = m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitInstance->getNavit();
         navit.set_destination(nullptr, nullptr, 0);
     }
 }

@@ -28,6 +28,9 @@
 #include "item.h"
 #include "point.h"
 #include <glib.h>
+#include "NavitInterfaces.h"
+#include <array>
+#include <memory>
 
 struct attr;
 struct point;
@@ -40,12 +43,6 @@ struct display_list;
 struct mapset;
 
 /* This enum must be synchronized with the constants in NavitGraphics.java. */
-enum draw_mode_num
-{
-    draw_mode_begin,
-    draw_mode_end,
-    draw_mode_begin_clear
-};
 
 struct graphics_priv;
 struct graphics_font_priv;
@@ -107,68 +104,6 @@ struct displayitem_poly_holes
     struct coord **coords;
 };
 
-class GraphicsContext;
-
-/**
- * @brief graphics context
- * A graphics context encapsulates a set of drawing parameters, such as
- * linewidth and drawing color.
- */
-
-class AbstractGraphicsContext
-{
-public:
-    virtual void destroy() = 0;
-    virtual void set_linewidth(int width) = 0;
-    virtual void set_dashes(int width, int offset, unsigned char dash_list[], int n) = 0;
-    virtual void set_foreground(struct color *c) = 0;
-    virtual void set_background(struct color *c) = 0;
-    virtual void set_texture(struct graphics_image_priv *img) = 0;
-};
-
-class AbstractGraphics
-{
-public:
-    virtual void graphics_destroy() = 0;
-    virtual void draw_mode(enum draw_mode_num mode) = 0;
-    virtual void draw_lines(GraphicsContext *gc, struct point *p, int count) = 0;
-    virtual void draw_polygon(GraphicsContext *gc, struct point *p, int count) = 0;
-    virtual void draw_rectangle(GraphicsContext *gc, struct point *p, int w, int h) = 0;
-    virtual void draw_circle(GraphicsContext *gc, struct point *p, int r) = 0;
-    virtual void draw_text(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy) = 0;
-    virtual void draw_image(GraphicsContext *fg, struct point *p, struct graphics_image_priv *img) = 0;
-    virtual void draw_image_warp(GraphicsContext *fg, struct point *p, int count, struct graphics_image_priv *img) = 0;
-    virtual void draw_drag(struct point *p) = 0;
-    virtual struct graphics_font_priv *font_new(struct graphics_font_methods *meth, char *font, int size, int flags) = 0;
-    virtual GraphicsContext *gc_new(AbstractGraphicsContext *meth) = 0;
-    virtual void background_gc(GraphicsContext *gc) = 0;
-    virtual struct graphics_priv *overlay_new(struct graphics_methods *meth, struct point *p, int w, int h, int wraparound) = 0;
-    /** @brief Load an image from a file.
-     *
-     * @param gr graphics object
-     * @param meth output parameter for graphics methods object
-     * @param path file name/path of image to load
-     * @param w In: width to scale image to, or IMAGE_W_H_UNSET for original width.
-     * Out: Actual width of returned image.
-     * @param h heigth; see w
-     * @param hot output parameter for image hotspot
-     * @param rotate angle to rotate the image, in 90 degree steps (not supported by all plugins).
-     * @return pointer to allocated image, to be freed by image_free()
-     * @see image_free()
-     */
-    virtual struct graphics_image_priv *image_new(struct graphics_image_methods *meth, char *path, int *w, int *h, struct point *hot, int rotation) = 0;
-    virtual void *get_data(const char *type) = 0;
-    virtual void image_free(struct graphics_image_priv *priv) = 0;
-    virtual void get_text_bbox(struct graphics_font_priv *font, char *text, int dx, int dy, struct point *ret, int estimate) = 0;
-    virtual void overlay_disable(int disable) = 0;
-    virtual void overlay_resize(struct point *p, int w, int h, int wraparound) = 0;
-    virtual int set_attr(struct attr *attr) = 0;
-    virtual int show_native_keyboard(struct graphics_keyboard *kbd) = 0;
-    virtual void hide_native_keyboard(struct graphics_keyboard *kbd) = 0;
-    virtual navit_float get_dpi() = 0;
-    virtual void draw_polygon_with_holes(GraphicsContext *gc, struct point *p, int count, int hole_count, int *ccount, struct point **holes) = 0;
-};
-
 struct graphics_font_methods
 {
     void (*font_destroy)(struct graphics_font_priv *font);
@@ -223,7 +158,6 @@ struct displayitem
 
 /* prototypes */
 enum attr_type;
-enum draw_mode_num;
 enum item_type;
 struct attr;
 struct attr_iter;
@@ -243,20 +177,20 @@ struct transformation;
 
 class Graphics;
 
-class GraphicsContext
+class GraphicsContext : public NavitGraphicsContextInterface
 {
 public:
-    GraphicsContext(Graphics &graphics);
-    void destroy();
-    void set_foreground(struct color *c);
-    void set_background(struct color *c);
-    void set_texture(struct graphics_image *img);
-    void set_linewidth(int width);
-    void set_dashes(int width, int offset, unsigned char dash_list[], int n);
+    GraphicsContext(NavitGraphicsContextInterface &contextInterface, Graphics &graphics);
+    ~GraphicsContext();
+    void set_foreground(struct color *c) override;
+    void set_background(struct color *c) override;
+    void set_texture(struct graphics_image *img) override;
+    void set_linewidth(int width) override;
+    void set_dashes(int width, int offset, unsigned char dash_list[], int n) override;
 
 private:
     Graphics &m_graphics;
-    AbstractGraphicsContext m_meth;
+    NavitGraphicsContextInterface &m_contextInterface;
 };
 struct display_context
 {
@@ -275,7 +209,7 @@ struct display_context
 class Graphics
 {
 public:
-    Graphics(Graphics *parent, struct attr **attrs);
+    Graphics(Graphics *parent, attr **attrs);
     int set_attr(struct attr *attr);
     void set_rect(struct point_rect *pr);
     int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter);
@@ -314,7 +248,6 @@ public:
     void draw_itemgra(struct itemgra *itm, struct transformation *t, char *label);
 
     void display_draw_arrow(struct point *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc, int filled);
-    void draw(struct displaylist *displaylist, struct mapset *mapset, struct transformation *trans, struct layout *l, int async, struct callback *cb, int flags);
 
     struct item *displayitem_get_item(struct displayitem *di);
     int displayitem_get_coord_count(struct displayitem *di);
@@ -341,16 +274,21 @@ public:
     void display_context_free(struct display_context *dc);
     void displayitem_draw(struct displayitem *di, struct layout *l, struct display_context *dc);
     void font_destroy_all();
+    int get_dpi_factor();
 
 private:
     Graphics *m_parent;
-    AbstractGraphics &m_meth;
+    std::unique_ptr<NavitGraphicsInterface> m_graphicsInterface;
+    std::unique_ptr<GraphicsContext> m_gcBackground;
+    std::unique_ptr<GraphicsContext> m_gcMiddground;
+    std::unique_ptr<GraphicsContext> m_gcForeground;
+
     char *m_default_font;
     int m_font_len;
     struct graphics_font **m_font;
-    GraphicsContext *m_gc[3];
+
     struct attr **m_attrs;
-    struct callback_list *m_cbl;
+    struct callback_list *m_callbacks;
     struct point_rect m_r;
     int m_gamma, m_brightness, m_contrast;
     int m_colormgmt;

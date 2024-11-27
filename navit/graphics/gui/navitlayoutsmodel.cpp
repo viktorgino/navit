@@ -68,7 +68,7 @@ void NavitLayoutsModel::update()
 {
     if (m_navitInstance)
     {
-        Navit &navit = m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitInstance->getNavit();
         struct attr attr;
         struct attr_iter *iter;
 
@@ -113,7 +113,7 @@ void NavitLayoutsModel::setLayout(QString name)
 {
     if (m_navitInstance)
     {
-        Navit &navit = m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitInstance->getNavit();
         navit.set_layout_by_name(name.toUtf8().data());
         update();
     }

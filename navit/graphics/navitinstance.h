@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include "navit.h"
+#include "NavitInterfaces.h"
 
 extern "C"
 {
@@ -26,10 +27,15 @@ class NavitInstance : public QObject
 {
     Q_OBJECT
 public:
-    explicit NavitInstance(Navit &nav, struct graphics_priv *gp, QObject *parent = nullptr) : m_graphics_priv(gp), m_navit(nav) {}
-    Navit &getNavit()
+    explicit NavitInstance(NavitInterface &nav, NavitGraphicsInterface &graphics) : m_graphics(graphics), m_navit(nav), QObject(&dynamic_cast<QObject &>(graphics)) {}
+    explicit NavitInstance(NavitInstance const &n) : m_graphics(n.m_graphics), m_navit(n.m_navit), QObject(&dynamic_cast<QObject &>(n.m_graphics)) {}
+    NavitInterface &getNavit()
     {
         return m_navit;
+    }
+    NavitGraphicsInterface &getGraphics()
+    {
+        return m_graphics;
     }
     void emit_update()
     {
@@ -41,7 +47,8 @@ signals:
     void update();
 
 private:
-    Navit &m_navit;
+    NavitInterface &m_navit;
+    NavitGraphicsInterface &m_graphics;
 };
 
 #endif // NAVITINSTANCE_H

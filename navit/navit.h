@@ -20,6 +20,7 @@
 #ifndef NAVIT_NAVIT_H
 #define NAVIT_NAVIT_H
 
+#include "NavitInterfaces.h"
 #include "coord.h"
 #include "point.h"
 #include "attr.h"
@@ -60,39 +61,38 @@ extern "C"
 }
 #endif
 
-class Navit
+class Navit : public NavitInterface
 {
 public:
     Navit(struct attr *parent, struct attr **attrs);
     ~Navit();
     void add_mapset(struct mapset *ms);
-    struct mapset *get_mapset();
+    struct mapset *get_mapset() override;
     struct map *get_search_results_map();
-    int populate_search_results_map(GList *search_results, struct coord_rect *r);
-    struct tracking *get_tracking();
+    int populate_search_results_map(GList *search_results, struct coord_rect *r) override;
+    struct tracking *get_tracking() override;
     void draw_async(int async);
-    void draw();
+    void draw() override;
     int get_ready();
     void draw_displaylist();
     void handle_resize(int w, int h);
-    int get_width();
-    int get_height();
+    int get_width() override;
+    int get_height() override;
     void ignore_graphics_events(int ignore);
     void set_timeout();
     void handle_motion(struct point *p);
-    void zoom_level(int level, struct point *p);
+    void zoom_level(int level, struct point *p) override;
     void zoom_in(int factor, struct point *p);
     void zoom_out(int factor, struct point *p);
     void zoom_in_cursor(int factor);
     void zoom_out_cursor(int factor);
     void add_message(const char *message);
     struct message *get_messages();
-    Graphics &get_graphics();
-    struct vehicleprofile *get_vehicleprofile();
+    struct vehicleprofile *get_vehicleprofile() override;
     GList *get_vehicleprofiles();
-    void set_destination(struct pcoord *c, const char *description, int async);
-    void set_destinations(struct pcoord *c, int count, const char *description, int async);
-    void add_destination_description(struct pcoord *c, const char *description);
+    void set_destination(struct pcoord *c, const char *description, int async) override;
+    void set_destinations(struct pcoord *c, int count, const char *description, int async) override;
+    void add_destination_description(struct pcoord *c, const char *description) override;
     int get_destinations(struct pcoord *pc, int count);
     int get_destination_count();
     char *get_destination_description(int n);
@@ -111,29 +111,28 @@ public:
     int init();
     void zoom_to_rect(struct coord_rect *r);
     void zoom_to_route(int orientation);
-    void set_center(struct pcoord *center, int set_timeout_);
+    void set_center(struct pcoord *center, int set_timeout_) override;
     void set_center_cursor(int autozoom_, int keep_orientation);
     void set_center_screen(struct point *p, int set_timeout_);
     void drag_map(struct point *origin, struct point *destination);
     void set_center_cursor_draw();
-    int set_attr(struct attr *attr);
-    int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter);
+    int set_attr(struct attr *attr) override;
+    int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter) override;
     struct layout *get_layout_by_name(const char *layout_name);
     void update_current_layout(struct layout *layout);
     int add_attr(struct attr *attr);
     int remove_attr(struct attr *attr);
-    void add_callback(struct callback *cb);
+    void add_callback(struct callback *cb) override;
     void remove_callback(struct callback *cb);
-    void set_position(struct pcoord *c);
+    void set_position(struct pcoord *c) override;
     struct gui *get_gui();
-    struct transformation *get_trans();
-    struct route *get_route();
-    struct navigation *get_navigation();
-    GraphicsDisplayList &get_displaylist();
+    struct transformation *get_trans() override;
+    struct route *get_route() override;
+    struct navigation *get_navigation() override;
     void layout_switch();
     int set_vehicle_by_name(const char *name);
-    int set_vehicleprofile_name(char *name);
-    int set_layout_by_name(const char *name);
+    int set_vehicleprofile_name(char *name) override;
+    int set_layout_by_name(const char *name) override;
     int block(int block);
     int get_blocked();
     void destroy();
@@ -148,8 +147,8 @@ public:
     void vehicle_update_position(struct navit_vehicle *nv);
 
     static char *get_user_data_directory(int create);
-    static struct attr_iter *attr_iter_new();
-    static void attr_iter_destroy(struct attr_iter *iter);
+    struct attr_iter *attr_iter_new() override;
+    void attr_iter_destroy(struct attr_iter *iter) override;
 
     int m_ignore_graphics_events;
 

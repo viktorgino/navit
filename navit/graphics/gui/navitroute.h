@@ -36,6 +36,7 @@ extern "C"
 #include "track.h"
 }
 
+#include "navit.h"
 #include "navithelper.h"
 
 class NavitRoute : public QObject

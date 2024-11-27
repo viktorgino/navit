@@ -66,7 +66,7 @@ void NavitFavouritesModel::update()
 {
     if (m_navitInstance)
     {
-        Navit &navit = m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitInstance->getNavit();
         qDebug() << "Getting bookmarks";
         struct attr attr, mattr;
         struct item *item;
@@ -109,7 +109,7 @@ void NavitFavouritesModel::update()
 void NavitFavouritesModel::showFavourites()
 {
     struct attr mattr;
-    Navit &navit = m_navitInstance->getNavit();
+    NavitInterface &navit = m_navitInstance->getNavit();
 
     if (navit.get_attr(attr_bookmarks, &mattr, nullptr))
     {

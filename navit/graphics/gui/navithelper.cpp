@@ -34,7 +34,7 @@ QString NavitHelper::getClosest(QList<QVariantMap> items, int maxDistance)
     return ret;
 }
 
-QVariantMap NavitHelper::getPOI(Navit &navit, struct coord center, int distance)
+QVariantMap NavitHelper::getPOI(NavitInterface &navit, struct coord center, int distance)
 {
     struct transformation *trans;
 
@@ -115,7 +115,7 @@ QVariantMap NavitHelper::getPOI(Navit &navit, struct coord center, int distance)
     return QVariantMap();
 }
 
-QString NavitHelper::getAddress(Navit &navit, struct coord center, QString filter)
+QString NavitHelper::getAddress(NavitInterface &navit, struct coord center, QString filter)
 {
     struct transformation *trans;
 
@@ -245,7 +245,7 @@ QString NavitHelper::getAddress(Navit &navit, struct coord center, QString filte
     return QString();
 }
 
-coord NavitHelper::positionToCoord(Navit &navit, int x, int y)
+coord NavitHelper::positionToCoord(NavitInterface &navit, int x, int y)
 {
     struct coord co;
 
@@ -258,7 +258,7 @@ coord NavitHelper::positionToCoord(Navit &navit, int x, int y)
 
     return co;
 }
-pcoord NavitHelper::positionToPcoord(Navit &navit, int x, int y)
+pcoord NavitHelper::positionToPcoord(NavitInterface &navit, int x, int y)
 {
     struct pcoord c;
 
@@ -271,7 +271,7 @@ pcoord NavitHelper::positionToPcoord(Navit &navit, int x, int y)
 
     return c;
 }
-pcoord NavitHelper::coordToPcoord(Navit &navit, int x, int y)
+pcoord NavitHelper::coordToPcoord(NavitInterface &navit, int x, int y)
 {
     struct pcoord c;
 
@@ -284,32 +284,32 @@ pcoord NavitHelper::coordToPcoord(Navit &navit, int x, int y)
     return c;
 }
 
-static void setDestinationStatic(Navit &navit, char *label, int x, int y)
+static void setDestinationStatic(NavitInterface &navit, char *label, int x, int y)
 {
     navit.set_destination(nullptr, nullptr, 0);
     struct pcoord c = NavitHelper::coordToPcoord(navit, x, y);
     navit.set_destination(&c, label, 1);
 }
 
-void NavitHelper::setDestination(Navit &navit, QString label, int x, int y)
+void NavitHelper::setDestination(NavitInterface &navit, QString label, int x, int y)
 {
     // event_add_timeout(0, 0, callback_new_4(callback_cast(setDestinationStatic), navitInstance->getNavit(), label.toUtf8().data(), x ,y));
     setDestinationStatic(navit, label.toUtf8().data(), x, y);
 }
 
-static void setPositionStatic(Navit &navit, int x, int y)
+static void setPositionStatic(NavitInterface &navit, int x, int y)
 {
     struct pcoord c = NavitHelper::coordToPcoord(navit, x, y);
     navit.set_position(&c);
 }
 
-void NavitHelper::setPosition(Navit &navit, int x, int y)
+void NavitHelper::setPosition(NavitInterface &navit, int x, int y)
 {
     // event_add_timeout(0, 0, callback_new_3(callback_cast(setPositionStatic), navitInstance->getNavit(), x ,y));
     setPositionStatic(navit, x, y);
 }
 
-static void addStopStatic(Navit &navit, int position, char *label, pcoord *c)
+static void addStopStatic(NavitInterface &navit, int position, char *label, pcoord *c)
 {
     int dstcount = navit.get_destination_count() + 1;
     int pos, i;
@@ -329,12 +329,12 @@ static void addStopStatic(Navit &navit, int position, char *label, pcoord *c)
     navit.set_destinations(dst, dstcount + 1, label, 1);
 }
 
-void NavitHelper::addStop(Navit &navit, int position, QString label, int x, int y)
+void NavitHelper::addStop(NavitInterface &navit, int position, QString label, int x, int y)
 {
     struct pcoord c = NavitHelper::coordToPcoord(navit, x, y);
     event_add_timeout(0, 0, callback_new_4(callback_cast(addStopStatic), navit, position, label.toUtf8().data(), &c));
 }
-void addBookmarkStatic(Navit &navit, QString label, int x, int y)
+void addBookmarkStatic(NavitInterface &navit, QString label, int x, int y)
 {
     struct attr attr;
     struct pcoord c = NavitHelper::positionToPcoord(navit, x, y);
@@ -342,12 +342,12 @@ void addBookmarkStatic(Navit &navit, QString label, int x, int y)
 
     bookmarks_add_bookmark(attr.u.bookmarks, &c, label.toUtf8().data());
 }
-void NavitHelper::addBookmark(Navit &navit, QString label, int x, int y)
+void NavitHelper::addBookmark(NavitInterface &navit, QString label, int x, int y)
 {
     event_add_timeout(0, 0, callback_new_4(callback_cast(addBookmarkStatic), navit, label.toUtf8().data(), x, y));
 }
 
-char *NavitHelper::get_icon(Navit &navit, struct item *item)
+char *NavitHelper::get_icon(NavitInterface &navit, struct item *item)
 {
 
     struct attr layout;

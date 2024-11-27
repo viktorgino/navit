@@ -4,8 +4,8 @@
 #include <QAbstractItemModel>
 #include <QDebug>
 #include <QVariantMap>
+#include "navit.h"
 #include "navitinstance.h"
-#include "navithelper.h"
 
 #include <glib.h>
 extern "C"

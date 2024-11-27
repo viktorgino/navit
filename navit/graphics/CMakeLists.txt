@@ -30,7 +30,7 @@ add_library (graphics_qt5 SHARED graphics_qt5 graphics_qt5.cpp event_qt5.cpp qt5
 
 target_link_libraries(graphics_qt5 PkgConfig::GMODULE PkgConfig::GLIB2)
 
-target_include_directories(graphics_qt5 PRIVATE "../" "../../")
+target_include_directories(graphics_qt5 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../ ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 set_target_properties(graphics_qt5 PROPERTIES COMPILE_DEFINITIONS "MODULE=graphics_qt5")
 # pass QML and QWIDGET preference to source
 

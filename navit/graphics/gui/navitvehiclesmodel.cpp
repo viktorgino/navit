@@ -68,7 +68,7 @@ void NavitVehiclesModel::update()
 {
     if (m_navitInstance)
     {
-        Navit &navit = m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitInstance->getNavit();
         struct attr attr;
         struct attr_iter *iter;
 

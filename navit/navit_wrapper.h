@@ -58,7 +58,6 @@ extern "C"
     NavitHandle navit_new(struct attr *parent, struct attr **attrs);
     void navit_add_message(NavitHandle navit, const char *message);
     struct message *navit_get_messages(NavitHandle navit);
-    struct graphics *navit_get_graphics(NavitHandle navit);
     struct vehicleprofile *navit_get_vehicleprofile(NavitHandle navit);
     GList *navit_get_vehicleprofiles(NavitHandle navit);
     void navit_set_destination(NavitHandle navit, struct pcoord *c, const char *description, int async);
@@ -97,7 +96,6 @@ extern "C"
     struct transformation *navit_get_trans(NavitHandle navit);
     struct route *navit_get_route(NavitHandle navit);
     struct navigation *navit_get_navigation(NavitHandle navit);
-    struct displaylist *navit_get_displaylist(NavitHandle navit);
     void navit_layout_switch(NavitHandle navit);
     int navit_set_vehicle_by_name(NavitHandle navit, const char *name);
     int navit_set_vehicleprofile_name(NavitHandle navit, char *name);

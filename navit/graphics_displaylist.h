@@ -1,3 +1,5 @@
+#ifndef NAVIT_DISPLAYLIST_GRAPHICS_H
+#define NAVIT_DISPLAYLIST_GRAPHICS_H
 #include "coord.h"
 #include "item.h"
 #include "point.h"
@@ -104,3 +106,4 @@ private:
     struct displayitem_poly_holes *display_add_holes(struct item *item, int hole_count, char **p);
     void display_add(struct hash_entry *entry, struct item *item, int count, struct coord *c, char **label, int label_count);
 };
+#endif

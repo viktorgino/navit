@@ -93,10 +93,6 @@ struct message *navit_get_messages(NavitHandle navit)
 {
     return ((Navit *)navit)->get_messages();
 }
-struct graphics *navit_get_graphics(NavitHandle navit)
-{
-    return ((Navit *)navit)->get_graphics();
-}
 struct vehicleprofile *navit_get_vehicleprofile(NavitHandle navit)
 {
     return ((Navit *)navit)->get_vehicleprofile();
@@ -248,10 +244,6 @@ struct route *navit_get_route(NavitHandle navit)
 struct navigation *navit_get_navigation(NavitHandle navit)
 {
     return ((Navit *)navit)->get_navigation();
-}
-struct displaylist *navit_get_displaylist(NavitHandle navit)
-{
-    return ((Navit *)navit)->get_displaylist();
 }
 void navit_layout_switch(NavitHandle navit)
 {

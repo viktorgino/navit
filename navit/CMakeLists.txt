@@ -41,12 +41,11 @@ search_houseno_interpol.c traffic.c util.c vehicle.c vehicleprofile.c xmlconfig.
 
 target_compile_definitions(navit_core PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>)
 target_link_libraries(navit_core ${NAVIT_LIBS})
-target_include_directories(navit_core PRIVATE ${GLIB_INCLUDE_DIRS} "includes/")
 link_directories (${GTK2_LIBRARY_DIRS})
 add_definitions (${GTK2_CFLAGS_OTHER})
 
-
-target_include_directories(navit_core PUBLIC "./graphics/" "includes/")
+target_include_directories(navit_core PRIVATE ${GLIB_INCLUDE_DIRS})
+target_include_directories(navit_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/graphics/ ${CMAKE_CURRENT_SOURCE_DIR}/includes/)
 
 # target_link_libraries(navit_core INTERFACE ${GLIB_LDFLAGS})
 

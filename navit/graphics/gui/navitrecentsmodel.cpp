@@ -68,7 +68,7 @@ void NavitRecentsModel::update()
         struct attr attr;
         char *label_full;
         enum projection projection;
-        Navit &navit = m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitInstance->getNavit();
         if (!navit.get_attr(attr_former_destination_map, &attr, nullptr))
             return;
 

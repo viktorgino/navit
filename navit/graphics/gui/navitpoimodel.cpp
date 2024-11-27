@@ -6,7 +6,7 @@ POISearchWorker::POISearchWorker(NavitInstance *navitInstance, QString filter, i
                                                                                                                          m_screenY(screenY),
                                                                                                                          m_distance(distance)
 {
-    Navit &navit = m_navitInstance->getNavit();
+    NavitInterface &navit = m_navitInstance->getNavit();
     struct point p;
     struct transformation *trans;
 
@@ -136,7 +136,7 @@ void POISearchWorker::proccessMapsetItem()
     {
         return;
     }
-    Navit &navit = m_navitInstance->getNavit();
+    NavitInterface &navit = m_navitInstance->getNavit();
     struct coord c;
     int idist = 0;
 

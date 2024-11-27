@@ -92,7 +92,7 @@ void NavitMapsModel::update()
 {
     if (m_navitInstance)
     {
-        Navit &navit = m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitInstance->getNavit();
         struct attr attr, active;
         struct attr_iter *iter;
 
@@ -133,7 +133,7 @@ void NavitMapsModel::toggleMap(QString name)
 {
     if (m_navitInstance)
     {
-        Navit &navit = m_navitInstance->getNavit();
+        NavitInterface &navit = m_navitInstance->getNavit();
         struct attr attr, active, activeSet;
         struct attr_iter *iter;
 

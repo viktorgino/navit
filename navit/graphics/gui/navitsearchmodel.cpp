@@ -216,7 +216,7 @@ void NavitSearchModel::setNavit(NavitInstance *navitInstance)
 {
     m_navitInstance = navitInstance;
 
-    Navit &navit = m_navitInstance->getNavit();
+    NavitInterface &navit = m_navitInstance->getNavit();
     struct mapset *ms = navit.get_mapset();
     m_searchResultList = search_list_new(ms);
     search_list_set_default_country();
@@ -310,7 +310,7 @@ void NavitSearchModel::search()
 
 void NavitSearchModel::search_list_set_default_country()
 {
-    Navit &navit = m_navitInstance->getNavit();
+    NavitInterface &navit = m_navitInstance->getNavit();
     struct attr search_attr, country_name, country_iso2, *country_attr;
     struct item *item;
     struct country_search *cs;
