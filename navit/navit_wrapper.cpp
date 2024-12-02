@@ -332,3 +332,19 @@ char *graphics_icon_path(const char *icon)
 {
     return Graphics::icon_path(icon);
 }
+
+struct object_func navit_func = {
+    attr_navit,
+    (object_func_new)navit_new,
+    (object_func_get_attr)navit_get_attr,
+    (object_func_iter_new)navit_attr_iter_new,
+    (object_func_iter_destroy)navit_attr_iter_destroy,
+    (object_func_set_attr)navit_set_attr,
+    (object_func_add_attr)navit_add_attr,
+    (object_func_remove_attr)navit_remove_attr,
+    (object_func_init)navit_init,
+    (object_func_destroy)navit_destroy,
+    (object_func_dup)NULL,
+    (object_func_ref)navit_object_ref,
+    (object_func_unref)navit_object_unref,
+};

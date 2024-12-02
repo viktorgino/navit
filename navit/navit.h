@@ -153,10 +153,9 @@ private:
     Graphics m_graphics;
     GraphicsDisplayList m_displaylist;
 
-    object_func *m_func;
-    int m_refcount;
-    struct attr **m_attrs;
     struct attr m_self;
+
+    navit_object m_navit_object;
 
     GList *m_mapsets;
     GList *m_layouts;

@@ -105,9 +105,9 @@ public:
 
 struct GraphicsFunctions
 {
-    std::function<NavitGraphicsInterface *(NavitInterface &, callback_list *)> new_graphics;
-    std::function<NavitGraphicsInterface *(point, int, int, int, NavitGraphicsInterface &parent)> new_graphics_overlay;
-    std::function<NavitGraphicsContextInterface *()> new_graphics_context;
+    NavitGraphicsInterface *(*new_graphics)(NavitInterface &, callback_list *);
+    NavitGraphicsInterface *(*new_graphics_overlay)(point, int, int, int, NavitGraphicsInterface &parent);
+    NavitGraphicsContextInterface *(*new_graphics_context)();
 };
 
 #endif // NAVIT_GRAPHICS_INTERFACE_H

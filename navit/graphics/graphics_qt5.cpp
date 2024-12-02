@@ -1006,9 +1006,9 @@ NavitGraphicsContextInterface *new_qt5_graphics_context()
     return new GraphicsContextQt5();
 }
 
-GraphicsFunctions get_graphics_functions()
+GraphicsFunctions *get_graphics_functions()
 {
-    return GraphicsFunctions{
+    return new GraphicsFunctions{
         new_qt5_graphics,
         new_qt5_graphics_overlay,
         new_qt5_graphics_context,

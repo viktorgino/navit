@@ -65,7 +65,7 @@ int navit_enter(int argc, char *const *argv)
     char *config_file = NULL, *command = NULL, *startup_file = NULL;
     char *cp;
     struct attr navit, conf;
-
+    char program_name[] = "Navit";
     GList *list = NULL, *li;
     main_argc = argc;
     main_argv = argv;
@@ -96,6 +96,7 @@ int navit_enter(int argc, char *const *argv)
     linguistics_init();
     geom_init();
     traffic_init();
+    debug_init(program_name);
     config_file = NULL;
 #ifdef HAVE_GETOPT_H
     opterr = 0; // don't bomb out on errors.

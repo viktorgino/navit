@@ -112,11 +112,10 @@ struct navit_vehicle
     int animate_cursor;
 };
 
-struct object_func navit_func;
-
 GraphicsFunctions &getGraphicsFunctions()
 {
-    return *static_cast<GraphicsFunctions *>(plugin_get_category(plugin_category_graphics, "qt5"));
+    auto ret = reinterpret_cast<GraphicsFunctions *(*)()>(plugin_get_category(plugin_category_graphics, "qt5"));
+    return *static_cast<GraphicsFunctions *>(ret());
 }
 
 Navit::Navit(struct attr *parent, struct attr **attrs) : m_graphics(*this, getGraphicsFunctions()), m_displaylist(m_graphics)
@@ -129,9 +128,7 @@ Navit::Navit(struct attr *parent, struct attr **attrs) : m_graphics(*this, getGr
     g.lat = 53.13;
     g.lng = 11.70;
 
-    m_func = &navit_func;
-
-    m_attrs = attr_list_dup(attrs);
+    m_navit_object.attrs = attr_list_dup(attrs);
     m_self.type = attr_navit;
     m_attr_cbl = callback_list_new();
 
@@ -1474,7 +1471,7 @@ int Navit::init()
     int callback;
     char *center_file;
     struct attr_iter *iter;
-    struct attr *attr;
+    struct attr *attr_;
     struct traffic *traffic;
 
     m_w = 0;
@@ -1540,12 +1537,12 @@ int Navit::init()
                 tracking_set_route(m_tracking, m_route);
         }
 
-        attr = g_new0(struct attr, 1);
+        attr_ = g_new0(attr, 1);
         iter = attr_iter_new();
         map = NULL;
-        while (get_attr(attr_traffic, attr, iter))
+        while (get_attr(attr_traffic, attr_, iter))
         {
-            traffic = (struct traffic *)attr->u.navit_object;
+            traffic = (struct traffic *)attr_->u.navit_object;
             traffic_set_mapset(traffic, ms);
             if (m_route)
                 traffic_set_route(traffic, m_route);
@@ -1559,7 +1556,7 @@ int Navit::init()
             }
         }
         attr_iter_destroy(iter);
-        g_free(attr);
+        g_free(attr_);
 
         if (m_navigation)
         {
@@ -1912,7 +1909,7 @@ void Navit::set_center_cursor(int autozoom_, int keep_orientation)
 void Navit::drag_map(struct point *origin, struct point *destination)
 {
     update_transformation(m_trans, origin, destination);
-    m_graphics.draw_drag(NULL);
+    m_graphics.draw_drag(destination);
     transform_copy(m_trans, m_trans_cursor);
     m_graphics.overlay_disable(0);
     set_timeout();
@@ -2188,7 +2185,8 @@ int Navit::set_attr_do(struct attr *attr, int init)
         m_sunrise_degrees = attr->u.num;
         break;
     default:
-        dbg(lvl_debug, "calling generic setter method for attribute type %s", attr_to_name(attr->type)) return navit_object_set_attr((struct navit_object *)this, attr);
+        dbg(lvl_debug, "calling generic setter method for attribute type %s", attr_to_name(attr->type));
+        return navit_object_set_attr(&m_navit_object, attr);
     }
     if (attr_updated && !init)
     {
@@ -2279,7 +2277,7 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
     case attr_gui:
         break;
     case attr_layer:
-        ret = attr_generic_get_attr(m_attrs, NULL, type, attr, iter ? (struct attr_iter *)&iter->iter : NULL);
+        ret = attr_generic_get_attr(m_navit_object.attrs, NULL, type, attr, iter ? (struct attr_iter *)&iter->iter : NULL);
         break;
     case attr_layout:
         if (iter)
@@ -2437,7 +2435,8 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         attr->u.num = m_sunrise_degrees;
         break;
     default:
-        dbg(lvl_debug, "calling generic getter method for attribute type %s", attr_to_name(type)) return navit_object_get_attr((struct navit_object *)this, type, attr, iter);
+        dbg(lvl_debug, "calling generic getter method for attribute type %s", attr_to_name(type));
+        return navit_object_get_attr(&m_navit_object, type, attr, iter);
     }
     attr->type = type;
     return ret;
@@ -2609,7 +2608,7 @@ int Navit::add_attr(struct attr *attr)
         return 0;
     }
     if (ret)
-        m_attrs = attr_generic_add_attr(m_attrs, attr);
+        m_navit_object.attrs = attr_generic_add_attr(m_navit_object.attrs, attr);
     callback_list_call_attr_2(m_attr_cbl, attr->type, this, attr);
     return ret;
 }
@@ -2623,7 +2622,7 @@ int Navit::remove_attr(struct attr *attr)
         remove_callback(attr->u.callback);
         break;
     case attr_vehicle:
-        m_attrs = attr_generic_remove_attr(m_attrs, attr);
+        m_navit_object.attrs = attr_generic_remove_attr(m_navit_object.attrs, attr);
         return 1;
     default:
         return 0;
@@ -3298,7 +3297,7 @@ void Navit::destroy()
     }
 
     callback_list_call_attr_1(m_attr_cbl, attr_destroy, this);
-    attr_list_free(m_attrs);
+    attr_list_free(m_navit_object.attrs);
 
     if (m_bookmarks)
     {
