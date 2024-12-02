@@ -29,11 +29,11 @@
 
 #include <QThread>
 
+#include "navit_wrapper.h"
 extern "C"
 {
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
-#include "navit.h"
 }
 
 #include "graphics_qt5.h"
@@ -78,7 +78,7 @@ public:
         return m_zoomLevel;
     }
 
-    static void attributeCallbackHandler(QNavitQuick_2 *navitGraph, navit *this_, attr *attr);
+    static void attributeCallbackHandler(QNavitQuick_2 *navitGraph, NavitHandle *this_, attr *attr);
     void attributeCallback(attr *attr);
 
 protected:
@@ -89,7 +89,7 @@ protected:
     virtual void wheelEvent(QWheelEvent *event);
 
 private:
-    struct graphics_priv *graphics_priv;
+    GraphicsQt5 *graphics_priv;
     int m_pitch;
     bool m_autoZoom;
     bool m_followVehicle;

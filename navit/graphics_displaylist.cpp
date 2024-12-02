@@ -323,7 +323,6 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
         order_hashed = order;
         layout_hashed = layout;
     }
-    profile(0, NULL);
     pro = transform_get_projection(dc.trans);
     while (!cancel)
     {
@@ -464,7 +463,6 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
         sel = NULL;
         m = NULL;
     }
-    profile(1, "process_selection\n");
     if (idle_ev)
         event_remove_idle(idle_ev);
     idle_ev = NULL;
@@ -472,7 +470,6 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
     idle_cb = NULL;
     busy = 0;
     process_selection();
-    profile(1, "draw\n");
     if (!cancel)
         draw(dc.trans, layout, flags);
     map_rect_destroy(mr);
@@ -483,7 +480,6 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
     sel = NULL;
     m = NULL;
     msh = NULL;
-    profile(1, "callback\n");
     callback_call_1(cb, cancel);
     /* check if we can shrink item buffer next time */
     if ((dc.maxlen > ALLOCA_COORD_LIMIT) && (used < ALLOCA_COORD_LIMIT))
@@ -496,7 +492,6 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
     {
         g_free(ca);
     }
-    profile(0, "end\n");
 }
 
 void GraphicsDisplayList::draw(struct transformation *trans, struct layout *l, int flags)

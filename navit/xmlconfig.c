@@ -247,7 +247,6 @@ static struct object_func object_funcs[] = {
     {attr_coord, NEW(coord_new_from_attrs)},
     {attr_cursor, NEW(cursor_new), NULL, NULL, NULL, NULL, ADD(cursor_add_attr)},
     {attr_debug, NEW(debug_new)},
-    {attr_graphics, NEW(graphics_new), GET(graphics_get_attr)},
     {attr_icon, NEW(icon_new), NULL, NULL, NULL, NULL, ADD(element_add_attr)},
     {attr_image, NEW(image_new)},
     {attr_itemgra, NEW(itemgra_new), NULL, NULL, NULL, NULL, ADD(itemgra_add_attr)},
@@ -416,10 +415,10 @@ static void initStatic(void)
     elements[10].func = NULL;
     elements[10].type = attr_navit;
 
-    elements[11].name = "graphics";
-    elements[11].parent = "navit";
+    elements[11].name = "";
+    elements[11].parent = "";
     elements[11].func = NULL;
-    elements[11].type = attr_graphics;
+    elements[11].type = attr_none;
 
     elements[12].name = "gui";
     elements[12].parent = "navit";

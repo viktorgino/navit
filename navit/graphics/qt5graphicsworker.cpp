@@ -78,7 +78,7 @@ void Qt5GraphicsWorker::resizeEvent(NavitInstance *navitInstance, int width, int
 {
     if (navitInstance)
     {
-        resize_callback(navitInstance->m_graphics_priv, width, height);
+        navitInstance->getGraphics().resize_callback(width, height);
     }
 }
 void Qt5GraphicsWorker::mapMove(NavitInstance *navitInstance, struct point *origin, struct point *destination)

@@ -11,7 +11,6 @@
 #include "map.h"
 #include "mapset.h"
 #include "graphics.h"
-#include "profile.h"
 #include <glib.h>
 
 #define HASH_SIZE 1024

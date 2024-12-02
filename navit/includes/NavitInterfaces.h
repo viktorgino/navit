@@ -6,14 +6,8 @@
 #include "item.h"
 #include "point.h"
 #include "attr.h"
+#include "includes/common.h"
 #include <glib.h>
-
-enum draw_mode_num
-{
-    draw_mode_begin,
-    draw_mode_end,
-    draw_mode_begin_clear
-};
 
 struct attr_iter
 {
@@ -50,6 +44,11 @@ public:
     virtual int get_destinations(struct pcoord *pc, int count) = 0;
     virtual void add_destination_description(struct pcoord *c, const char *description) = 0;
     virtual void set_destinations(struct pcoord *c, int count, const char *description, int async) = 0;
+    virtual void drag_map(struct point *origin, struct point *destination) = 0;
+    virtual void zoom_in(int factor, struct point *p) = 0;
+    virtual void zoom_out(int factor, struct point *p) = 0;
+    virtual void zoom_to_route(int orientation) = 0;
+    virtual void set_center_cursor_draw() = 0;
     static struct attr_iter *attr_iter_new()
     {
         return g_new0(struct attr_iter, 1);
@@ -75,7 +74,7 @@ class NavitGraphicsInterface
 {
 public:
     NavitGraphicsInterface() = default;
-    explicit NavitGraphicsInterface(NavitInterface &navit, attr **attrs, callback_list *cbl) {};
+    explicit NavitGraphicsInterface(NavitInterface &navit, callback_list *cbl) {};
     explicit NavitGraphicsInterface(struct point *p, int w, int h, int wraparound) {};
     virtual void draw_mode(enum draw_mode_num mode) = 0;
     virtual void draw_lines(NavitGraphicsContextInterface *gc, struct point *p, int count) = 0;
@@ -100,12 +99,13 @@ public:
     virtual int show_native_keyboard(struct graphics_keyboard *kbd) = 0;
     virtual void hide_native_keyboard(struct graphics_keyboard *kbd) = 0;
     virtual navit_float get_dpi() = 0;
+    virtual void resize_callback(int w, int h) = 0;
 };
 
 struct GraphicsFunctions
 {
-    std::function<NavitGraphicsInterface &(NavitInterface &, attr **, callback_list *)> new_graphics;
-    std::function<NavitGraphicsInterface &(point *, int, int, int, NavitGraphicsInterface &parent)> new_graphics_overlay;
+    std::function<NavitGraphicsInterface &(NavitInterface &, callback_list *)> new_graphics;
+    std::function<NavitGraphicsInterface &(point, int, int, int, NavitGraphicsInterface &parent)> new_graphics_overlay;
     std::function<NavitGraphicsContextInterface &()> new_graphics_context;
 };
 

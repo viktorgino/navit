@@ -24,6 +24,7 @@
 #include "item.h"
 #include "color.h"
 #include "coord.h"
+#include "xmlconfig.h"
 
 #ifdef __cplusplus
 extern "C"

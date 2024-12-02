@@ -332,7 +332,7 @@ static void addStopStatic(NavitInterface &navit, int position, char *label, pcoo
 void NavitHelper::addStop(NavitInterface &navit, int position, QString label, int x, int y)
 {
     struct pcoord c = NavitHelper::coordToPcoord(navit, x, y);
-    event_add_timeout(0, 0, callback_new_4(callback_cast(addStopStatic), navit, position, label.toUtf8().data(), &c));
+    event_add_timeout(0, 0, callback_new_4(callback_cast(addStopStatic), &navit, position, label.toUtf8().data(), &c));
 }
 void addBookmarkStatic(NavitInterface &navit, QString label, int x, int y)
 {
@@ -344,7 +344,7 @@ void addBookmarkStatic(NavitInterface &navit, QString label, int x, int y)
 }
 void NavitHelper::addBookmark(NavitInterface &navit, QString label, int x, int y)
 {
-    event_add_timeout(0, 0, callback_new_4(callback_cast(addBookmarkStatic), navit, label.toUtf8().data(), x, y));
+    event_add_timeout(0, 0, callback_new_4(callback_cast(addBookmarkStatic), &navit, label.toUtf8().data(), x, y));
 }
 
 char *NavitHelper::get_icon(NavitInterface &navit, struct item *item)

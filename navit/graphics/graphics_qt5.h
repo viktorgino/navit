@@ -49,6 +49,8 @@ struct graphics_image_priv
     QPixmap *pixmap;
 };
 
+class GraphicsQt5;
+
 class GraphicsContextQt5 : public QObject, public NavitGraphicsContextInterface
 {
     Q_OBJECT
@@ -75,11 +77,11 @@ class GraphicsQt5 : public QObject, public NavitGraphicsInterface
     Q_OBJECT
 public:
 #if HAVE_FREETYPE
-    GraphicsQt5(Navit &nav, graphics_methods *meth, attr **attrs, callback_list *cbl);
+    GraphicsQt5(Navit &nav, graphics_methods *meth, callback_list *cbl);
 #error "GraphicsQt5 doesn't implement freetype"
 #else
-    GraphicsQt5(NavitInterface &navit, attr **attrs, callback_list *cbl, QObject *parent = 0);
-    GraphicsQt5(struct point *p, int w, int h, int wraparound, NavitGraphicsInterface &parent);
+    GraphicsQt5(NavitInterface &navit, callback_list *cbl, QObject *parent = 0);
+    GraphicsQt5(point p, int w, int h, int wraparound, NavitGraphicsInterface &parent);
 #endif
     ~GraphicsQt5();
     void emit_update();
@@ -108,6 +110,7 @@ public:
     void hide_native_keyboard(struct graphics_keyboard *kbd) override;
     navit_float get_dpi() override;
 
+    void resize_callback(int w, int h) override;
     int fullscreen(int on);
     static int static_fullscreen(struct window *w, int on);
     callback_list *get_callbacks();
@@ -138,8 +141,6 @@ private:
     bool m_root;
 
     void *get_data(struct graphics_priv *this_priv, char const *type);
-    void resize_callback(int w, int h);
 };
 
-// void resize_callback(struct graphics_priv *gr, int w, int h);
 #endif

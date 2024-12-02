@@ -211,10 +211,11 @@ struct display_context
 class Graphics
 {
 public:
-    Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions, attr **attrs);
+    Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions);
     Graphics(NavitInterface &navit, Graphics &parent, point *p, int w, int h, int wraparound);
     GraphicsFunctions &get_graphics_functions();
     NavitGraphicsInterface &get_graphics_interface();
+    NavitInterface &get_navit_interface();
 
     int set_attr(struct attr *attr);
     void set_rect(struct point_rect *pr);
@@ -248,7 +249,7 @@ public:
     int draw_drag(struct point *p);
     void background_gc(GraphicsContext *gc);
     void draw_text_std(int text_size, char *text, struct point *p);
-    char *icon_path(const char *icon);
+    static char *icon_path(const char *icon);
     char *texture_path(const char *texture);
     void draw_itemgra(struct itemgra *itm, struct transformation *t, char *label);
 
@@ -286,7 +287,6 @@ private:
     GraphicsFunctions &m_graphics_functions;
 
     callback_list *m_callbacks;
-    attr **m_attrs;
 
     NavitGraphicsInterface &m_graphicsInterface;
     NavitGraphicsContextInterface &m_contextInterface;

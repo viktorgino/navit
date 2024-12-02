@@ -96,33 +96,6 @@ static QObject *navit_singletontype_provider(QQmlEngine *engine, QJSEngine *scri
     return navitInst;
 }
 
-static void request_event_system(attr **attrs)
-{
-    attr *event_loop_system;
-    attr *platform;
-
-    /* get event loop from config and request event loop*/
-    event_loop_system = attr_search(attrs, attr_event_loop_system);
-    if (event_loop_system && event_loop_system->u.str)
-    {
-        // dbg(lvl_debug, "event_system is %s", event_loop_system->u.str);
-        if (!event_request_system(event_loop_system->u.str, "graphics_qt5"))
-        {
-            qFatal("Unable to request event system for graphics_qt5");
-            return;
-        }
-    }
-    else
-    {
-        /* no event system requested by config. Default to our own */
-        if (!event_request_system("qt5", "graphics_qt5"))
-        {
-            qFatal("Unable to request default event system for graphics_qt5");
-            return;
-        }
-    }
-}
-
 #if HAVE_FREETYPE
 static bool setup_freetype(bool is_root)
 {
@@ -158,13 +131,19 @@ static bool setup_freetype(bool is_root)
 }
 #endif
 
-GraphicsQt5::GraphicsQt5(NavitInterface &navit, attr **attrs, callback_list *cbl, QObject *parent) : m_callbacks(cbl),
-                                                                                                     m_navitInstance(navit, *this),
-                                                                                                     QObject(parent)
+GraphicsQt5::GraphicsQt5(NavitInterface &navit, callback_list *cbl, QObject *parent) : m_callbacks(cbl),
+                                                                                       m_navitInstance(navit, *this),
+                                                                                       QObject(parent)
 {
     qDebug() << "graphics_qt5_new";
     navitInst = &m_navitInstance;
-    request_event_system(attrs);
+
+    /* no event system requested by config. Default to our own */
+    if (!event_request_system("qt5", "graphics_qt5"))
+    {
+        qFatal("Unable to request default event system for graphics_qt5");
+        return;
+    }
 
     /* generate initial pixmap same size as window */
     // TODO: get window size
@@ -177,16 +156,16 @@ GraphicsQt5::GraphicsQt5(NavitInterface &navit, attr **attrs, callback_list *cbl
 
     navit.draw();
 }
-GraphicsQt5::GraphicsQt5(struct point *p, int w, int h, int wraparound, NavitGraphicsInterface &parent) : m_parent(&dynamic_cast<GraphicsQt5 &>(parent)),
-                                                                                                          m_navitInstance(m_parent->get_navit_instance()),
-                                                                                                          QObject(m_parent)
+GraphicsQt5::GraphicsQt5(point p, int w, int h, int wraparound, NavitGraphicsInterface &parent) : m_parent(&dynamic_cast<GraphicsQt5 &>(parent)),
+                                                                                                  m_navitInstance(m_parent->get_navit_instance()),
+                                                                                                  QObject(m_parent)
 
 {
     qDebug() << "graphics_qt5_new::overlay";
 
     m_root = false;
-    m_x = p->x;
-    m_y = p->y;
+    m_x = p.x;
+    m_y = p.y;
     m_callbacks = m_parent->get_callbacks();
     m_pixmap = new QPixmap(w, h);
     m_pixmap->fill(Qt::transparent);
@@ -978,13 +957,13 @@ static struct graphics_font_priv *font_new(struct graphics_font_methods *meth, c
 #pragma endregion
 #pragma region "Register plugin"
 
-NavitGraphicsInterface &new_qt5_graphics(NavitInterface &navit, attr **attrs, callback_list *cbl)
+NavitGraphicsInterface &new_qt5_graphics(NavitInterface &navit, callback_list *cbl)
 {
-    auto ret = GraphicsQt5(navit, attrs, cbl);
+    auto ret = GraphicsQt5(navit, cbl);
     return ret;
 }
 
-NavitGraphicsInterface &new_qt5_graphics_overlay(struct point *p, int w, int h, int wraparound, NavitGraphicsInterface &parent)
+NavitGraphicsInterface &new_qt5_graphics_overlay(point p, int w, int h, int wraparound, NavitGraphicsInterface &parent)
 {
     auto ret = GraphicsQt5(p, w, h, wraparound, parent);
     return ret;

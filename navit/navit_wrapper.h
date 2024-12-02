@@ -29,12 +29,15 @@ typedef struct _GList GList;
 #include "attr.h"
 #include "coord.h"
 #include "point.h"
+#include "includes/common.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
     typedef void *NavitHandle;
+    typedef void *GraphicsHandle;
+    typedef void *GraphicsGCHandle;
     void navit_add_mapset(NavitHandle navit, struct mapset *ms);
     struct mapset *navit_get_mapset(NavitHandle navit);
     struct map *navit_get_search_results_map(NavitHandle navit);
@@ -102,6 +105,22 @@ extern "C"
     int navit_block(NavitHandle navit, int block);
     int navit_get_blocked(NavitHandle navit);
     void navit_destroy(NavitHandle navit);
+
+    GraphicsGCHandle graphics_gc_new(GraphicsHandle graphics);
+    void graphics_gc_set_foreground(GraphicsGCHandle *gc, struct color *c);
+    void graphics_gc_destroy(GraphicsGCHandle *gc);
+
+    GraphicsHandle graphics_overlay_new(GraphicsHandle parent, struct point *p, int w, int h, int wraparound);
+    void graphics_free(GraphicsHandle graphics);
+    void graphics_overlay_disable(GraphicsHandle graphics, int disable);
+    void graphics_init(GraphicsHandle graphics);
+    void graphics_background_gc(GraphicsHandle graphics, GraphicsGCHandle *gc);
+    void graphics_overlay_resize(GraphicsHandle graphics, struct point *p, int w, int h, int wraparound);
+    void graphics_draw_mode(GraphicsHandle graphics, enum draw_mode_num mode);
+    void graphics_draw_rectangle(GraphicsHandle graphics, GraphicsGCHandle *gc, struct point *p, int w, int h);
+    void graphics_draw_itemgra(GraphicsHandle graphics, struct itemgra *itm, struct transformation *t, char *label);
+    int graphics_draw_drag(GraphicsHandle graphics, struct point *p);
+    char *graphics_icon_path(const char *icon);
 #ifdef __cplusplus
 }
 #endif

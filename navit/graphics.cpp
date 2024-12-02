@@ -222,66 +222,29 @@ void Graphics::dpi_patch(struct callback_list *l, enum attr_type type, int pcoun
     /* any more?  attr_keypress doesn't come with coordinates */
 }
 
-attr **init_graphics_attrs(Graphics *graphics, attr **_attrs, callback_list *callbacks)
+Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions) : m_parent(std::nullopt),
+                                                                                  m_graphics_functions(graphicsFunctions),
+                                                                                  m_callbacks(callback_list_new()),
+                                                                                  m_graphicsInterface(m_graphics_functions.new_graphics(navit, m_callbacks)),
+                                                                                  m_contextInterface(m_graphics_functions.new_graphics_context()),
+                                                                                  m_gcBackground(m_contextInterface, this),
+                                                                                  m_gcMiddground(m_contextInterface, this),
+                                                                                  m_gcForeground(m_contextInterface, this)
 {
-    struct attr cbl_attr;
-    attr **attrs = attr_list_dup(_attrs);
-
-    cbl_attr.type = attr_callback_list;
-    cbl_attr.u.callback_list = callbacks;
-    callback_list_add_patch_function(callbacks, Graphics::static_dpi_patch, static_cast<void *>(graphics));
-    return attr_generic_add_attr(attrs, &cbl_attr);
-}
-
-Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions,
-                   attr **attrs) : m_parent(std::nullopt),
-                                   m_graphics_functions(graphicsFunctions),
-                                   m_callbacks(callback_list_new()),
-                                   m_attrs(init_graphics_attrs(this, attrs, m_callbacks)),
-                                   m_graphicsInterface(m_graphics_functions.new_graphics(navit, m_attrs, m_callbacks)),
-                                   m_contextInterface(m_graphics_functions.new_graphics_context()),
-                                   m_gcBackground(m_contextInterface, this),
-                                   m_gcMiddground(m_contextInterface, this),
-                                   m_gcForeground(m_contextInterface, this)
-{
-    struct attr *real_dpi_attr, *virtual_dpi_attr;
 
     /* start with no scaling */
     m_dpi_factor = 1;
+    // TODO: Add configurable DPI scaling
 
     m_brightness = 0;
     m_contrast = 65536;
     m_gamma = 65536;
     m_font_size = 20;
     m_image_cache_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-    /*get dpi */
-    virtual_dpi_attr = attr_search(attrs, attr_virtual_dpi);
-    real_dpi_attr = attr_search(attrs, attr_real_dpi);
-    if (virtual_dpi_attr != NULL)
-    {
-        navit_float virtual_dpi, real_dpi = 0;
-        virtual_dpi = virtual_dpi_attr->u.num;
-        if (real_dpi_attr != NULL)
-            real_dpi = real_dpi_attr->u.num;
-        else
-            real_dpi = get_dpi();
-        if ((real_dpi != 0) && (virtual_dpi != 0))
-        {
-            m_dpi_factor = round(real_dpi / virtual_dpi);
-            if (m_dpi_factor < 1)
-                m_dpi_factor = 1;
-            dbg(lvl_error, "Using virtual dpi %f, real dpi %f factor %d", virtual_dpi, real_dpi, m_dpi_factor);
-        }
-    }
     // TODO: Add resize callback
     // if (m_dpi_factor != 1)
     //     callback_list_call_attr_2(m_callbacks, attr_resize, GINT_TO_POINTER(navit_get_width(parent->u.navit)),
     //                               GINT_TO_POINTER(navit_get_height(parent->u.navit)));
-    while (*attrs)
-    {
-        set_attr_do(*attrs);
-        attrs++;
-    }
 }
 
 /**
@@ -307,16 +270,13 @@ Graphics::Graphics(
     point *p, int w, int h, int wraparound) : m_parent(&parent),
                                               m_graphics_functions(parent.get_graphics_functions()),
                                               m_callbacks(callback_list_new()),
-                                              m_attrs(init_graphics_attrs(this, m_attrs, m_callbacks)),
-                                              m_graphicsInterface(m_graphics_functions.new_graphics_overlay(p, w, h, wraparound, parent.get_graphics_interface())),
+                                              m_graphicsInterface(m_graphics_functions.new_graphics_overlay(parent.dpi_scale_point(p), parent.dpi_scale(w), parent.dpi_scale(h), wraparound, parent.get_graphics_interface())),
                                               m_contextInterface(m_graphics_functions.new_graphics_context()),
                                               m_gcBackground(m_contextInterface, this),
                                               m_gcMiddground(m_contextInterface, this),
                                               m_gcForeground(m_contextInterface, this)
 {
     assert(m_parent);
-    point p_scaled;
-    int w_scaled, h_scaled;
 
     point_rect pr = {
         .lu = {
@@ -331,9 +291,6 @@ Graphics::Graphics(
     };
 
     m_dpi_factor = parent.get_dpi_factor();
-    p_scaled = parent.dpi_scale_point(p);
-    w_scaled = parent.dpi_scale(w);
-    h_scaled = parent.dpi_scale(h);
     m_image_cache_hash = parent.getImageCacheHash();
 
     m_font_size = 20;
@@ -350,6 +307,9 @@ NavitGraphicsInterface &Graphics::get_graphics_interface()
     return m_graphicsInterface;
 }
 
+NavitInterface &Graphics::get_navit_interface()
+{
+}
 /**
  * @brief Gets an attribute of the graphics instance
  *
@@ -378,7 +338,8 @@ NavitGraphicsInterface &Graphics::get_graphics_interface()
  */
 int Graphics::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter)
 {
-    return attr_generic_get_attr(m_attrs, NULL, type, attr, iter);
+    // TODO: Add getting attrs
+    return 0;
 }
 
 GHashTable *Graphics::getImageCacheHash()
@@ -512,7 +473,6 @@ void Graphics::free()
         g_hash_table_destroy(m_image_cache_hash);
     }
 
-    attr_list_free(m_attrs);
     // m_gcBackground->destroy();
     // m_gcMiddground->destroy();
     // m_gcForeground->destroy();

@@ -48,7 +48,6 @@
 	# "5175 N 12570 W" 
 	-->
 	<navit center="5150 N 75 W" zoom="256" tracking="1" orientation="-1" recent_dest="250" drag_bitmap="0" default_layout="Car-Modern">
-		<graphics type="qt5"/>
 		<log enabled="no" type="textfile_debug" data="debug_%Y%m%d-%i.txt" flush_size="1000" flush_time="30"/>
 
 		<!-- Traffic -->

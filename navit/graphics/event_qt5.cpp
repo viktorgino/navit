@@ -21,24 +21,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C"
-{
-#include "config.h"
+// extern "C"
+// {
+// #include "config.h"
 
-#include "navit/callback.h"
-#include "navit/color.h"
-#include "navit/debug.h"
-#include "navit/event.h"
+// #include "navit/callback.h"
+// #include "navit/color.h"
+// #include "navit/debug.h"
+// #include "navit/event.h"
 
-#include "navit/point.h" /* needs to be before graphics.h */
+// #include "navit/point.h" /* needs to be before graphics.h */
 
-#include "navit/graphics.h"
-#include "navit/item.h"
-#include "navit/keys.h"
-#include "navit/navit.h"
-#include "navit/plugin.h"
-#include "navit/window.h"
-}
+// #include "navit/graphics.h"
+// #include "navit/item.h"
+// #include "navit/keys.h"
+// #include "navit/navit_wrapper.h"
+// #include "navit/plugin.h"
+// #include "navit/window.h"
+// }
 
 #if defined(WINDOWS) || defined(WIN32) || defined(HAVE_API_WIN32_CE)
 #include <windows.h>

@@ -5,8 +5,7 @@
 #include <QDebug>
 
 #include <glib.h>
-extern "C"
-{
+
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -21,7 +20,6 @@ extern "C"
 #include "mapset.h"
 #include "search.h"
 #include "bookmarks.h"
-}
 
 #include "navitinstance.h"
 #include "navithelper.h"

@@ -19,11 +19,8 @@
  */
 
 #include <glib.h>
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-extern "C"
-{
+
 #include "config.h"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 #include "navit.h"
@@ -42,7 +39,7 @@ extern "C"
 #include "window.h"
 
 #include "bookmarks.h"
-}
+
 #if defined(WINDOWS) || defined(WIN32) || defined(HAVE_API_WIN32_CE)
 #include <windows.h>
 #endif
@@ -350,21 +347,21 @@ void QNavitQuick_2::setNavitInstance(NavitInstance *navit)
     m_navitInstance = navit;
     if (m_navitInstance)
     {
-        Navit &navit = m_navitInstance->getNavit();
-        graphics_priv = navit->m_graphics_priv;
+        NavitInterface &navit_interface = m_navitInstance->getNavit();
+        graphics_priv = static_cast<GraphicsQt5 *>(&m_navitInstance->getGraphics());
 
         QObject::connect(navit, SIGNAL(update()), this, SLOT(draw()));
 
-        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                               attr_orientation, this));
-        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                               attr_follow_cursor, this));
-        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                               attr_tracking, this));
-        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                               attr_autozoom_active, this));
-        navit.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
-                                               attr_pitch, this));
+        navit_interface.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                                         attr_orientation, this));
+        navit_interface.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                                         attr_follow_cursor, this));
+        navit_interface.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                                         attr_tracking, this));
+        navit_interface.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                                         attr_autozoom_active, this));
+        navit_interface.add_callback(callback_new_attr_1(callback_cast(QNavitQuick_2::attributeCallbackHandler),
+                                                         attr_pitch, this));
         m_orientation = getNavitNumProperty(attr_orientation);
         m_followVehicle = getNavitNumProperty(attr_follow_cursor);
         m_tracking = getNavitNumProperty(attr_tracking);
@@ -413,7 +410,7 @@ void QNavitQuick_2::updateZoomLevel()
     }
 }
 
-void QNavitQuick_2::attributeCallbackHandler(QNavitQuick_2 *navitGraph, navit *this_, attr *attr)
+void QNavitQuick_2::attributeCallbackHandler(QNavitQuick_2 *navitGraph, NavitHandle *this_, attr *attr)
 {
     navitGraph->attributeCallback(attr);
 }

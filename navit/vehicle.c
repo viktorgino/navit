@@ -48,7 +48,6 @@
 #include "transform.h"
 #include "projection.h"
 #include "point.h"
-// #include "graphics.h"
 #include "callback.h"
 #include "color.h"
 #include "layout.h"
@@ -73,8 +72,8 @@ struct vehicle
     int need_resize;
     int real_w;
     int real_h;
-    struct graphics *gra;
-    struct graphics_gc *bg;
+    GraphicsHandle gra;
+    GraphicsGCHandle *bg;
     struct transformation *trans;
     int angle;
     int speed;
@@ -368,7 +367,7 @@ void vehicle_set_cursor(struct vehicle *this_, struct cursor *cursor, int overwr
  * @param angle The angle relative to the map.
  * @param speed The speed of the vehicle.
  */
-void vehicle_draw(struct vehicle *this_, struct graphics *gra, struct point *pnt, int angle, int speed)
+void vehicle_draw(struct vehicle *this_, GraphicsHandle gra, struct point *pnt, int angle, int speed)
 {
     struct point sc;
     if (angle < 0)

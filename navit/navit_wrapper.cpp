@@ -270,3 +270,69 @@ void navit_destroy(NavitHandle navit)
 {
     return ((Navit *)navit)->destroy();
 }
+class GraphicsPrivate
+{
+public:
+    GraphicsPrivate(Graphics &graphics) : m_graphics(graphics) {}
+    Graphics &graphics() { return m_graphics; }
+
+private:
+    Graphics &m_graphics;
+};
+
+GraphicsGCHandle graphics_gc_new(GraphicsHandle graphics)
+{
+    GraphicsFunctions &graphics_functions = ((GraphicsPrivate *)graphics)->graphics().get_graphics_functions();
+
+    return (GraphicsGCHandle) new GraphicsContext(graphics_functions.new_graphics_context(), (Graphics *)graphics);
+}
+void graphics_gc_set_foreground(GraphicsGCHandle *gc, struct color *c) {}
+void graphics_gc_destroy(GraphicsGCHandle *gc)
+{
+    delete gc;
+}
+GraphicsHandle graphics_overlay_new(GraphicsHandle parent, struct point *p, int w, int h, int wraparound)
+{
+    auto parent_graphics = ((GraphicsPrivate *)parent)->graphics();
+    return (GraphicsHandle) new Graphics(parent_graphics.get_navit_interface(), parent_graphics, p, w, h, wraparound);
+}
+void graphics_free(GraphicsHandle graphics)
+{
+    ((GraphicsPrivate *)graphics)->graphics().free();
+}
+void graphics_overlay_disable(GraphicsHandle graphics, int disable)
+{
+    ((GraphicsPrivate *)graphics)->graphics().overlay_disable(disable);
+}
+void graphics_init(GraphicsHandle graphics)
+{
+    ((GraphicsPrivate *)graphics)->graphics().init();
+}
+void graphics_background_gc(GraphicsHandle graphics, GraphicsGCHandle *gc)
+{
+    ((GraphicsPrivate *)graphics)->graphics().background_gc((GraphicsContext *)gc);
+}
+void graphics_overlay_resize(GraphicsHandle graphics, struct point *p, int w, int h, int wraparound)
+{
+    ((GraphicsPrivate *)graphics)->graphics().overlay_resize(p, w, h, wraparound);
+}
+void graphics_draw_mode(GraphicsHandle graphics, enum draw_mode_num mode)
+{
+    ((GraphicsPrivate *)graphics)->graphics().draw_mode(mode);
+}
+void graphics_draw_rectangle(GraphicsHandle graphics, GraphicsGCHandle *gc, struct point *p, int w, int h)
+{
+    ((GraphicsPrivate *)graphics)->graphics().draw_rectangle((GraphicsContext *)gc, p, w, h);
+}
+void graphics_draw_itemgra(GraphicsHandle graphics, struct itemgra *itm, struct transformation *t, char *label)
+{
+    ((GraphicsPrivate *)graphics)->graphics().draw_itemgra(itm, t, label);
+}
+int graphics_draw_drag(GraphicsHandle graphics, struct point *p)
+{
+    ((GraphicsPrivate *)graphics)->graphics().draw_drag(p);
+}
+char *graphics_icon_path(const char *icon)
+{
+    return Graphics::icon_path(icon);
+}

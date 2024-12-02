@@ -55,7 +55,7 @@
 #include "log.h"
 #include "event.h"
 #include "file.h"
-#include "profile.h"
+// #include "profile.h"
 #include "command.h"
 #include "navit_nls.h"
 #include "map.h"
@@ -66,6 +66,7 @@
 #include "bookmarks.h"
 #include "attr.h"
 #include "graphics.h"
+#include "plugin.h"
 #ifdef HAVE_API_WIN32_BASE
 #include <windows.h>
 #include "util.h"
@@ -109,7 +110,12 @@ struct navit_vehicle
 
 struct object_func navit_func;
 
-Navit::Navit(struct attr *parent, struct attr **attrs) : m_displaylist(m_graphics)
+GraphicsFunctions &getGraphicsFunctions()
+{
+    plugin_get_category(plugin_category_graphics, "qt5");
+}
+
+Navit::Navit(struct attr *parent, struct attr **attrs) : m_graphics(*this, getGraphicsFunctions()), m_displaylist(m_graphics)
 {
     struct pcoord center;
     struct coord co;
@@ -164,6 +170,9 @@ Navit::Navit(struct attr *parent, struct attr **attrs) : m_displaylist(m_graphic
     }
 
     m_messages = messagelist_new(attrs);
+
+    // Init graphics callbacks
+    set_graphics();
 
     dbg(lvl_debug, "return %p", this);
 }
@@ -836,9 +845,8 @@ static void navit_predraw(void *data)
     navit->predraw();
 }
 
-int Navit::set_graphics(Graphics &gra)
+int Navit::set_graphics()
 {
-    m_graphics = gra;
     m_resize_callback = callback_new_attr_1(callback_cast(navit_resize), attr_resize, this);
     m_graphics.add_callback(m_resize_callback);
     m_motion_callback = callback_new_attr_1(callback_cast(navit_motion), attr_motion, this);
@@ -2256,10 +2264,6 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
     case attr_former_destination_map:
         attr->u.map = m_former_destination;
         break;
-    case attr_graphics:
-        attr->u.graphics = &m_graphics;
-        ret = (attr->u.graphics != NULL);
-        break;
     case attr_gui:
         break;
     case attr_layer:
@@ -2552,15 +2556,6 @@ int Navit::add_attr(struct attr *attr)
         break;
     case attr_gui:
         break;
-    case attr_graphics:
-    {
-        Graphics *graphics = static_cast<Graphics *>(attr->u.graphics);
-        if (graphics == nullptr)
-        {
-            ret = set_graphics(*graphics);
-        }
-        break;
-    }
     case attr_layout:
         add_layout(attr->u.layout);
         break;
@@ -2664,7 +2659,7 @@ void Navit::draw_vehicle(struct navit_vehicle *nv, struct point *pnt)
             return;
         transform_point(m_trans_cursor, pro, &nv->coord, &cursor_pnt);
     }
-    vehicle_draw(nv->vehicle, m_gra, &cursor_pnt, nv->dir - transform_get_yaw(m_trans_cursor), nv->speed);
+    vehicle_draw(nv->vehicle, static_cast<void *>(&m_graphics), &cursor_pnt, nv->dir - transform_get_yaw(m_trans_cursor), nv->speed);
 }
 
 /**
@@ -2702,7 +2697,7 @@ void Navit::vehicle_update_position(struct navit_vehicle *nv)
     char *destination_file;
     char *description;
 
-    profile(0, NULL);
+    // profile(0, NULL);
     if (m_ready == 3)
         layout_switch();
     if (m_vehicle == nv && m_tracking_flag)
@@ -2725,7 +2720,7 @@ void Navit::vehicle_update_position(struct navit_vehicle *nv)
         !get_attr(attr_object, attr_position_speed, &attr_speed, NULL) ||
         !get_attr(attr_object, attr_position_coord_geo, &attr_pos, NULL))
     {
-        profile(0, "return 2\n");
+        // profile(0, "return 2\n");
         return;
     }
     nv->dir = *attr_dir.u.numd;
@@ -2735,7 +2730,7 @@ void Navit::vehicle_update_position(struct navit_vehicle *nv)
     {
         if (m_ready == 3)
             draw_vehicle(nv, NULL);
-        profile(0, "return 3\n");
+        // profile(0, "return 3\n");
         return;
     }
     cursor_pc.x = nv->coord.x;
@@ -2792,7 +2787,7 @@ void Navit::vehicle_update_position(struct navit_vehicle *nv)
             break;
         }
     }
-    profile(0, "return 5\n");
+    // profile(0, "return 5\n");
 }
 
 /**

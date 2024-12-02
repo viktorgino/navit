@@ -43,7 +43,6 @@ extern "C"
     struct attr_iter;
     struct callback;
     struct coord_rect;
-    struct graphics;
     struct gui;
     struct layout;
     struct mapset;
@@ -81,8 +80,8 @@ public:
     void set_timeout();
     void handle_motion(struct point *p);
     void zoom_level(int level, struct point *p) override;
-    void zoom_in(int factor, struct point *p);
-    void zoom_out(int factor, struct point *p);
+    void zoom_in(int factor, struct point *p) override;
+    void zoom_out(int factor, struct point *p) override;
     void zoom_in_cursor(int factor);
     void zoom_out_cursor(int factor);
     void add_message(const char *message);
@@ -108,12 +107,12 @@ public:
     void window_roadbook_new();
     int init();
     void zoom_to_rect(struct coord_rect *r);
-    void zoom_to_route(int orientation);
+    void zoom_to_route(int orientation) override;
     void set_center(struct pcoord *center, int set_timeout_) override;
     void set_center_cursor(int autozoom_, int keep_orientation);
     void set_center_screen(struct point *p, int set_timeout_);
-    void drag_map(struct point *origin, struct point *destination);
-    void set_center_cursor_draw();
+    void drag_map(struct point *origin, struct point *destination) override;
+    void set_center_cursor_draw() override;
     int set_attr(struct attr *attr) override;
     int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter) override;
     struct layout *get_layout_by_name(const char *layout_name);
@@ -234,7 +233,7 @@ private:
 
     void scale(long scale, struct point *p, int draw_);
     void autozoom(struct coord *center, int speed);
-    int set_graphics(Graphics &graphics);
+    int set_graphics();
     void projection_set(enum projection pro, int draw_);
     void mark_navigation_stopped(char *former_destination_file);
     int former_destinations_active();
