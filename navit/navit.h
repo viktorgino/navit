@@ -20,12 +20,17 @@
 #ifndef NAVIT_NAVIT_H
 #define NAVIT_NAVIT_H
 
+#include <string>
 #include "NavitInterfaces.h"
+#include "graphics.h"
+
+extern "C"
+{
 #include "coord.h"
 #include "point.h"
 #include "attr.h"
-#include "graphics.h"
 #include "graphics_displaylist.h"
+}
 
 // defined in glib.h.
 #ifndef __G_LIST_H__
@@ -96,7 +101,6 @@ public:
     char *get_destination_description(int n);
     void remove_nth_waypoint(int n);
     void remove_waypoint();
-    char *get_coord_description(struct pcoord *c);
     int check_route();
     struct map *read_former_destinations_from_file(void);
     void textfile_debug_log(const char *fmt, ...);
@@ -128,7 +132,7 @@ public:
     struct navigation *get_navigation() override;
     void layout_switch();
     int set_vehicle_by_name(const char *name);
-    int set_vehicleprofile_name(char *name) override;
+    int set_vehicleprofile_name(const std::string &name) override;
     int set_layout_by_name(const char *name) override;
     int block(int block);
     int get_blocked();
@@ -216,7 +220,7 @@ private:
     struct coord_geo m_center;
     int m_auto_switch;        /*auto switching between day/night layout enabled ?*/
     int m_tunnel_nightlayout; /* switch to nightlayout if we are in a tunnel? */
-    char *m_layout_before_tunnel;
+    std::string m_layout_before_tunnel;
     int m_sunrise_degrees;
 
     void draw_vehicle(struct navit_vehicle *nv, struct point *pnt);

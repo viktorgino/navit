@@ -25,14 +25,18 @@
 #ifndef NAVIT_GRAPHICS_H
 #define NAVIT_GRAPHICS_H
 #include <optional>
+#include <array>
+#include <memory>
 #include <cassert>
+
+#include "NavitInterfaces.h"
+extern "C"
+{
 #include "coord.h"
 #include "item.h"
 #include "point.h"
 #include <glib.h>
-#include "NavitInterfaces.h"
-#include <array>
-#include <memory>
+}
 
 struct attr;
 struct point;
@@ -284,6 +288,7 @@ public:
 
 private:
     std::optional<Graphics *> m_parent;
+    NavitInterface &m_navit;
     GraphicsFunctions &m_graphics_functions;
 
     callback_list *m_callbacks;

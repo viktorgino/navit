@@ -71,7 +71,6 @@ extern "C"
     char *navit_get_destination_description(NavitHandle navit, int n);
     void navit_remove_nth_waypoint(NavitHandle navit, int n);
     void navit_remove_waypoint(NavitHandle navit);
-    char *navit_get_coord_description(NavitHandle navit, struct pcoord *c);
     int navit_check_route(NavitHandle navit);
     void navit_say(NavitHandle navit, const char *text);
     void navit_speak(NavitHandle navit);

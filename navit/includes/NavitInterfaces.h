@@ -1,5 +1,6 @@
 #ifndef NAVIT_GRAPHICS_INTERFACE_H
 #define NAVIT_GRAPHICS_INTERFACE_H
+#include <string>
 #include <functional>
 
 #include "coord.h"
@@ -21,7 +22,7 @@ struct attr_iter
 class NavitInterface
 {
 public:
-    virtual int set_vehicleprofile_name(char *name) = 0;
+    virtual int set_vehicleprofile_name(const std::string &name) = 0;
     virtual struct vehicleprofile *get_vehicleprofile() = 0;
     virtual int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter) = 0;
     virtual struct mapset *get_mapset() = 0;
@@ -86,9 +87,9 @@ public:
     virtual void draw_image_warp(NavitGraphicsContextInterface *fg, struct point *p, int count, struct graphics_image_priv *img) = 0;
     virtual void draw_polygon_with_holes(NavitGraphicsContextInterface *gc, struct point *p, int count, int hole_count, int *ccount, struct point **holes) = 0;
     virtual void draw_drag(struct point *p) = 0;
-    virtual struct graphics_font_priv *font_new(struct graphics_font_methods *meth, char *font, int size, int flags) = 0;
+    virtual graphics_font_priv *font_new(char *font, int size, int flags) = 0;
+    virtual void font_destroy(struct graphics_font_priv *font) = 0;
     virtual void background_gc(NavitGraphicsContextInterface *gc) = 0;
-    virtual struct graphics_priv *overlay_new(struct graphics_methods *meth, struct point *p, int w, int h, int wraparound) = 0;
     virtual void overlay_disable(int disable) = 0;
     virtual void overlay_resize(struct point *p, int w, int h, int wraparound) = 0;
     virtual struct graphics_image_priv *image_new(struct graphics_image_methods *meth, char *path, int *w, int *h, struct point *hot, int rotation) = 0;
@@ -104,9 +105,9 @@ public:
 
 struct GraphicsFunctions
 {
-    std::function<NavitGraphicsInterface &(NavitInterface &, callback_list *)> new_graphics;
-    std::function<NavitGraphicsInterface &(point, int, int, int, NavitGraphicsInterface &parent)> new_graphics_overlay;
-    std::function<NavitGraphicsContextInterface &()> new_graphics_context;
+    std::function<NavitGraphicsInterface *(NavitInterface &, callback_list *)> new_graphics;
+    std::function<NavitGraphicsInterface *(point, int, int, int, NavitGraphicsInterface &parent)> new_graphics_overlay;
+    std::function<NavitGraphicsContextInterface *()> new_graphics_context;
 };
 
 #endif // NAVIT_GRAPHICS_INTERFACE_H

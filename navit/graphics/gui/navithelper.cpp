@@ -347,7 +347,7 @@ void NavitHelper::addBookmark(NavitInterface &navit, QString label, int x, int y
     event_add_timeout(0, 0, callback_new_4(callback_cast(addBookmarkStatic), &navit, label.toUtf8().data(), x, y));
 }
 
-char *NavitHelper::get_icon(NavitInterface &navit, struct item *item)
+QString NavitHelper::get_icon(NavitInterface &navit, struct item *item)
 {
 
     struct attr layout;
@@ -373,6 +373,7 @@ char *NavitHelper::get_icon(NavitInterface &navit, struct item *item)
                         if (el->type == element::element_icon)
                         {
                             char *src;
+                            char src_str[] = "%s";
                             char *icon;
                             if (item_is_custom_poi(*item))
                             {
@@ -382,7 +383,7 @@ char *NavitHelper::get_icon(NavitInterface &navit, struct item *item)
                                 {
                                     src = el->u.icon.src;
                                     if (!src || !src[0])
-                                        src = "%s";
+                                        src = src_str;
                                     icon = g_strdup_printf(src, map_convert_string_tmp(item->map, icon_src.u.str));
                                 }
                                 else
@@ -410,5 +411,5 @@ char *NavitHelper::get_icon(NavitInterface &navit, struct item *item)
         }
         layer = g_list_next(layer);
     }
-    return "unknown.svg";
+    return QString("unknown.svg");
 }

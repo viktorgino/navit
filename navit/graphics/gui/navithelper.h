@@ -47,7 +47,7 @@ public:
     static void setPosition(NavitInterface &navit, int x, int y);
     static void addBookmark(NavitInterface &navit, QString label, int x, int y);
     static void addStop(NavitInterface &navit, int position, QString label, int x, int y);
-    static char *get_icon(NavitInterface &navit, struct item *item);
+    static QString get_icon(NavitInterface &navit, struct item *item);
 };
 
 #endif // NAVITHELPER_H

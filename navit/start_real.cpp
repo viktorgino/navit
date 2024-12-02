@@ -55,43 +55,16 @@
 int main_argc;
 char *const *main_argv;
 
-static void print_usage(void)
-{
-    printf("%s", _("navit usage:\n"
-                   "navit [options] [configfile]\n"
-                   "\t-c <file>: use <file> as config file, instead of using the default file.\n"
-                   "\t-d <n>: set the global debug output level to <n> (0=error, 1=warning, 2=info, 3=debug).\n"
-                   "\tSettings from config file will still take effect where they set a higher level.\n"
-                   "\t-h: print this usage info and exit.\n"
-                   "\t-v: print the version and exit.\n"));
-}
-
 #ifndef USE_PLUGINS
 extern void builtin_init(void);
 #endif /* USE_PLUGINS*/
-
-static void add_plugin(struct attr *parent, struct plugins *plugins, char *path)
-{
-    struct attr pa_attr = {attr_path};
-    struct attr pl_attr = {attr_plugins};
-    struct attr *attrs[2] = {&pa_attr, NULL};
-
-    if (!plugins)
-    {
-        dbg(lvl_error, "Error plugins not set");
-    }
-    pa_attr.u.str = path;
-    pl_attr.u.plugins = plugins;
-    plugin_new(parent, attrs);
-}
 
 int navit_enter(int argc, char *const *argv)
 {
     xmlerror *error = NULL;
     char *config_file = NULL, *command = NULL, *startup_file = NULL;
-    int opt;
     char *cp;
-    struct attr navit, conf, plugins;
+    struct attr navit, conf;
 
     GList *list = NULL, *li;
     main_argc = argc;

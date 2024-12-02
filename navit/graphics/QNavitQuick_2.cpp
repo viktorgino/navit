@@ -65,24 +65,19 @@ QNavitQuick_2::QNavitQuick_2(QQuickItem *parent)
     connect(this, &QNavitQuick_2::onCenterOnPosition, qt5_timer, &Qt5GraphicsWorker::centerOnPosition);
 }
 
-void QNavitQuick_2::paintOverlays(QPainter *painter, struct graphics_priv *gp, QPaintEvent *event)
+void QNavitQuick_2::paintOverlays(QPainter *painter, GraphicsQt5 *gp, QPaintEvent *event)
 {
-    GHashTableIter iter;
-    struct graphics_priv *key, *value;
-    g_hash_table_iter_init(&iter, gp->overlays);
-    while (g_hash_table_iter_next(&iter, (void **)&key, (void **)&value))
+    foreach (auto &overlay, gp->overlay_get_all())
     {
-        if (!value->disable)
+        if (!overlay->disabled())
         {
-            QRect rr(value->x, value->y, value->pixmap->width(), value->pixmap->height());
+            QRect rr = overlay->rect();
             if (event->rect().intersects(rr))
             {
-                dbg(lvl_debug, "draw overlay (%d, %d, %d, %d)", value->x + value->scroll_x, value->y + value->scroll_y,
-                    value->pixmap->width(), value->pixmap->height())
+                qDebug() << "Draw overlay" << rr.x(), rr.y(), rr.width(), rr.height();
 
-                    painter->drawPixmap(value->x, value->y, *value->pixmap);
-                /* draw overlays of overlay if any by recursive calling */
-                paintOverlays(painter, value, event);
+                painter->drawPixmap(rr.x(), rr.y(), overlay->pixmap());
+                paintOverlays(painter, overlay, event);
             }
         }
     }
@@ -92,23 +87,20 @@ void QNavitQuick_2::paint(QPainter *painter)
 {
     QPaintEvent event = QPaintEvent(QRect(boundingRect().x(), boundingRect().y(), boundingRect().width(),
                                           boundingRect().height()));
-
-    dbg(lvl_debug, "enter (%f, %f, %f, %f)", boundingRect().x(), boundingRect().y(), boundingRect().width(),
-        boundingRect().height())
-
-        /* color background if any */
-        if (graphics_priv->background_graphics_gc_priv != nullptr)
+    GraphicsContextQt5 *background = static_cast<GraphicsContextQt5 *>(graphics_priv->background());
+    /* color background if any */
+    if (background != nullptr)
     {
-        painter->setPen(*graphics_priv->background_graphics_gc_priv->pen);
-        painter->fillRect(boundingRect(), *graphics_priv->background_graphics_gc_priv->brush);
+        painter->setPen(background->pen());
+        painter->fillRect(boundingRect(), background->brush());
     }
 
-    painter->drawPixmap(m_moveX, m_moveY, *graphics_priv->pixmap,
+    painter->drawPixmap(m_moveX, m_moveY, graphics_priv->pixmap(),
                         boundingRect().x(), boundingRect().y(),
                         boundingRect().width(), boundingRect().height());
 
     /* disable on root pane disables ALL overlays (for drag of background) */
-    if (!(graphics_priv->disable))
+    if (!graphics_priv->disabled())
     {
         paintOverlays(painter, graphics_priv, &event);
     }
@@ -118,36 +110,14 @@ void QNavitQuick_2::paint(QPainter *painter)
 
 void QNavitQuick_2::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)
 {
-    dbg(lvl_debug, "enter")
-        QPainter *painter = nullptr;
     if (graphics_priv == nullptr)
     {
-        dbg(lvl_debug, "Context not set, aborting") return;
+        qWarning("Context not set, aborting");
+        return;
     }
-    if (graphics_priv->pixmap != nullptr)
-    {
-        if ((width() != graphics_priv->pixmap->width()) || (height() != graphics_priv->pixmap->height()))
-        {
-            delete graphics_priv->pixmap;
-            graphics_priv->pixmap = nullptr;
-        }
-    }
-    if (graphics_priv->pixmap == nullptr)
-    {
-        graphics_priv->pixmap = new QPixmap(width(), height());
-    }
-    painter = new QPainter(graphics_priv->pixmap);
-    if (painter != nullptr)
-    {
-        QBrush brush;
-        painter->fillRect(0, 0, width(), height(), brush);
-        delete painter;
-    }
-    dbg(lvl_debug, "size %fx%f", width(), height())
-        dbg(lvl_debug, "pixmap %p %dx%d", graphics_priv->pixmap, graphics_priv->pixmap->width(),
-            graphics_priv->pixmap->height())
-        /* if the root window got resized, tell navit about it */
-        if (graphics_priv->root)
+    graphics_priv->resize(width(), height());
+    /* if the root window got resized, tell navit about it */
+    if (graphics_priv->is_root())
     {
         emit onResizeEvent(m_navitInstance, width(), height());
     }

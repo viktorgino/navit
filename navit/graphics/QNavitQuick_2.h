@@ -97,7 +97,7 @@ private:
     int m_orientation;
     void setNavitNumProperty(enum attr_type type, int value);
     int getNavitNumProperty(enum attr_type type);
-    void paintOverlays(QPainter *painter, struct graphics_priv *gp, QPaintEvent *event);
+    void paintOverlays(QPainter *painter, GraphicsQt5 *gp, QPaintEvent *event);
     NavitInstance *m_navitInstance;
     long m_zoomLevel = 0;
     int m_moveX;

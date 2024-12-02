@@ -96,11 +96,7 @@ public:
     void draw_image_warp(NavitGraphicsContextInterface *fg, struct point *p, int count, struct graphics_image_priv *img) override;
     void draw_polygon_with_holes(NavitGraphicsContextInterface *gc, struct point *p, int count, int hole_count, int *ccount, struct point **holes) override;
     void draw_drag(struct point *p) override;
-    struct graphics_font_priv *font_new(struct graphics_font_methods *meth, char *font, int size, int flags) override;
     void background_gc(NavitGraphicsContextInterface *gc) override;
-    struct graphics_priv *overlay_new(struct graphics_methods *meth, struct point *p, int w, int h, int wraparound) override;
-    void overlay_disable(int disable) override;
-    void overlay_resize(struct point *p, int w, int h, int wraparound) override;
     struct graphics_image_priv *image_new(struct graphics_image_methods *meth, char *path, int *w, int *h, struct point *hot, int rotation) override;
     void image_free(struct graphics_image_priv *priv) override;
     void *get_data(const char *type) override;
@@ -110,10 +106,26 @@ public:
     void hide_native_keyboard(struct graphics_keyboard *kbd) override;
     navit_float get_dpi() override;
 
+    graphics_font_priv *font_new(char *font, int size, int flags) override;
+    void font_destroy(struct graphics_font_priv *font) override;
+
     void resize_callback(int w, int h) override;
     int fullscreen(int on);
     static int static_fullscreen(struct window *w, int on);
     callback_list *get_callbacks();
+
+    void overlay_disable(int disable) override;
+    void overlay_resize(struct point *p, int w, int h, int wraparound) override;
+    void overlay_add(GraphicsQt5 &overlay);
+    void overlay_remove(GraphicsQt5 &overlay);
+    QSet<GraphicsQt5 *> overlay_get_all();
+
+    bool is_root();
+    bool disabled();
+    void resize(int w, int h);
+    QRect rect();
+    QPixmap &pixmap();
+    NavitGraphicsContextInterface *background();
 
     NavitInstance &get_navit_instance();
 signals:
@@ -124,8 +136,9 @@ private:
     callback_list *m_callbacks;
     NavitInstance m_navitInstance;
 
+    QSet<GraphicsQt5 *> m_overlays;
     QElapsedTimer m_elapsedTimer;
-    QPixmap *m_pixmap = nullptr;
+    QPixmap m_pixmap;
     QPainter *m_painter = nullptr;
     int m_use_count = 0;
     bool m_disable = false;

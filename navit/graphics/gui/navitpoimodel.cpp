@@ -149,7 +149,7 @@ void POISearchWorker::proccessMapsetItem()
         item_attr_rewind(m_item);
         struct attr attr;
         char *name;
-        char *icon = NavitHelper::get_icon(navit, m_item);
+        char *icon = NavitHelper::get_icon(navit, m_item).toLocal8Bit().data();
 
         if (item_attr_get(m_item, attr_label, &attr))
         {

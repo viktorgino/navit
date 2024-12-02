@@ -133,10 +133,6 @@ void navit_remove_waypoint(NavitHandle navit)
 {
     return ((Navit *)navit)->remove_waypoint();
 }
-char *navit_get_coord_description(NavitHandle navit, struct pcoord *c)
-{
-    return ((Navit *)navit)->get_coord_description(c);
-}
 int navit_check_route(NavitHandle navit)
 {
     return ((Navit *)navit)->check_route();
@@ -284,7 +280,7 @@ GraphicsGCHandle graphics_gc_new(GraphicsHandle graphics)
 {
     GraphicsFunctions &graphics_functions = ((GraphicsPrivate *)graphics)->graphics().get_graphics_functions();
 
-    return (GraphicsGCHandle) new GraphicsContext(graphics_functions.new_graphics_context(), (Graphics *)graphics);
+    return (GraphicsGCHandle) new GraphicsContext(*graphics_functions.new_graphics_context(), (Graphics *)graphics);
 }
 void graphics_gc_set_foreground(GraphicsGCHandle *gc, struct color *c) {}
 void graphics_gc_destroy(GraphicsGCHandle *gc)
@@ -330,7 +326,7 @@ void graphics_draw_itemgra(GraphicsHandle graphics, struct itemgra *itm, struct 
 }
 int graphics_draw_drag(GraphicsHandle graphics, struct point *p)
 {
-    ((GraphicsPrivate *)graphics)->graphics().draw_drag(p);
+    return ((GraphicsPrivate *)graphics)->graphics().draw_drag(p);
 }
 char *graphics_icon_path(const char *icon)
 {

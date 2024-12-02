@@ -27,8 +27,8 @@ class NavitInstance : public QObject
 {
     Q_OBJECT
 public:
-    explicit NavitInstance(NavitInterface &nav, NavitGraphicsInterface &graphics) : m_graphics(graphics), m_navit(nav), QObject(&dynamic_cast<QObject &>(graphics)) {}
-    explicit NavitInstance(NavitInstance const &n) : m_graphics(n.m_graphics), m_navit(n.m_navit), QObject(&dynamic_cast<QObject &>(n.m_graphics)) {}
+    explicit NavitInstance(NavitInterface &nav, NavitGraphicsInterface &graphics) : QObject(&dynamic_cast<QObject &>(graphics)), m_graphics(graphics), m_navit(nav) {}
+    explicit NavitInstance(NavitInstance const &n) : QObject(&dynamic_cast<QObject &>(n.m_graphics)), m_graphics(n.m_graphics), m_navit(n.m_navit) {}
     NavitInterface &getNavit()
     {
         return m_navit;
@@ -47,8 +47,8 @@ signals:
     void update();
 
 private:
-    NavitInterface &m_navit;
     NavitGraphicsInterface &m_graphics;
+    NavitInterface &m_navit;
 };
 
 #endif // NAVITINSTANCE_H

@@ -24,7 +24,6 @@ void listIcons(NavitInstance *navitInstance)
                 {
                     struct itemgra *itg = (struct itemgra *)itemgras->data;
                     GList *elements = itg->elements;
-                    GList *types = itg->type;
                     while (elements)
                     {
                         struct element *el = (struct element *)elements->data;

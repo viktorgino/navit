@@ -31,8 +31,13 @@
 #include <glib.h>
 #include <math.h>
 #include <time.h>
-#include "debug.h"
+
+#include "graphics.h"
 #include "navit.h"
+
+extern "C"
+{
+#include "debug.h"
 #include "callback.h"
 #include "item.h"
 #include "xmlconfig.h"
@@ -55,7 +60,6 @@
 #include "log.h"
 #include "event.h"
 #include "file.h"
-// #include "profile.h"
 #include "command.h"
 #include "navit_nls.h"
 #include "map.h"
@@ -65,7 +69,6 @@
 #include "sunriset.h"
 #include "bookmarks.h"
 #include "attr.h"
-#include "graphics.h"
 #include "plugin.h"
 #ifdef HAVE_API_WIN32_BASE
 #include <windows.h>
@@ -74,6 +77,7 @@
 #ifdef HAVE_API_WIN32_CE
 #include "libc.h"
 #endif
+}
 
 /* define string for bookmark handling */
 #define TEXTFILE_COMMENT_NAVI_STOPPED "# navigation stopped\n"
@@ -112,7 +116,7 @@ struct object_func navit_func;
 
 GraphicsFunctions &getGraphicsFunctions()
 {
-    plugin_get_category(plugin_category_graphics, "qt5");
+    return *static_cast<GraphicsFunctions *>(plugin_get_category(plugin_category_graphics, "qt5"));
 }
 
 Navit::Navit(struct attr *parent, struct attr **attrs) : m_graphics(*this, getGraphicsFunctions()), m_displaylist(m_graphics)
@@ -227,17 +231,21 @@ struct map *Navit::get_search_results_map()
         enum attr_type types[] = {attr_position_longitude, attr_position_latitude, attr_label, attr_none};
         int i;
 
+        char csv_str[] = "csv";
+        char search_results_str[] = "search_results";
+        char utf_8_str[] = "utf-8";
+
         attrs[0] = g_new0(struct attr, 1);
         attrs[0]->type = attr_type;
-        attrs[0]->u.str = "csv";
+        attrs[0]->u.str = csv_str;
 
         attrs[1] = g_new0(struct attr, 1);
         attrs[1]->type = attr_name;
-        attrs[1]->u.str = "search_results";
+        attrs[1]->u.str = search_results_str;
 
         attrs[2] = g_new0(struct attr, 1);
         attrs[2]->type = attr_charset;
-        attrs[2]->u.str = "utf-8";
+        attrs[2]->u.str = utf_8_str;
 
         attrs[3] = g_new0(struct attr, 1);
         attrs[3]->type = attr_item_type;
@@ -1131,8 +1139,9 @@ struct map *Navit::read_former_destinations_from_file()
     char *destination_file = bookmarks_get_destination_file(FALSE);
     struct map *m;
 
+    char textfile_str[] = "textfile";
     type.type = attr_type;
-    type.u.str = "textfile";
+    type.u.str = textfile_str;
 
     data.type = attr_data;
     data.u.str = destination_file;
@@ -1761,7 +1770,10 @@ void Navit::set_cursors()
                 c = layout_get_cursor(m_layout_current, name.u.str);
         }
         else
-            c = layout_get_cursor(m_layout_current, "default");
+        {
+            char default_str[] = "default";
+            c = layout_get_cursor(m_layout_current, default_str);
+        }
         vehicle_set_cursor(nv->vehicle, c, 0);
         v = g_list_next(v);
     }
@@ -2501,7 +2513,7 @@ int Navit::add_log(struct log *log)
         return 0;
     if (!strcmp(type_attr.u.str, "textfile_debug"))
     {
-        char *header = "type=track_tracked\n";
+        char header[] = "type=track_tracked\n";
         if (m_textfile_debug_log)
             return 0;
         log_set_header(log, header, strlen(header));
@@ -2851,7 +2863,7 @@ int Navit::set_vehicleprofile(struct vehicleprofile *vp)
     return 1;
 }
 
-int Navit::set_vehicleprofile_name(char *name)
+int Navit::set_vehicleprofile_name(const std::string &name)
 {
     struct attr attr;
     GList *l;
@@ -2860,7 +2872,7 @@ int Navit::set_vehicleprofile_name(char *name)
     {
         if (vehicleprofile_get_attr((vehicleprofile *)l->data, attr_name, &attr, NULL))
         {
-            if (!strcmp(attr.u.str, name))
+            if (attr.u.str != name)
             {
                 set_vehicleprofile((vehicleprofile *)l->data);
                 return 1;
@@ -2877,7 +2889,7 @@ void Navit::set_vehicle(struct navit_vehicle *nv)
     m_vehicle = nv;
     if (nv && vehicle_get_attr(nv->vehicle, attr_profilename, &attr, NULL))
     {
-        if (set_vehicleprofile_name(attr.u.str))
+        if (set_vehicleprofile_name(std::string(attr.u.str)))
             return;
     }
     if (!m_vehicleprofile)
@@ -3026,7 +3038,7 @@ void Navit::layout_switch()
             if (tunnel)
             {
                 // store the current layout name
-                if (!strcmp(m_layout_before_tunnel, ""))
+                if (m_layout_before_tunnel != "")
                     m_layout_before_tunnel = m_layout_current->name;
 
                 // We are in a tunnel and if we have a nightlayout -> switch to nightlayout
@@ -3041,7 +3053,7 @@ void Navit::layout_switch()
             {
                 if (l->dayname)
                 {
-                    if (!strcmp(l->dayname, m_layout_before_tunnel))
+                    if (l->dayname != m_layout_before_tunnel)
                     {
                         // restore previous layout
                         set_layout_by_name(l->dayname);

@@ -131,9 +131,9 @@ static bool setup_freetype(bool is_root)
 }
 #endif
 
-GraphicsQt5::GraphicsQt5(NavitInterface &navit, callback_list *cbl, QObject *parent) : m_callbacks(cbl),
+GraphicsQt5::GraphicsQt5(NavitInterface &navit, callback_list *cbl, QObject *parent) : QObject(parent), m_callbacks(cbl),
                                                                                        m_navitInstance(navit, *this),
-                                                                                       QObject(parent)
+                                                                                       m_pixmap(200, 200)
 {
     qDebug() << "graphics_qt5_new";
     navitInst = &m_navitInstance;
@@ -148,27 +148,28 @@ GraphicsQt5::GraphicsQt5(NavitInterface &navit, callback_list *cbl, QObject *par
     /* generate initial pixmap same size as window */
     // TODO: get window size
     m_root = true;
-    m_pixmap = new QPixmap(200, 200);
-    m_pixmap->fill(Qt::black);
+    m_pixmap.fill(Qt::black);
 
     // tell Navit our geometry
-    resize_callback(m_pixmap->width(), m_pixmap->height());
+    resize_callback(m_pixmap.width(), m_pixmap.height());
 
     navit.draw();
 }
-GraphicsQt5::GraphicsQt5(point p, int w, int h, int wraparound, NavitGraphicsInterface &parent) : m_parent(&dynamic_cast<GraphicsQt5 &>(parent)),
+GraphicsQt5::GraphicsQt5(point p, int w, int h, int wraparound, NavitGraphicsInterface &parent) : QObject(&dynamic_cast<GraphicsQt5 &>(parent)),
+                                                                                                  m_parent(&dynamic_cast<GraphicsQt5 &>(parent)),
                                                                                                   m_navitInstance(m_parent->get_navit_instance()),
-                                                                                                  QObject(m_parent)
+                                                                                                  m_pixmap(200, 200)
 
 {
     qDebug() << "graphics_qt5_new::overlay";
+    assert(m_parent);
 
     m_root = false;
     m_x = p.x;
     m_y = p.y;
     m_callbacks = m_parent->get_callbacks();
-    m_pixmap = new QPixmap(w, h);
-    m_pixmap->fill(Qt::transparent);
+    m_pixmap.fill(Qt::transparent);
+    m_parent->overlay_add(*this);
 
 #if HAVE_FREETYPE
     setup_freetype(m_root);
@@ -184,9 +185,25 @@ GraphicsQt5::~GraphicsQt5()
     /* destroy painter */
     if (m_painter != nullptr)
         delete (m_painter);
-    /* destroy pixmap */
-    if (m_pixmap != nullptr)
-        delete (m_pixmap);
+    if (m_parent)
+    {
+        m_parent->overlay_remove(*this);
+    }
+}
+
+void GraphicsQt5::overlay_add(GraphicsQt5 &overlay)
+{
+    m_overlays.insert(&overlay);
+}
+
+void GraphicsQt5::overlay_remove(GraphicsQt5 &overlay)
+{
+    m_overlays.remove(&overlay);
+}
+
+QSet<GraphicsQt5 *> GraphicsQt5::overlay_get_all()
+{
+    return m_overlays;
 }
 
 NavitInstance &GraphicsQt5::get_navit_instance()
@@ -202,6 +219,31 @@ void GraphicsQt5::emit_update()
 callback_list *GraphicsQt5::get_callbacks()
 {
     return m_callbacks;
+}
+
+bool GraphicsQt5::is_root()
+{
+    return m_root;
+}
+
+bool GraphicsQt5::disabled()
+{
+    return m_disable;
+}
+
+QRect GraphicsQt5::rect()
+{
+    return QRect(m_x, m_y, m_pixmap.width(), m_pixmap.height());
+}
+
+QPixmap &GraphicsQt5::pixmap()
+{
+    return m_pixmap;
+}
+
+NavitGraphicsContextInterface *GraphicsQt5::background()
+{
+    return m_background_graphics_gc_priv;
 }
 
 struct graphics_image_priv *GraphicsQt5::image_new(struct graphics_image_methods *meth, char *path,
@@ -569,8 +611,8 @@ void GraphicsQt5::draw_mode(enum draw_mode_num mode)
         if (!m_painter)
         {
             if (m_parent)
-                m_pixmap->fill(QColor(0, 0, 0, 0));
-            m_painter = new QPainter(m_pixmap);
+                m_pixmap.fill(QColor(0, 0, 0, 0));
+            m_painter = new QPainter(&m_pixmap);
         }
         else
             dbg(lvl_debug, "drawing on %p already active", this);
@@ -620,7 +662,7 @@ void *GraphicsQt5::get_data(char const *type)
         win = g_new0(struct window, 1);
         win->priv = this;
         win->fullscreen = static_fullscreen;
-        resize_callback(m_pixmap->width(), m_pixmap->height());
+        resize_callback(m_pixmap.width(), m_pixmap.height());
         return win;
     }
     if (strcmp(type, "engine") == 0)
@@ -699,20 +741,24 @@ void GraphicsQt5::overlay_resize(struct point *p, int w, int h, int wraparound)
     //        dbg(lvl_debug,"enter %d %d %d %d %d", p->x, p->y, w, h, wraparound);
     m_x = p->x;
     m_y = p->y;
+    resize(w, h);
+    m_navitInstance.emit_update();
+}
+
+void GraphicsQt5::resize(int w, int h)
+{
     if (m_painter != nullptr)
     {
         delete (m_painter);
     }
     /* replacing the pixmap clears the content. Only neccesary if size actually changes */
-    if ((m_pixmap->height() != h) || (m_pixmap->width() != w))
+    if ((m_pixmap.height() != h) || (m_pixmap.width() != w))
     {
-        delete (m_pixmap);
-        m_pixmap = new QPixmap(w, h);
-        m_pixmap->fill(Qt::transparent);
+        m_pixmap = QPixmap(w, h);
+        m_pixmap.fill(Qt::transparent);
     }
     if (m_painter != nullptr)
-        m_painter = new QPainter(m_pixmap);
-    m_navitInstance.emit_update();
+        m_painter = new QPainter(&m_pixmap);
 }
 
 #pragma region Unimplemented
@@ -772,7 +818,7 @@ int GraphicsQt5::show_native_keyboard(struct graphics_keyboard *kbd)
 
 void GraphicsQt5::hide_native_keyboard(struct graphics_keyboard *kbd) {}
 
-#pragma regionend
+#pragma region end
 #pragma region GraphicsContext
 
 GraphicsContextQt5::GraphicsContextQt5() : m_brush(Qt::SolidPattern)
@@ -860,22 +906,13 @@ void GraphicsContextQt5::set_texture(struct graphics_image *img)
 #pragma endregion
 #pragma region Fonts
 
-#if HAVE_FREETYPE
-static void font_destroy(struct graphics_font_priv *font)
+void GraphicsQt5::font_destroy(struct graphics_font_priv *font)
 {
     //        dbg(lvl_debug,"enter");
     if (font->font != nullptr)
         delete (font->font);
     g_free(font);
 }
-
-/**
- * @brief	font interface structure
- * This structure is preset with all function pointers provided by this implemention
- * to be returned as interface.
- */
-static struct graphics_font_methods font_methods = {
-    font_destroy};
 
 /**
  * List of font families to use, in order of preference
@@ -906,8 +943,7 @@ static const char *fontfamilies[] = {
  * Allocates a font handle and returnes filled interface stucture
  */
 
-static struct graphics_font_priv *font_new(struct graphics_font_methods *meth, char *font,
-                                           int size, int flags)
+graphics_font_priv *GraphicsQt5::font_new(char *font, int size, int flags)
 {
     int a = 0;
     struct graphics_font_priv *font_priv;
@@ -950,29 +986,24 @@ static struct graphics_font_priv *font_new(struct graphics_font_methods *meth, c
         font_priv->font->setBold(true);
     }
 
-    *meth = font_methods;
     return font_priv;
 }
-#endif
 #pragma endregion
 #pragma region "Register plugin"
 
-NavitGraphicsInterface &new_qt5_graphics(NavitInterface &navit, callback_list *cbl)
+NavitGraphicsInterface *new_qt5_graphics(NavitInterface &navit, callback_list *cbl)
 {
-    auto ret = GraphicsQt5(navit, cbl);
-    return ret;
+    return new GraphicsQt5(navit, cbl);
 }
 
-NavitGraphicsInterface &new_qt5_graphics_overlay(point p, int w, int h, int wraparound, NavitGraphicsInterface &parent)
+NavitGraphicsInterface *new_qt5_graphics_overlay(point p, int w, int h, int wraparound, NavitGraphicsInterface &parent)
 {
-    auto ret = GraphicsQt5(p, w, h, wraparound, parent);
-    return ret;
+    return new GraphicsQt5(p, w, h, wraparound, parent);
 }
 
-NavitGraphicsContextInterface &new_qt5_graphics_context()
+NavitGraphicsContextInterface *new_qt5_graphics_context()
 {
-    auto ret = GraphicsContextQt5();
-    return ret;
+    return new GraphicsContextQt5();
 }
 
 GraphicsFunctions get_graphics_functions()

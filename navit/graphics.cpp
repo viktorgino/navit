@@ -30,12 +30,17 @@
 #include <glib.h>
 #include <stdio.h>
 #include <math.h>
+
+#include "graphics.h"
+#include "navit_wrapper.h"
+
+extern "C"
+{
 #include "config.h"
 #include "debug.h"
 #include "string.h"
 #include "draw_info.h"
 #include "point.h"
-#include "graphics.h"
 #include "projection.h"
 #include "item.h"
 #include "xmlconfig.h"
@@ -51,7 +56,8 @@
 #include "callback.h"
 #include "file.h"
 #include "event.h"
-#include "navit_wrapper.h"
+#include "util.h"
+}
 
 /**
  * @brief maximum amount of coordinates to allocate on stack using g_alloca
@@ -223,10 +229,11 @@ void Graphics::dpi_patch(struct callback_list *l, enum attr_type type, int pcoun
 }
 
 Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions) : m_parent(std::nullopt),
+                                                                                  m_navit(navit),
                                                                                   m_graphics_functions(graphicsFunctions),
                                                                                   m_callbacks(callback_list_new()),
-                                                                                  m_graphicsInterface(m_graphics_functions.new_graphics(navit, m_callbacks)),
-                                                                                  m_contextInterface(m_graphics_functions.new_graphics_context()),
+                                                                                  m_graphicsInterface(*m_graphics_functions.new_graphics(navit, m_callbacks)),
+                                                                                  m_contextInterface(*m_graphics_functions.new_graphics_context()),
                                                                                   m_gcBackground(m_contextInterface, this),
                                                                                   m_gcMiddground(m_contextInterface, this),
                                                                                   m_gcForeground(m_contextInterface, this)
@@ -268,10 +275,11 @@ Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions) 
 Graphics::Graphics(
     NavitInterface &navit, Graphics &parent,
     point *p, int w, int h, int wraparound) : m_parent(&parent),
+                                              m_navit(navit),
                                               m_graphics_functions(parent.get_graphics_functions()),
                                               m_callbacks(callback_list_new()),
-                                              m_graphicsInterface(m_graphics_functions.new_graphics_overlay(parent.dpi_scale_point(p), parent.dpi_scale(w), parent.dpi_scale(h), wraparound, parent.get_graphics_interface())),
-                                              m_contextInterface(m_graphics_functions.new_graphics_context()),
+                                              m_graphicsInterface(*m_graphics_functions.new_graphics_overlay(parent.dpi_scale_point(p), parent.dpi_scale(w), parent.dpi_scale(h), wraparound, parent.get_graphics_interface())),
+                                              m_contextInterface(*m_graphics_functions.new_graphics_context()),
                                               m_gcBackground(m_contextInterface, this),
                                               m_gcMiddground(m_contextInterface, this),
                                               m_gcForeground(m_contextInterface, this)
@@ -309,6 +317,7 @@ NavitGraphicsInterface &Graphics::get_graphics_interface()
 
 NavitInterface &Graphics::get_navit_interface()
 {
+    return m_navit;
 }
 /**
  * @brief Gets an attribute of the graphics instance
@@ -432,7 +441,7 @@ struct graphics_font *Graphics::named_font_new(char *font, int size, int flags)
     struct graphics_font *this_;
 
     this_ = g_new0(struct graphics_font, 1);
-    this_->priv = m_graphicsInterface.font_new(&this_->meth, font, dpi_scale(size), flags);
+    this_->priv = m_graphicsInterface.font_new(font, dpi_scale(size), flags);
     return this_;
 }
 
@@ -2322,10 +2331,10 @@ void Graphics::draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point
 
 void Graphics::display_context_free(struct display_context *dc)
 {
-    if (dc->gc)
-        delete dc->gc;
-    if (dc->gc_background)
-        delete dc->gc_background;
+    // if (dc->gc)
+    // delete dc->gc;
+    // if (dc->gc_background)
+    // delete dc->gc_background;
     if (dc->img)
         image_free(dc->img);
     dc->gc = NULL;
@@ -2451,8 +2460,8 @@ void Graphics::multiline_label_draw(GraphicsContext *fg, GraphicsContext *bg, st
 
     char *input_label = g_strdup(label);
     char *label_lines[10]; /* Max 10 lines of text */
-    int label_nblines = 0;
-    int label_linepos = 0;
+    unsigned int label_nblines = 0;
+    unsigned int label_linepos = 0;
     char *startline = input_label;
     char *endline = startline;
     while (endline && *endline != '\0')
@@ -2471,8 +2480,7 @@ void Graphics::multiline_label_draw(GraphicsContext *fg, GraphicsContext *bg, st
         endline++;           /* No need for g_utf8_next_char() here, as we know '\n' is a single byte UTF-8 char */
         startline = endline; /* Start processing next line, by setting startline to its first character */
     }
-    if (label_nblines > (sizeof(label_lines) / sizeof(char
-                                                          *)))
+    if (label_nblines > (sizeof(label_lines) / sizeof(char *)))
     { /* Does label_nblines overflows the number of entries in array label_lines? */
         dbg(lvl_warning, "Too many lines (%d) in label \"%s\", truncating to %lu", label_nblines, label,
             sizeof(label_lines) / sizeof(char *));
@@ -2678,11 +2686,13 @@ void Graphics::displayitem_draw_icon(struct displayitem *di, struct display_cont
             {
                 char *icon;
                 char *src;
+
+                char src_str[] = "%s";
                 if (img)
                     image_free(img);
                 src = e->u.icon.src;
                 if (!src || !src[0])
-                    src = "%s";
+                    src = src_str;
                 icon = g_strdup_printf(src, di->label + strlen(di->label) + 1);
                 path = icon_path(icon);
                 g_free(icon);
