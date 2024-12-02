@@ -166,19 +166,6 @@ GraphicsQt5::GraphicsQt5(NavitInterface &navit, attr **attrs, callback_list *cbl
     navitInst = &m_navitInstance;
     request_event_system(attrs);
 
-    /* register our QtQuick widget to allow it's usage within QML */
-    qmlRegisterType<QNavitQuick_2>("Navit.Graphics", 2, 0, "NavitMap");
-    qmlRegisterType<NavitPOIModel>("Navit.POI", 1, 0, "NavitPOIModel");
-    qmlRegisterType<NavitRecentsModel>("Navit.Recents", 1, 0, "NavitRecentsModel");
-    qmlRegisterType<NavitFavouritesModel>("Navit.Favourites", 1, 0, "NavitFavouritesModel");
-    qmlRegisterType<NavitSearchModel>("Navit.Search", 1, 0, "NavitSearchModel");
-    qmlRegisterType<NavitRoute>("Navit.Route", 1, 0, "NavitRoute");
-    qmlRegisterType<NavitLayoutsModel>("Navit.Layouts", 1, 0, "NavitLayouts");
-    qmlRegisterType<NavitLayersModel>("Navit.Layers", 1, 0, "NavitLayers");
-    qmlRegisterType<NavitVehiclesModel>("Navit.Vehicles", 1, 0, "NavitVehicles");
-    qmlRegisterType<NavitMapsModel>("Navit.Maps", 1, 0, "NavitMaps");
-    qmlRegisterSingletonType<NavitInstance>("Navit", 1, 0, "Navit", navit_singletontype_provider);
-
     /* generate initial pixmap same size as window */
     // TODO: get window size
     m_root = true;
@@ -339,39 +326,39 @@ struct graphics_image_priv *GraphicsQt5::image_new(struct graphics_image_methods
     return image_priv;
 }
 
-void GraphicsQt5::draw_lines(NavitGraphicsContextInterface &gc, struct point *p, int count)
+void GraphicsQt5::draw_lines(NavitGraphicsContextInterface *gc, struct point *p, int count)
 {
     int i;
     QPolygon polygon;
-    GraphicsContextQt5 &context = dynamic_cast<GraphicsContextQt5 &>(gc);
+    GraphicsContextQt5 *context = dynamic_cast<GraphicsContextQt5 *>(gc);
     //        dbg(lvl_debug,"enter gr=%p, gc=%p, (%d, %d)", gr, gc, p->x, p->y);
     if (m_painter == nullptr)
         return;
 
     for (i = 0; i < count; i++)
         polygon.putPoints(i, 1, p[i].x, p[i].y);
-    m_painter->setPen(context.pen());
+    m_painter->setPen(context->pen());
     m_painter->drawPolyline(polygon);
 }
 
-void GraphicsQt5::draw_polygon(NavitGraphicsContextInterface &gc, struct point *p, int count)
+void GraphicsQt5::draw_polygon(NavitGraphicsContextInterface *gc, struct point *p, int count)
 {
     int i;
     QPolygon polygon;
-    GraphicsContextQt5 &context = dynamic_cast<GraphicsContextQt5 &>(gc);
+    GraphicsContextQt5 *context = dynamic_cast<GraphicsContextQt5 *>(gc);
     //        dbg(lvl_debug,"enter gr=%p, gc=%p, (%d, %d)", gr, gc, p->x, p->y);
     if (m_painter == nullptr)
         return;
 
     for (i = 0; i < count; i++)
         polygon.putPoints(i, 1, p[i].x, p[i].y);
-    m_painter->setPen(context.pen());
-    m_painter->setBrush(context.brush());
+    m_painter->setPen(context->pen());
+    m_painter->setBrush(context->brush());
 
     m_painter->drawPolygon(polygon);
 }
 
-void GraphicsQt5::draw_polygon_with_holes(NavitGraphicsContextInterface &gc, struct point *p, int count,
+void GraphicsQt5::draw_polygon_with_holes(NavitGraphicsContextInterface *gc, struct point *p, int count,
                                           int hole_count, int *ccount, struct point **holes)
 {
     int i;
@@ -379,12 +366,12 @@ void GraphicsQt5::draw_polygon_with_holes(NavitGraphicsContextInterface &gc, str
     QPainterPath path;
     QPainterPath inner;
     QPolygon polygon;
-    GraphicsContextQt5 &context = dynamic_cast<GraphicsContextQt5 &>(gc);
+    GraphicsContextQt5 *context = dynamic_cast<GraphicsContextQt5 *>(gc);
     // dbg(lvl_error,"enter gr=%p, gc=%p, (%d, %d) holes %d", gr, gc, p->x, p->y, hole_count);
     if (m_painter == nullptr)
         return;
-    m_painter->setPen(context.pen());
-    m_painter->setBrush(context.brush());
+    m_painter->setPen(context->pen());
+    m_painter->setBrush(context->brush());
     /* construct outer polygon */
     for (i = 0; i < count; i++)
         polygon.putPoints(i, 1, p[i].x, p[i].y);
@@ -405,22 +392,22 @@ void GraphicsQt5::draw_polygon_with_holes(NavitGraphicsContextInterface &gc, str
     m_painter->drawPath(path);
 }
 
-void GraphicsQt5::draw_rectangle(NavitGraphicsContextInterface &gc, struct point *p, int w, int h)
+void GraphicsQt5::draw_rectangle(NavitGraphicsContextInterface *gc, struct point *p, int w, int h)
 {
     //	dbg(lvl_debug,"gr=%p gc=%p %d,%d,%d,%d", gr, gc, p->x, p->y, w, h);
-    GraphicsContextQt5 &context = dynamic_cast<GraphicsContextQt5 &>(gc);
+    GraphicsContextQt5 *context = dynamic_cast<GraphicsContextQt5 *>(gc);
     if (m_painter == nullptr)
         return;
-    m_painter->fillRect(p->x, p->y, w, h, context.brush());
+    m_painter->fillRect(p->x, p->y, w, h, context->brush());
 }
 
-void GraphicsQt5::draw_circle(NavitGraphicsContextInterface &gc, struct point *p, int r)
+void GraphicsQt5::draw_circle(NavitGraphicsContextInterface *gc, struct point *p, int r)
 {
     //        dbg(lvl_debug,"enter gr=%p, gc=%p, (%d,%d) r=%d", gr, gc, p->x, p->y, r);
-    GraphicsContextQt5 &context = dynamic_cast<GraphicsContextQt5 &>(gc);
+    GraphicsContextQt5 *context = static_cast<GraphicsContextQt5 *>(gc);
     if (m_painter == nullptr)
         return;
-    m_painter->setPen(context.pen());
+    m_painter->setPen(context->pen());
     m_painter->drawArc(p->x - r / 2, p->y - r / 2, r, r, 0, 360 * 16);
 }
 
@@ -437,12 +424,12 @@ void GraphicsQt5::draw_circle(NavitGraphicsContextInterface &gc, struct point *p
  *
  * Renders given text on gr surface. Draws nice contrast outline around text.
  */
-void GraphicsQt5::draw_text(NavitGraphicsContextInterface &fg, NavitGraphicsContextInterface &bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy)
+void GraphicsQt5::draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsContextInterface *bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy)
 {
     dbg(lvl_debug, "enter gr=%p, fg=%p, bg=%p pos(%d,%d) d(%d, %d) %s", this, fg, bg, p->x, p->y, dx, dy, text);
 
-    GraphicsContextQt5 &fgContext = dynamic_cast<GraphicsContextQt5 &>(fg);
-    GraphicsContextQt5 &bgContext = dynamic_cast<GraphicsContextQt5 &>(bg);
+    GraphicsContextQt5 *fgContext = dynamic_cast<GraphicsContextQt5 *>(fg);
+    GraphicsContextQt5 *bgContext = dynamic_cast<GraphicsContextQt5 *>(bg);
     if (m_painter == nullptr)
         return;
 #if HAVE_FREETYPE
@@ -528,20 +515,20 @@ void GraphicsQt5::draw_text(NavitGraphicsContextInterface &fg, NavitGraphicsCont
     // Paint bg
     QPen shadow;
     QPainterPath path;
-    shadow.setColor(bgContext.pen().color());
+    shadow.setColor(bgContext->pen().color());
     shadow.setWidth(3);
     m_painter->setPen(shadow);
     path.addText(0, 0, *font->font, tmp);
     m_painter->drawPath(path);
 
     // Paint fg
-    m_painter->setPen(fgContext.pen());
+    m_painter->setPen(fgContext->pen());
     m_painter->drawText(0, 0, tmp);
     m_painter->setWorldTransform(sav);
 #endif
 }
 
-void GraphicsQt5::draw_image(NavitGraphicsContextInterface &fg, struct point *p, struct graphics_image_priv *img)
+void GraphicsQt5::draw_image(NavitGraphicsContextInterface *fg, struct point *p, struct graphics_image_priv *img)
 {
     //        dbg(lvl_debug,"enter");
     if (m_painter != nullptr)
@@ -790,7 +777,7 @@ navit_float GraphicsQt5::get_dpi()
     return (navit_float)dpi;
 }
 
-void GraphicsQt5::draw_image_warp(NavitGraphicsContextInterface &fg, struct point *p, int count, struct graphics_image_priv *img)
+void GraphicsQt5::draw_image_warp(NavitGraphicsContextInterface *fg, struct point *p, int count, struct graphics_image_priv *img)
 {
 }
 
@@ -988,4 +975,57 @@ static struct graphics_font_priv *font_new(struct graphics_font_methods *meth, c
     return font_priv;
 }
 #endif
+#pragma endregion
+#pragma region "Register plugin"
+
+NavitGraphicsInterface &new_qt5_graphics(NavitInterface &navit, attr **attrs, callback_list *cbl)
+{
+    auto ret = GraphicsQt5(navit, attrs, cbl);
+    return ret;
+}
+
+NavitGraphicsInterface &new_qt5_graphics_overlay(struct point *p, int w, int h, int wraparound, NavitGraphicsInterface &parent)
+{
+    auto ret = GraphicsQt5(p, w, h, wraparound, parent);
+    return ret;
+}
+
+NavitGraphicsContextInterface &new_qt5_graphics_context()
+{
+    auto ret = GraphicsContextQt5();
+    return ret;
+}
+
+GraphicsFunctions get_graphics_functions()
+{
+    return GraphicsFunctions{
+        new_qt5_graphics,
+        new_qt5_graphics_overlay,
+        new_qt5_graphics_context,
+    };
+}
+
+void plugin_init()
+{
+    qDebug() << "Graphics plugin init";
+    Q_INIT_RESOURCE(graphics_qt5);
+    dbg(lvl_debug, "Graphics plugin init");
+
+    /* register our QtQuick widget to allow it's usage within QML */
+    qmlRegisterType<QNavitQuick_2>("Navit.Graphics", 2, 0, "NavitMap");
+    qmlRegisterType<NavitPOIModel>("Navit.POI", 1, 0, "NavitPOIModel");
+    qmlRegisterType<NavitRecentsModel>("Navit.Recents", 1, 0, "NavitRecentsModel");
+    qmlRegisterType<NavitFavouritesModel>("Navit.Favourites", 1, 0, "NavitFavouritesModel");
+    qmlRegisterType<NavitSearchModel>("Navit.Search", 1, 0, "NavitSearchModel");
+    qmlRegisterType<NavitRoute>("Navit.Route", 1, 0, "NavitRoute");
+    qmlRegisterType<NavitLayoutsModel>("Navit.Layouts", 1, 0, "NavitLayouts");
+    qmlRegisterType<NavitLayersModel>("Navit.Layers", 1, 0, "NavitLayers");
+    qmlRegisterType<NavitVehiclesModel>("Navit.Vehicles", 1, 0, "NavitVehicles");
+    qmlRegisterType<NavitMapsModel>("Navit.Maps", 1, 0, "NavitMaps");
+    qmlRegisterSingletonType<NavitInstance>("Navit", 1, 0, "Navit", navit_singletontype_provider);
+
+    plugin_register_category(plugin_category_graphics, "qt5", (void *)get_graphics_functions);
+    qt5_event_init();
+}
+
 #pragma endregion

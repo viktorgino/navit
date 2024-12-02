@@ -65,7 +65,6 @@ class Navit : public NavitInterface
 {
 public:
     Navit(struct attr *parent, struct attr **attrs);
-    ~Navit();
     void add_mapset(struct mapset *ms);
     struct mapset *get_mapset() override;
     struct map *get_search_results_map();
@@ -103,7 +102,6 @@ public:
     struct map *read_former_destinations_from_file(void);
     void textfile_debug_log(const char *fmt, ...);
     void textfile_debug_log_at(struct pcoord *pc, const char *fmt, ...);
-    int speech_estimate(char *str);
     void say(const char *text);
     void speak();
     void window_roadbook_destroy();
@@ -136,8 +134,6 @@ public:
     int block(int block);
     int get_blocked();
     void destroy();
-    Navit *ref();
-    void unref();
     void motion_timeout();
     void predraw();
     void window_roadbook_update();
@@ -147,8 +143,6 @@ public:
     void vehicle_update_position(struct navit_vehicle *nv);
 
     static char *get_user_data_directory(int create);
-    struct attr_iter *attr_iter_new() override;
-    void attr_iter_destroy(struct attr_iter *iter) override;
 
     int m_ignore_graphics_events;
 

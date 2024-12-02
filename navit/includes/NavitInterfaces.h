@@ -1,5 +1,7 @@
 #ifndef NAVIT_GRAPHICS_INTERFACE_H
 #define NAVIT_GRAPHICS_INTERFACE_H
+#include <functional>
+
 #include "coord.h"
 #include "item.h"
 #include "point.h"
@@ -13,6 +15,15 @@ enum draw_mode_num
     draw_mode_begin_clear
 };
 
+struct attr_iter
+{
+    void *iter;
+    union
+    {
+        GList *list;
+        struct mapset_handle *mapset_handle;
+    } u;
+};
 class NavitInterface
 {
 public:
@@ -32,8 +43,6 @@ public:
     virtual int get_width() = 0;
     virtual int get_height() = 0;
     virtual struct transformation *get_trans() = 0;
-    virtual struct attr_iter *attr_iter_new() = 0;
-    virtual void attr_iter_destroy(struct attr_iter *iter) = 0;
     virtual void draw() = 0;
     virtual int set_layout_by_name(const char *name) = 0;
     virtual void set_position(struct pcoord *c) = 0;
@@ -41,12 +50,20 @@ public:
     virtual int get_destinations(struct pcoord *pc, int count) = 0;
     virtual void add_destination_description(struct pcoord *c, const char *description) = 0;
     virtual void set_destinations(struct pcoord *c, int count, const char *description, int async) = 0;
+    static struct attr_iter *attr_iter_new()
+    {
+        return g_new0(struct attr_iter, 1);
+    }
+
+    static void attr_iter_destroy(struct attr_iter *iter)
+    {
+        g_free(iter);
+    }
 };
 
 class NavitGraphicsContextInterface
 {
 public:
-    NavitGraphicsContextInterface() = default;
     virtual void set_foreground(struct color *c) = 0;
     virtual void set_background(struct color *c) = 0;
     virtual void set_texture(struct graphics_image *img) = 0;
@@ -61,14 +78,14 @@ public:
     explicit NavitGraphicsInterface(NavitInterface &navit, attr **attrs, callback_list *cbl) {};
     explicit NavitGraphicsInterface(struct point *p, int w, int h, int wraparound) {};
     virtual void draw_mode(enum draw_mode_num mode) = 0;
-    virtual void draw_lines(NavitGraphicsContextInterface &gc, struct point *p, int count) = 0;
-    virtual void draw_polygon(NavitGraphicsContextInterface &gc, struct point *p, int count) = 0;
-    virtual void draw_rectangle(NavitGraphicsContextInterface &gc, struct point *p, int w, int h) = 0;
-    virtual void draw_circle(NavitGraphicsContextInterface &gc, struct point *p, int r) = 0;
-    virtual void draw_text(NavitGraphicsContextInterface &fg, NavitGraphicsContextInterface &bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy) = 0;
-    virtual void draw_image(NavitGraphicsContextInterface &fg, struct point *p, struct graphics_image_priv *img) = 0;
-    virtual void draw_image_warp(NavitGraphicsContextInterface &fg, struct point *p, int count, struct graphics_image_priv *img) = 0;
-    virtual void draw_polygon_with_holes(NavitGraphicsContextInterface &gc, struct point *p, int count, int hole_count, int *ccount, struct point **holes) = 0;
+    virtual void draw_lines(NavitGraphicsContextInterface *gc, struct point *p, int count) = 0;
+    virtual void draw_polygon(NavitGraphicsContextInterface *gc, struct point *p, int count) = 0;
+    virtual void draw_rectangle(NavitGraphicsContextInterface *gc, struct point *p, int w, int h) = 0;
+    virtual void draw_circle(NavitGraphicsContextInterface *gc, struct point *p, int r) = 0;
+    virtual void draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsContextInterface *bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy) = 0;
+    virtual void draw_image(NavitGraphicsContextInterface *fg, struct point *p, struct graphics_image_priv *img) = 0;
+    virtual void draw_image_warp(NavitGraphicsContextInterface *fg, struct point *p, int count, struct graphics_image_priv *img) = 0;
+    virtual void draw_polygon_with_holes(NavitGraphicsContextInterface *gc, struct point *p, int count, int hole_count, int *ccount, struct point **holes) = 0;
     virtual void draw_drag(struct point *p) = 0;
     virtual struct graphics_font_priv *font_new(struct graphics_font_methods *meth, char *font, int size, int flags) = 0;
     virtual void background_gc(NavitGraphicsContextInterface *gc) = 0;
@@ -83,6 +100,13 @@ public:
     virtual int show_native_keyboard(struct graphics_keyboard *kbd) = 0;
     virtual void hide_native_keyboard(struct graphics_keyboard *kbd) = 0;
     virtual navit_float get_dpi() = 0;
+};
+
+struct GraphicsFunctions
+{
+    std::function<NavitGraphicsInterface &(NavitInterface &, attr **, callback_list *)> new_graphics;
+    std::function<NavitGraphicsInterface &(point *, int, int, int, NavitGraphicsInterface &parent)> new_graphics_overlay;
+    std::function<NavitGraphicsContextInterface &()> new_graphics_context;
 };
 
 #endif // NAVIT_GRAPHICS_INTERFACE_H

@@ -70,7 +70,6 @@ extern "C"
     void navit_remove_waypoint(NavitHandle navit);
     char *navit_get_coord_description(NavitHandle navit, struct pcoord *c);
     int navit_check_route(NavitHandle navit);
-    int navit_speech_estimate(NavitHandle navit, char *str);
     void navit_say(NavitHandle navit, const char *text);
     void navit_speak(NavitHandle navit);
     void navit_window_roadbook_destroy(NavitHandle navit);
@@ -103,8 +102,6 @@ extern "C"
     int navit_block(NavitHandle navit, int block);
     int navit_get_blocked(NavitHandle navit);
     void navit_destroy(NavitHandle navit);
-    NavitHandle navit_ref(NavitHandle navit);
-    void navit_unref(NavitHandle navit);
 #ifdef __cplusplus
 }
 #endif

@@ -141,10 +141,6 @@ int navit_check_route(NavitHandle navit)
 {
     return ((Navit *)navit)->check_route();
 }
-int navit_speech_estimate(NavitHandle navit, char *str)
-{
-    return ((Navit *)navit)->speech_estimate(str);
-}
 void navit_say(NavitHandle navit, const char *text)
 {
     return ((Navit *)navit)->say(text);
@@ -273,12 +269,4 @@ int navit_get_blocked(NavitHandle navit)
 void navit_destroy(NavitHandle navit)
 {
     return ((Navit *)navit)->destroy();
-}
-NavitHandle navit_ref(NavitHandle navit)
-{
-    return ((Navit *)navit)->ref();
-}
-void navit_unref(NavitHandle navit)
-{
-    return ((Navit *)navit)->unref();
 }

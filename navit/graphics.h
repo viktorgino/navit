@@ -24,6 +24,8 @@
 
 #ifndef NAVIT_GRAPHICS_H
 #define NAVIT_GRAPHICS_H
+#include <optional>
+#include <cassert>
 #include "coord.h"
 #include "item.h"
 #include "point.h"
@@ -180,7 +182,7 @@ class Graphics;
 class GraphicsContext : public NavitGraphicsContextInterface
 {
 public:
-    GraphicsContext(NavitGraphicsContextInterface &contextInterface, Graphics &graphics);
+    GraphicsContext(NavitGraphicsContextInterface &contextInterface, Graphics *graphics);
     ~GraphicsContext();
     void set_foreground(struct color *c) override;
     void set_background(struct color *c) override;
@@ -189,8 +191,8 @@ public:
     void set_dashes(int width, int offset, unsigned char dash_list[], int n) override;
 
 private:
-    Graphics &m_graphics;
     NavitGraphicsContextInterface &m_contextInterface;
+    Graphics *m_graphics;
 };
 struct display_context
 {
@@ -209,11 +211,14 @@ struct display_context
 class Graphics
 {
 public:
-    Graphics(Graphics *parent, attr **attrs);
+    Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions, attr **attrs);
+    Graphics(NavitInterface &navit, Graphics &parent, point *p, int w, int h, int wraparound);
+    GraphicsFunctions &get_graphics_functions();
+    NavitGraphicsInterface &get_graphics_interface();
+
     int set_attr(struct attr *attr);
     void set_rect(struct point_rect *pr);
     int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter);
-    struct graphics *overlay_new(Graphics *parent, struct point *p, int w, int h, int wraparound);
     void overlay_resize(struct point *p, int w, int h, int wraparound);
     void gc_init();
     void init();
@@ -277,19 +282,23 @@ public:
     int get_dpi_factor();
 
 private:
-    Graphics *m_parent;
-    std::unique_ptr<NavitGraphicsInterface> m_graphicsInterface;
-    std::unique_ptr<GraphicsContext> m_gcBackground;
-    std::unique_ptr<GraphicsContext> m_gcMiddground;
-    std::unique_ptr<GraphicsContext> m_gcForeground;
+    std::optional<Graphics *> m_parent;
+    GraphicsFunctions &m_graphics_functions;
+
+    callback_list *m_callbacks;
+    attr **m_attrs;
+
+    NavitGraphicsInterface &m_graphicsInterface;
+    NavitGraphicsContextInterface &m_contextInterface;
+    GraphicsContext m_gcBackground;
+    GraphicsContext m_gcMiddground;
+    GraphicsContext m_gcForeground;
 
     char *m_default_font;
     int m_font_len;
-    struct graphics_font **m_font;
+    graphics_font **m_font;
 
-    struct attr **m_attrs;
-    struct callback_list *m_callbacks;
-    struct point_rect m_r;
+    point_rect m_r;
     int m_gamma, m_brightness, m_contrast;
     int m_colormgmt;
     int m_font_size;

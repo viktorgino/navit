@@ -107,16 +107,6 @@ struct navit_vehicle
     int animate_cursor;
 };
 
-struct attr_iter
-{
-    void *iter;
-    union
-    {
-        GList *list;
-        struct mapset_handle *mapset_handle;
-    } u;
-};
-
 struct object_func navit_func;
 
 Navit::Navit(struct attr *parent, struct attr **attrs) : m_displaylist(m_graphics)
@@ -1127,7 +1117,7 @@ int Navit::former_destinations_active()
     return active;
 }
 
-struct map *read_former_destinations_from_file()
+struct map *Navit::read_former_destinations_from_file()
 {
     struct attr type, data, no_warn, flags, *attrs[5];
     char *destination_file = bookmarks_get_destination_file(FALSE);
@@ -2632,16 +2622,6 @@ int Navit::remove_attr(struct attr *attr)
         return 0;
     }
     return ret;
-}
-
-struct attr_iter *Navit::attr_iter_new()
-{
-    return g_new0(struct attr_iter, 1);
-}
-
-void Navit::attr_iter_destroy(struct attr_iter *iter)
-{
-    g_free(iter);
 }
 
 void Navit::add_callback(struct callback *cb)

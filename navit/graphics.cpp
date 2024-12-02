@@ -158,9 +158,9 @@ int Graphics::set_attr_do(struct attr *attr)
 int Graphics::set_attr(struct attr *attr)
 {
     int ret = 1;
-    /* FIXME if m_graphicsInterface->doesn't have a setter, we don't even try the generic attrs - is that what we want? */
+    /* FIXME if m_graphicsInterface.doesn't have a setter, we don't even try the generic attrs - is that what we want? */
     dbg(lvl_debug, "enter");
-    ret = m_graphicsInterface->set_attr(attr);
+    ret = m_graphicsInterface.set_attr(attr);
     if (!ret)
         ret = set_attr_do(attr);
     return ret != 0;
@@ -222,47 +222,33 @@ void Graphics::dpi_patch(struct callback_list *l, enum attr_type type, int pcoun
     /* any more?  attr_keypress doesn't come with coordinates */
 }
 
-std::unique_ptr<GraphicsContext> make_graphic_context(Graphics &graphics)
+attr **init_graphics_attrs(Graphics *graphics, attr **_attrs, callback_list *callbacks)
 {
-    return std::unique_ptr<GraphicsContext>(nullptr);
+    struct attr cbl_attr;
+    attr **attrs = attr_list_dup(_attrs);
+
+    cbl_attr.type = attr_callback_list;
+    cbl_attr.u.callback_list = callbacks;
+    callback_list_add_patch_function(callbacks, Graphics::static_dpi_patch, static_cast<void *>(graphics));
+    return attr_generic_add_attr(attrs, &cbl_attr);
 }
 
-std::unique_ptr<NavitGraphicsInterface> make_graphics()
+Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions,
+                   attr **attrs) : m_parent(std::nullopt),
+                                   m_graphics_functions(graphicsFunctions),
+                                   m_callbacks(callback_list_new()),
+                                   m_attrs(init_graphics_attrs(this, attrs, m_callbacks)),
+                                   m_graphicsInterface(m_graphics_functions.new_graphics(navit, m_attrs, m_callbacks)),
+                                   m_contextInterface(m_graphics_functions.new_graphics_context()),
+                                   m_gcBackground(m_contextInterface, this),
+                                   m_gcMiddground(m_contextInterface, this),
+                                   m_gcForeground(m_contextInterface, this)
 {
-    return std::unique_ptr<NavitGraphicsInterface>(nullptr);
-}
+    struct attr *real_dpi_attr, *virtual_dpi_attr;
 
-Graphics::Graphics(Graphics *parent, attr **attrs) : m_graphicsInterface(make_graphics()),
-                                                                                                m_gcBackground(make_graphic_context(*this)),
-                                                                                                m_gcMiddground(make_graphic_context(*this)),
-                                                                                                m_gcForeground(make_graphic_context(*this))
-{
-    struct attr *type_attr, cbl_attr, *real_dpi_attr, *virtual_dpi_attr;
-    struct graphics_priv *(*graphicstype_new)(NavitHandle nav, struct graphics_methods *meth, struct attr **attrs,
-                                              struct callback_list *cbl);
-
-    if (!(type_attr = attr_search(attrs, attr_type)))
-    {
-        dbg(lvl_error, "Graphics plugin type is not set.");
-        return;
-    }
-
-    graphicstype_new = plugin_get_category(plugin_category_graphics, type_attr->u.str);
-    if (!graphicstype_new)
-    {
-        dbg(lvl_error, "Failed to load graphics plugin %s.", type_attr->u.str);
-        return;
-    }
-
-    m_attrs = attr_list_dup(attrs);
     /* start with no scaling */
     m_dpi_factor = 1;
-    m_callbacks = callback_list_new();
-    cbl_attr.type = attr_callback_list;
-    cbl_attr.u.callback_list = m_callbacks;
-    callback_list_add_patch_function(m_callbacks, Graphics::static_dpi_patch, (void *)this_);
-    m_attrs = attr_generic_add_attr(m_attrs, &cbl_attr);
-    m_priv = (*graphicstype_new)(parent->u.navit, &m_graphicsInterface, m_attrs, m_callbacks);
+
     m_brightness = 0;
     m_contrast = 65536;
     m_gamma = 65536;
@@ -287,9 +273,10 @@ Graphics::Graphics(Graphics *parent, attr **attrs) : m_graphicsInterface(make_gr
             dbg(lvl_error, "Using virtual dpi %f, real dpi %f factor %d", virtual_dpi, real_dpi, m_dpi_factor);
         }
     }
-    if (m_dpi_factor != 1)
-        callback_list_call_attr_2(m_callbacks, attr_resize, GINT_TO_POINTER(navit_get_width(parent->u.navit)),
-                                  GINT_TO_POINTER(navit_get_height(parent->u.navit)));
+    // TODO: Add resize callback
+    // if (m_dpi_factor != 1)
+    //     callback_list_call_attr_2(m_callbacks, attr_resize, GINT_TO_POINTER(navit_get_width(parent->u.navit)),
+    //                               GINT_TO_POINTER(navit_get_height(parent->u.navit)));
     while (*attrs)
     {
         set_attr_do(*attrs);
@@ -315,31 +302,52 @@ Graphics::Graphics(Graphics *parent, attr **attrs) : m_graphicsInterface(make_gr
  * @returns new overlay
  * @author Martin Schaller (04/2008)
  */
-struct graphics *Graphics::overlay_new(Graphics *parent, struct point *p, int w, int h, int wraparound)
+Graphics::Graphics(
+    NavitInterface &navit, Graphics &parent,
+    point *p, int w, int h, int wraparound) : m_parent(&parent),
+                                              m_graphics_functions(parent.get_graphics_functions()),
+                                              m_callbacks(callback_list_new()),
+                                              m_attrs(init_graphics_attrs(this, m_attrs, m_callbacks)),
+                                              m_graphicsInterface(m_graphics_functions.new_graphics_overlay(p, w, h, wraparound, parent.get_graphics_interface())),
+                                              m_contextInterface(m_graphics_functions.new_graphics_context()),
+                                              m_gcBackground(m_contextInterface, this),
+                                              m_gcMiddground(m_contextInterface, this),
+                                              m_gcForeground(m_contextInterface, this)
 {
-    struct point_rect pr;
-    struct point p_scaled;
+    assert(m_parent);
+    point p_scaled;
     int w_scaled, h_scaled;
 
-    m_dpi_factor = parent->get_dpi_factor();
-    p_scaled = parent->dpi_scale_point(p);
-    w_scaled = parent->dpi_scale(w);
-    h_scaled = parent->dpi_scale(h);
-    m_priv = parent->meth.overlay_new(parent->priv, &m_graphicsInterface, &p_scaled, w_scaled, h_scaled, wraparound);
-    m_image_cache_hash = m_parent->getImageCacheHash();
-    m_parent = parent;
-    pr.lu.x = 0;
-    pr.lu.y = 0;
-    pr.rl.x = w;
-    pr.rl.y = h;
+    point_rect pr = {
+        .lu = {
+            .x = 0,
+            .y = 0,
+        },
+        .rl = {
+            .x = w,
+            .y = h,
+
+        },
+    };
+
+    m_dpi_factor = parent.get_dpi_factor();
+    p_scaled = parent.dpi_scale_point(p);
+    w_scaled = parent.dpi_scale(w);
+    h_scaled = parent.dpi_scale(h);
+    m_image_cache_hash = parent.getImageCacheHash();
+
     m_font_size = 20;
     set_rect(&pr);
-    if (!m_priv)
-    {
-        g_free(this_);
-        this_ = NULL;
-    }
-    return this_;
+}
+
+GraphicsFunctions &Graphics::get_graphics_functions()
+{
+    return m_graphics_functions;
+}
+
+NavitGraphicsInterface &Graphics::get_graphics_interface()
+{
+    return m_graphicsInterface;
 }
 
 /**
@@ -395,7 +403,7 @@ void Graphics::overlay_resize(struct point *p, int w, int h, int wraparound)
     p_scaled = dpi_scale_point(p);
     w_scaled = dpi_scale(w);
     h_scaled = dpi_scale(h);
-    m_graphicsInterface->overlay_resize(&p_scaled, w_scaled, h_scaled, wraparound);
+    m_graphicsInterface.overlay_resize(&p_scaled, w_scaled, h_scaled, wraparound);
 }
 
 void Graphics::gc_init()
@@ -422,7 +430,7 @@ void Graphics::init()
 {
 
     gc_init();
-    background_gc(m_gcBackground);
+    background_gc(&m_gcBackground);
 }
 
 /**
@@ -433,7 +441,7 @@ void Graphics::init()
  */
 void *Graphics::get_data(const char *type)
 {
-    return (m_graphicsInterface->get_data(type));
+    return (m_graphicsInterface.get_data(type));
 }
 
 void Graphics::add_callback(struct callback *cb)
@@ -463,7 +471,7 @@ struct graphics_font *Graphics::named_font_new(char *font, int size, int flags)
     struct graphics_font *this_;
 
     this_ = g_new0(struct graphics_font, 1);
-    this_->priv = m_graphicsInterface->font_new(&this_->meth, font, dpi_scale(size), flags);
+    this_->priv = m_graphicsInterface.font_new(&this_->meth, font, dpi_scale(size), flags);
     return this_;
 }
 
@@ -485,7 +493,7 @@ void Graphics::font_destroy(struct graphics_font *gra_font)
 void Graphics::free()
 {
     /* If it's not an overlay, free the image cache. */
-    if (!m_parent)
+    if (!m_parent.has_value())
     {
         struct graphics_image *img;
         GList *ll, *l;
@@ -498,7 +506,7 @@ void Graphics::free()
         {
             img = (graphics_image *)l->data;
             if (img)
-                m_graphicsInterface->image_free(img->priv);
+                m_graphicsInterface.image_free(img->priv);
         }
         g_list_free(ll);
         g_hash_table_destroy(m_image_cache_hash);
@@ -511,7 +519,7 @@ void Graphics::free()
     g_free(m_default_font);
     font_destroy_all();
     g_free(m_font);
-    // m_graphicsInterface->destroy();
+    // m_graphicsInterface.destroy();
 }
 
 /**
@@ -691,7 +699,7 @@ void Graphics::image_new_helper(graphics_image *image, char *path, char *name, i
             image->width = dpi_scale(image->width);
         if (image->height != IMAGE_W_H_UNSET)
             image->height = dpi_scale(image->height);
-        image->priv = m_graphicsInterface->image_new(&image->meth, new_name, &image->width, &image->height, &image->hot, rotate);
+        image->priv = m_graphicsInterface.image_new(&image->meth, new_name, &image->width, &image->height, &image->hot, rotate);
         image->hot = dpi_unscale_point(&image->hot);
         if (image->width != IMAGE_W_H_UNSET)
             image->width = dpi_unscale(image->width);
@@ -863,7 +871,7 @@ void Graphics::draw_mode(enum draw_mode_num mode, bool call_callback)
         enum attr_type callback_type = mode == draw_mode_end ? attr_postdraw : attr_predraw;
         callback_list_call_attr_0(m_callbacks, callback_type);
     }
-    m_graphicsInterface->draw_mode(mode);
+    m_graphicsInterface.draw_mode(mode);
 }
 
 /**
@@ -883,7 +891,7 @@ void Graphics::draw_lines(GraphicsContext *gc, struct point *p, int count)
 
     for (a = 0; a < count; a++)
         p_scaled[a] = dpi_scale_point(&(p[a]));
-    m_graphicsInterface->draw_lines(gc, p_scaled, count);
+    m_graphicsInterface.draw_lines(gc, p_scaled, count);
     if (count >= ALLOCA_COORD_LIMIT)
         g_free(p_scaled);
 }
@@ -900,7 +908,6 @@ void Graphics::draw_lines(GraphicsContext *gc, struct point *p, int count)
 void Graphics::draw_circle(GraphicsContext *gc, struct point *p, int r)
 {
     struct point *pnt;
-    int i = 0;
     if ((r * 4 + 64) < ALLOCA_COORD_LIMIT)
         pnt = (point *)g_alloca(sizeof(struct point) * (r * 4 + 64));
     else
@@ -908,7 +915,7 @@ void Graphics::draw_circle(GraphicsContext *gc, struct point *p, int r)
 
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
-    m_graphicsInterface->draw_circle(gc, &p_scaled, dpi_scale(this_, r));
+    m_graphicsInterface.draw_circle(static_cast<NavitGraphicsContextInterface *>(gc), &p_scaled, dpi_scale(r));
 
     if ((r * 4 + 64) >= ALLOCA_COORD_LIMIT)
         g_free(pnt);
@@ -924,7 +931,7 @@ void Graphics::draw_rectangle(GraphicsContext *gc, struct point *p, int w, int h
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
-    m_graphicsInterface->draw_rectangle(gc, &p_scaled, dpi_scale(w), dpi_scale(h));
+    m_graphicsInterface.draw_rectangle(static_cast<NavitGraphicsContextInterface *>(gc), &p_scaled, dpi_scale(w), dpi_scale(h));
 }
 
 /**
@@ -946,7 +953,7 @@ void Graphics::draw_polygon(GraphicsContext *gc, struct point *pin, int count_in
 
     for (a = 0; a < count_in; a++)
         pin_scaled[a] = dpi_scale_point(&(pin[a]));
-    m_graphicsInterface->draw_polygon(gc, pin_scaled, count_in);
+    m_graphicsInterface.draw_polygon(static_cast<NavitGraphicsContextInterface *>(gc), pin_scaled, count_in);
     if (count_in >= ALLOCA_COORD_LIMIT)
         g_free(pin_scaled);
 }
@@ -996,7 +1003,7 @@ void Graphics::draw_polygon_with_holes(GraphicsContext *gc, struct point *pin, i
         for (a = 0; a < ccount[b]; a++)
             holes_scaled[b][a] = dpi_scale_point(&(holes[b][a]));
     }
-    m_graphicsInterface->draw_polygon_with_holes(gc, pin_scaled, count_in, hole_count, ccount, holes_scaled);
+    m_graphicsInterface.draw_polygon_with_holes(static_cast<NavitGraphicsContextInterface *>(gc), pin_scaled, count_in, hole_count, ccount, holes_scaled);
     /* free the hole arrays */
     for (b = 0; b < hole_count; b++)
         g_free(holes_scaled[b]);
@@ -1045,7 +1052,7 @@ void Graphics::draw_text(GraphicsContext *gc1, GraphicsContext *gc2,
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
-    m_graphicsInterface->draw_text(gc1, gc2 ? gc2 : NULL, font->priv, text, &p_scaled, dx, dy);
+    m_graphicsInterface.draw_text(static_cast<NavitGraphicsContextInterface *>(gc1), gc2 ? static_cast<NavitGraphicsContextInterface *>(gc2) : nullptr, font->priv, text, &p_scaled, dx, dy);
 }
 
 /**
@@ -1057,7 +1064,7 @@ void Graphics::draw_text(GraphicsContext *gc1, GraphicsContext *gc2,
 void Graphics::get_text_bbox(struct graphics_font *font, char *text, int dx, int dy,
                              struct point *ret, int estimate)
 {
-    m_graphicsInterface->get_text_bbox(font->priv, text, dx, dy, ret, estimate);
+    m_graphicsInterface.get_text_bbox(font->priv, text, dx, dy, ret, estimate);
     ret[0] = dpi_unscale_point(&(ret[0]));
     ret[1] = dpi_unscale_point(&(ret[1]));
     ret[2] = dpi_unscale_point(&(ret[2]));
@@ -1073,12 +1080,12 @@ void Graphics::get_text_bbox(struct graphics_font *font, char *text, int dx, int
 void Graphics::overlay_disable(int disable)
 {
     m_disabled = disable;
-    m_graphicsInterface->overlay_disable(disable);
+    m_graphicsInterface.overlay_disable(disable);
 }
 
 int Graphics::is_disabled()
 {
-    return m_disabled || (m_parent && m_parent->is_disabled());
+    return m_disabled || (m_parent.has_value() && m_parent.value()->is_disabled());
 }
 
 /**
@@ -1091,7 +1098,7 @@ void Graphics::draw_image(GraphicsContext *gc, struct point *p, struct graphics_
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
-    m_graphicsInterface->draw_image(gc, &p_scaled, img->priv);
+    m_graphicsInterface.draw_image(gc, &p_scaled, img->priv);
 }
 
 /**
@@ -1111,7 +1118,7 @@ void Graphics::draw_image_warp(GraphicsContext *gc, struct point *p, int count, 
 
     for (a = 0; a < count; a++)
         p_scaled[a] = dpi_scale_point(&(p[a]));
-    m_graphicsInterface->draw_image_warp(gc, p_scaled, count, img->priv);
+    m_graphicsInterface.draw_image_warp(gc, p_scaled, count, img->priv);
     if (count >= ALLOCA_COORD_LIMIT)
         g_free(p_scaled);
 }
@@ -1125,30 +1132,30 @@ int Graphics::draw_drag(struct point *p)
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
-    m_graphicsInterface->draw_drag(&p_scaled);
+    m_graphicsInterface.draw_drag(&p_scaled);
     return 1;
 }
 
 void Graphics::background_gc(GraphicsContext *gc)
 {
-    m_graphicsInterface->background_gc(gc);
+    m_graphicsInterface.background_gc(gc);
 }
 
 void Graphics::set_layout(struct layout *l)
 {
     if (l)
     {
-        m_gcBackground->set_background(&l->color);
-        m_gcBackground->set_foreground(&l->color);
+        m_gcBackground.set_background(&l->color);
+        m_gcBackground.set_foreground(&l->color);
         g_free(m_default_font);
         m_default_font = g_strdup(l->font);
     }
-    background_gc(m_gcBackground);
+    background_gc(&m_gcBackground);
 }
 
 void Graphics::draw_background()
 {
-    draw_rectangle(m_gcBackground, &m_r.lu, m_r.rl.x - m_r.lu.x, m_r.rl.y - m_r.lu.y);
+    draw_rectangle(&m_gcBackground, &m_r.lu, m_r.rl.x - m_r.lu.x, m_r.rl.y - m_r.lu.y);
 }
 
 void Graphics::set_z_order(int z_order)
@@ -1198,7 +1205,7 @@ void Graphics::set_z_order(int z_order)
  */
 int Graphics::show_native_keyboard(struct graphics_keyboard *kbd)
 {
-    int ret = m_graphicsInterface->show_native_keyboard(kbd);
+    int ret = m_graphicsInterface.show_native_keyboard(kbd);
     dbg(lvl_debug, "return %d", ret);
     return ret;
 }
@@ -1231,7 +1238,7 @@ int Graphics::show_native_keyboard(struct graphics_keyboard *kbd)
  */
 int Graphics::hide_native_keyboard(struct graphics_keyboard *kbd)
 {
-    m_graphicsInterface->hide_native_keyboard(kbd);
+    m_graphicsInterface.hide_native_keyboard(kbd);
     return 1;
 }
 
@@ -2393,8 +2400,8 @@ void Graphics::draw_text_std(int text_size, char *text, struct point *p)
         bbox[i].x += p->x;
         bbox[i].y += p->y;
     }
-    draw_rectangle(m_gcForeground, &bbox[1], bbox[2].x - bbox[0].x, bbox[0].y - bbox[1].y + 5);
-    draw_text(m_gcMiddground, m_gcForeground, font, text, p, 0x10000, 0);
+    draw_rectangle(&m_gcForeground, &bbox[1], bbox[2].x - bbox[0].x, bbox[0].y - bbox[1].y + 5);
+    draw_text(&m_gcMiddground, &m_gcForeground, font, text, p, 0x10000, 0);
 }
 
 char *Graphics::icon_path(const char *icon)
@@ -2644,7 +2651,7 @@ void Graphics::displayitem_draw_circle(struct displayitem *di, struct display_co
             GraphicsContext *gc_background = dc->gc_background;
             if (!gc_background && e->u.circle.background_color.a)
             {
-                gc_background = new GraphicsContext(*this);
+                gc_background = new GraphicsContext(m_contextInterface, this);
                 gc_background->set_foreground(&e->u.circle.background_color);
                 dc->gc_background = gc_background;
             }
@@ -2670,7 +2677,7 @@ void Graphics::displayitem_draw_text(struct displayitem *di, struct display_cont
         GraphicsContext *gc_background = dc->gc_background;
         if (!gc_background && e->u.text.background_color.a)
         {
-            gc_background = new GraphicsContext(*this);
+            gc_background = new GraphicsContext(m_contextInterface, this);
             gc_background->set_foreground(&e->u.text.background_color);
             dc->gc_background = gc_background;
         }
@@ -2742,7 +2749,7 @@ void Graphics::displayitem_draw_icon(struct displayitem *di, struct display_cont
                 p.x = pa[0].x - img->hot.x;
                 p.y = pa[0].y - img->hot.y;
             }
-            draw_image(m_gcBackground, &p, img);
+            draw_image(&m_gcBackground, &p, img);
         }
     }
 }
@@ -2753,7 +2760,7 @@ void Graphics::displayitem_draw_image(struct displayitem *di, struct display_con
     struct graphics_image *img = dc->img;
     img = image_new_scaled_rotated(di->label, IMAGE_W_H_UNSET, IMAGE_W_H_UNSET, 0);
     if (img)
-        draw_image_warp(m_gcBackground, pa, count, img);
+        draw_image_warp(&m_gcBackground, pa, count, img);
 }
 
 /**
@@ -2803,7 +2810,7 @@ void Graphics::displayitem_draw(struct displayitem *di, struct layout *l, struct
 
         if (!dc->gc)
         {
-            GraphicsContext *gc = new GraphicsContext(*this);
+            GraphicsContext *gc = new GraphicsContext(m_contextInterface, this);
             dc->gc = gc;
             dc->gc->set_foreground(&e->color);
         }
@@ -3008,7 +3015,7 @@ int Graphics::displayitem_get_displayed(struct displayitem *di)
  */
 navit_float Graphics::get_dpi()
 {
-    return m_graphicsInterface->get_dpi();
+    return m_graphicsInterface.get_dpi();
 }
 
 int Graphics::get_dpi_factor()
@@ -3023,7 +3030,7 @@ int Graphics::get_dpi_factor()
  * @returns new graphics context
  * @author Martin Schaller (04/2008)
  */
-GraphicsContext::GraphicsContext(NavitGraphicsContextInterface &contextInterface, Graphics &graphics) : m_contextInterface(contextInterface) m_graphics(graphics)
+GraphicsContext::GraphicsContext(NavitGraphicsContextInterface &contextInterface, Graphics *graphics) : m_contextInterface(contextInterface), m_graphics(graphics)
 {
 }
 GraphicsContext::~GraphicsContext()
@@ -3039,7 +3046,7 @@ GraphicsContext::~GraphicsContext()
 void GraphicsContext::set_foreground(struct color *c)
 {
     struct color cn;
-    m_graphics.convert_color(c, &cn);
+    m_graphics->convert_color(c, &cn);
     c = &cn;
     m_contextInterface.set_foreground(c);
 }
@@ -3053,7 +3060,7 @@ void GraphicsContext::set_foreground(struct color *c)
 void GraphicsContext::set_background(struct color *c)
 {
     struct color cn;
-    m_graphics.convert_color(c, &cn);
+    m_graphics->convert_color(c, &cn);
     c = &cn;
     m_contextInterface.set_background(c);
 }
@@ -3078,7 +3085,7 @@ void GraphicsContext::set_texture(struct graphics_image *img)
  */
 void GraphicsContext::set_linewidth(int width)
 {
-    m_contextInterface.set_linewidth(m_graphics.dpi_scale(width));
+    m_contextInterface.set_linewidth(m_graphics->dpi_scale(width));
 }
 
 /**
@@ -3093,9 +3100,9 @@ void GraphicsContext::set_dashes(int width, int offset, unsigned char dash_list[
     unsigned char *dash_list_scaled = (unsigned char *)g_alloca(sizeof(unsigned char) * n);
     for (a = 0; a < n; a++)
     {
-        dash_list_scaled[a] = m_graphics.dpi_scale(dash_list[a]);
+        dash_list_scaled[a] = m_graphics->dpi_scale(dash_list[a]);
     }
-    m_contextInterface.set_dashes(m_graphics.dpi_scale(width), m_graphics.dpi_scale(offset),
+    m_contextInterface.set_dashes(m_graphics->dpi_scale(width), m_graphics->dpi_scale(offset),
                                   dash_list_scaled, n);
 }
 

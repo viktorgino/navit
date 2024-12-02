@@ -85,14 +85,14 @@ public:
     void emit_update();
 
     void draw_mode(enum draw_mode_num mode) override;
-    void draw_lines(NavitGraphicsContextInterface &gc, struct point *p, int count) override;
-    void draw_polygon(NavitGraphicsContextInterface &gc, struct point *p, int count) override;
-    void draw_rectangle(NavitGraphicsContextInterface &gc, struct point *p, int w, int h) override;
-    void draw_circle(NavitGraphicsContextInterface &gc, struct point *p, int r) override;
-    void draw_text(NavitGraphicsContextInterface &fg, NavitGraphicsContextInterface &bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy) override;
-    void draw_image(NavitGraphicsContextInterface &fg, struct point *p, struct graphics_image_priv *img) override;
-    void draw_image_warp(NavitGraphicsContextInterface &fg, struct point *p, int count, struct graphics_image_priv *img) override;
-    void draw_polygon_with_holes(NavitGraphicsContextInterface &gc, struct point *p, int count, int hole_count, int *ccount, struct point **holes) override;
+    void draw_lines(NavitGraphicsContextInterface *gc, struct point *p, int count) override;
+    void draw_polygon(NavitGraphicsContextInterface *gc, struct point *p, int count) override;
+    void draw_rectangle(NavitGraphicsContextInterface *gc, struct point *p, int w, int h) override;
+    void draw_circle(NavitGraphicsContextInterface *gc, struct point *p, int r) override;
+    void draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsContextInterface *bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy) override;
+    void draw_image(NavitGraphicsContextInterface *fg, struct point *p, struct graphics_image_priv *img) override;
+    void draw_image_warp(NavitGraphicsContextInterface *fg, struct point *p, int count, struct graphics_image_priv *img) override;
+    void draw_polygon_with_holes(NavitGraphicsContextInterface *gc, struct point *p, int count, int hole_count, int *ccount, struct point **holes) override;
     void draw_drag(struct point *p) override;
     struct graphics_font_priv *font_new(struct graphics_font_methods *meth, char *font, int size, int flags) override;
     void background_gc(NavitGraphicsContextInterface *gc) override;
