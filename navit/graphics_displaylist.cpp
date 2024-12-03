@@ -19,6 +19,12 @@ struct displaylist_handle
 GraphicsDisplayList::GraphicsDisplayList(Graphics &graphics) : m_graphics(graphics)
 {
     dc.maxlen = ALLOCA_COORD_LIMIT;
+
+    for (auto &hash_entry : hash_entries)
+    {
+        hash_entry.di = nullptr;
+        hash_entry.type = type_none;
+    }
 }
 
 void GraphicsDisplayList::update_layers(GList *layers, int order)
@@ -38,7 +44,7 @@ void GraphicsDisplayList::update_layers(GList *layers, int order)
             {
                 while (types)
                 {
-                    enum item_type type = *(enum item_type *)types->data;
+                    enum item_type type = *(enum item_type *)types;
                     set_hash_entry(type);
                     types = g_list_next(types);
                 }
@@ -92,9 +98,10 @@ void GraphicsDisplayList::load_mapset(struct mapset *mapset, struct transformati
 
 void GraphicsDisplayList::clear_hash()
 {
-    int i;
-    for (i = 0; i < HASH_SIZE; i++)
-        hash_entries[i].type = type_none;
+    for (auto &hash_entry : hash_entries)
+    {
+        hash_entry.type = type_none;
+    }
 }
 
 void GraphicsDisplayList::update_hash()
@@ -112,12 +119,12 @@ struct hash_entry *GraphicsDisplayList::get_hash_entry(enum item_type type)
     do
     {
         if (!hash_entries[hashidx].type)
-            return NULL;
+            return nullptr;
         if (hash_entries[hashidx].type == type)
             return &hash_entries[hashidx];
         hashidx = (hashidx + 1) & (HASH_SIZE - 1);
     } while (offset-- > 0);
-    return NULL;
+    return nullptr;
 }
 
 struct hash_entry *GraphicsDisplayList::set_hash_entry(enum item_type type)
@@ -138,7 +145,7 @@ struct hash_entry *GraphicsDisplayList::set_hash_entry(enum item_type type)
         hashidx = (hashidx + 1) & (HASH_SIZE - 1);
         offset++;
     }
-    return NULL;
+    return nullptr;
 }
 
 #pragma endregion
@@ -201,17 +208,16 @@ void GraphicsDisplayList::destroy()
  */
 void GraphicsDisplayList::xdisplay_free()
 {
-    int i;
-    for (i = 0; i < HASH_SIZE; i++)
+    for (auto &hash_entry : hash_entries)
     {
-        struct displayitem *di = hash_entries[i].di;
+        struct displayitem *di = hash_entry.di;
         while (di)
         {
             struct displayitem *next = di->next;
             g_free(di);
             di = next;
         }
-        hash_entries[i].di = NULL;
+        hash_entry.di = NULL;
     }
 }
 

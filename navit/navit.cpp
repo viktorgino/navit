@@ -129,7 +129,10 @@ Navit::Navit(struct attr *parent, struct attr **attrs) : m_graphics(*this, getGr
     g.lng = 11.70;
 
     m_navit_object.attrs = attr_list_dup(attrs);
+
     m_self.type = attr_navit;
+    m_self.u.navit = this;
+
     m_attr_cbl = callback_list_new();
 
     m_orientation = -1;
@@ -504,11 +507,6 @@ int Navit::get_height()
     return m_h;
 }
 
-void Navit::ignore_graphics_events(int ignore)
-{
-    m_ignore_graphics_events = ignore;
-}
-
 int Navit::restrict_to_range(int value, int min, int max)
 {
     if (value > max)
@@ -824,8 +822,7 @@ static void navit_resize(void *data, int w, int h)
         return;
     }
     Navit *navit = static_cast<Navit *>(data);
-    if (!navit->m_ignore_graphics_events)
-        navit->handle_resize(w, h);
+    navit->handle_resize(w, h);
 }
 
 static void navit_motion(void *data, struct point *p)
@@ -835,8 +832,7 @@ static void navit_motion(void *data, struct point *p)
         return;
     }
     Navit *navit = static_cast<Navit *>(data);
-    if (!navit->m_ignore_graphics_events)
-        navit->handle_motion(p);
+    navit->handle_motion(p);
 }
 
 static void navit_predraw(void *data)
@@ -1449,8 +1445,7 @@ static void navit_redraw_route(void *data, struct route *route, struct attr *att
         return;
     }
     Navit *navit = static_cast<Navit *>(data);
-    if (!navit->m_ignore_graphics_events)
-        navit->redraw_route(route, attr);
+    navit->redraw_route(route, attr);
 }
 
 static void navit_speak_callback(void *data)
@@ -1460,8 +1455,7 @@ static void navit_speak_callback(void *data)
         return;
     }
     Navit *navit = static_cast<Navit *>(data);
-    if (!navit->m_ignore_graphics_events)
-        navit->speak();
+    navit->speak();
 }
 
 int Navit::init()
@@ -2800,7 +2794,6 @@ void Navit::vehicle_update_position(struct navit_vehicle *nv)
     }
     // profile(0, "return 5\n");
 }
-
 /**
  * @brief Called when a status attribute of a vehicle changes.
  *
@@ -2921,8 +2914,7 @@ static void navit_vehicle_update_position(void *data, struct navit_vehicle *nv)
         return;
     }
     Navit *navit = static_cast<Navit *>(data);
-    if (!navit->m_ignore_graphics_events)
-        navit->vehicle_update_position(nv);
+    navit->vehicle_update_position(nv);
 }
 
 static void navit_vehicle_update_status(void *data, struct navit_vehicle *nv, enum attr_type type)
@@ -2932,8 +2924,7 @@ static void navit_vehicle_update_status(void *data, struct navit_vehicle *nv, en
         return;
     }
     Navit *navit = static_cast<Navit *>(data);
-    if (!navit->m_ignore_graphics_events)
-        navit->vehicle_update_status(nv, type);
+    navit->vehicle_update_status(nv, type);
 }
 
 /**
@@ -3326,9 +3317,6 @@ void Navit::destroy()
     map_destroy(m_former_destination);
 
     m_displaylist.destroy();
-
-    m_graphics.free();
-
     // g_free();
 }
 

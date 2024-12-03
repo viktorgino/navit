@@ -284,29 +284,29 @@ pcoord NavitHelper::coordToPcoord(NavitInterface &navit, int x, int y)
     return c;
 }
 
-static void setDestinationStatic(NavitInterface &navit, char *label, int x, int y)
+static void setDestinationStatic(NavitInterface *navit, char *label, int x, int y)
 {
-    navit.set_destination(nullptr, nullptr, 0);
-    struct pcoord c = NavitHelper::coordToPcoord(navit, x, y);
-    navit.set_destination(&c, label, 1);
+    assert(navit);
+    navit->set_destination(nullptr, nullptr, 0);
+    struct pcoord c = NavitHelper::coordToPcoord(*navit, x, y);
+    navit->set_destination(&c, label, 1);
 }
 
 void NavitHelper::setDestination(NavitInterface &navit, QString label, int x, int y)
 {
-    // event_add_timeout(0, 0, callback_new_4(callback_cast(setDestinationStatic), navitInstance->getNavit(), label.toUtf8().data(), x ,y));
-    setDestinationStatic(navit, label.toUtf8().data(), x, y);
+    event_add_timeout(0, 0, callback_new_4(callback_cast(setDestinationStatic), (void *)&navit, label.toUtf8().data(), x, y));
 }
 
-static void setPositionStatic(NavitInterface &navit, int x, int y)
+static void setPositionStatic(NavitInterface *navit, int x, int y)
 {
-    struct pcoord c = NavitHelper::coordToPcoord(navit, x, y);
-    navit.set_position(&c);
+    assert(navit);
+    struct pcoord c = NavitHelper::coordToPcoord(*navit, x, y);
+    navit->set_position(&c);
 }
 
 void NavitHelper::setPosition(NavitInterface &navit, int x, int y)
 {
-    // event_add_timeout(0, 0, callback_new_3(callback_cast(setPositionStatic), navitInstance->getNavit(), x ,y));
-    setPositionStatic(navit, x, y);
+    event_add_timeout(0, 0, callback_new_3(callback_cast(setPositionStatic), &navit, x, y));
 }
 
 static void addStopStatic(NavitInterface &navit, int position, char *label, pcoord *c)

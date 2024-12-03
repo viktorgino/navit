@@ -125,7 +125,7 @@ public:
     void resize(int w, int h);
     QRect rect();
     QPixmap &pixmap();
-    NavitGraphicsContextInterface *background();
+    GraphicsContextQt5 *get_background_gc();
 
     NavitInstance &get_navit_instance();
 signals:
@@ -146,7 +146,7 @@ private:
     int m_y = 0;
     int m_scroll_x = 0;
     int m_scroll_y = 0;
-    NavitGraphicsContextInterface *m_background_graphics_gc_priv;
+    GraphicsContextQt5 *m_background_gc;
 #if HAVE_FREETYPE
     struct font_priv *(*font_freetype_new)(void *meth);
     struct font_freetype_methods freetype_methods;

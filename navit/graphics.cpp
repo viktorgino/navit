@@ -272,13 +272,18 @@ Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions) 
  * @returns new overlay
  * @author Martin Schaller (04/2008)
  */
+
 Graphics::Graphics(
     NavitInterface &navit, Graphics &parent,
     point *p, int w, int h, int wraparound) : m_parent(&parent),
                                               m_navit(navit),
                                               m_graphics_functions(parent.get_graphics_functions()),
                                               m_callbacks(callback_list_new()),
-                                              m_graphicsInterface(*m_graphics_functions.new_graphics_overlay(parent.dpi_scale_point(p), parent.dpi_scale(w), parent.dpi_scale(h), wraparound, parent.get_graphics_interface())),
+                                              m_graphicsInterface(
+                                                  *m_graphics_functions.new_graphics_overlay(parent.dpi_scale_point(p),
+                                                                                             parent.dpi_scale(w),
+                                                                                             parent.dpi_scale(h),
+                                                                                             wraparound, parent.get_graphics_interface())),
                                               m_contextInterface(*m_graphics_functions.new_graphics_context()),
                                               m_gcBackground(m_contextInterface, this),
                                               m_gcMiddground(m_contextInterface, this),
@@ -303,6 +308,37 @@ Graphics::Graphics(
 
     m_font_size = 20;
     set_rect(&pr);
+}
+
+Graphics::~Graphics()
+{
+    /* If it's not an overlay, free the image cache. */
+    if (!m_parent.has_value())
+    {
+        struct graphics_image *img;
+        GList *ll, *l;
+
+        /* We can't specify context (pointer to struct graphics) for g_hash_table_new to have it passed to free function
+           so we have to free img->priv manually, the rest would be freed by g_hash_table_destroy. GHashTableIter isn't used because it
+           broke n800 build at r5107.
+        */
+        for (ll = l = g_hash_to_list(m_image_cache_hash); l; l = g_list_next(l))
+        {
+            img = (graphics_image *)l->data;
+            if (img)
+                m_graphicsInterface.image_free(img->priv);
+        }
+        g_list_free(ll);
+        g_hash_table_destroy(m_image_cache_hash);
+    }
+
+    // m_gcBackground->destroy();
+    // m_gcMiddground->destroy();
+    // m_gcForeground->destroy();
+    g_free(m_default_font);
+    font_destroy_all();
+    g_free(m_font);
+    // m_graphicsInterface.destroy();
 }
 
 GraphicsFunctions &Graphics::get_graphics_functions()
@@ -451,44 +487,6 @@ void Graphics::font_destroy(struct graphics_font *gra_font)
         return;
     gra_font->meth.font_destroy(gra_font->priv);
     g_free(gra_font);
-}
-
-/**
- * Destroy graphics
- * Called when navit exits
- * @param gra The graphics instance
- * @returns nothing
- * @author David Tegze (02/2011)
- */
-void Graphics::free()
-{
-    /* If it's not an overlay, free the image cache. */
-    if (!m_parent.has_value())
-    {
-        struct graphics_image *img;
-        GList *ll, *l;
-
-        /* We can't specify context (pointer to struct graphics) for g_hash_table_new to have it passed to free function
-           so we have to free img->priv manually, the rest would be freed by g_hash_table_destroy. GHashTableIter isn't used because it
-           broke n800 build at r5107.
-        */
-        for (ll = l = g_hash_to_list(m_image_cache_hash); l; l = g_list_next(l))
-        {
-            img = (graphics_image *)l->data;
-            if (img)
-                m_graphicsInterface.image_free(img->priv);
-        }
-        g_list_free(ll);
-        g_hash_table_destroy(m_image_cache_hash);
-    }
-
-    // m_gcBackground->destroy();
-    // m_gcMiddground->destroy();
-    // m_gcForeground->destroy();
-    g_free(m_default_font);
-    font_destroy_all();
-    g_free(m_font);
-    // m_graphicsInterface.destroy();
 }
 
 /**
@@ -860,7 +858,7 @@ void Graphics::draw_lines(GraphicsContext *gc, struct point *p, int count)
 
     for (a = 0; a < count; a++)
         p_scaled[a] = dpi_scale_point(&(p[a]));
-    m_graphicsInterface.draw_lines(gc, p_scaled, count);
+    m_graphicsInterface.draw_lines(&gc->get_context_interface(), p_scaled, count);
     if (count >= ALLOCA_COORD_LIMIT)
         g_free(p_scaled);
 }
@@ -884,7 +882,7 @@ void Graphics::draw_circle(GraphicsContext *gc, struct point *p, int r)
 
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
-    m_graphicsInterface.draw_circle(static_cast<NavitGraphicsContextInterface *>(gc), &p_scaled, dpi_scale(r));
+    m_graphicsInterface.draw_circle(&gc->get_context_interface(), &p_scaled, dpi_scale(r));
 
     if ((r * 4 + 64) >= ALLOCA_COORD_LIMIT)
         g_free(pnt);
@@ -900,7 +898,7 @@ void Graphics::draw_rectangle(GraphicsContext *gc, struct point *p, int w, int h
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
-    m_graphicsInterface.draw_rectangle(static_cast<NavitGraphicsContextInterface *>(gc), &p_scaled, dpi_scale(w), dpi_scale(h));
+    m_graphicsInterface.draw_rectangle(&gc->get_context_interface(), &p_scaled, dpi_scale(w), dpi_scale(h));
 }
 
 /**
@@ -922,7 +920,7 @@ void Graphics::draw_polygon(GraphicsContext *gc, struct point *pin, int count_in
 
     for (a = 0; a < count_in; a++)
         pin_scaled[a] = dpi_scale_point(&(pin[a]));
-    m_graphicsInterface.draw_polygon(static_cast<NavitGraphicsContextInterface *>(gc), pin_scaled, count_in);
+    m_graphicsInterface.draw_polygon(&gc->get_context_interface(), pin_scaled, count_in);
     if (count_in >= ALLOCA_COORD_LIMIT)
         g_free(pin_scaled);
 }
@@ -972,7 +970,7 @@ void Graphics::draw_polygon_with_holes(GraphicsContext *gc, struct point *pin, i
         for (a = 0; a < ccount[b]; a++)
             holes_scaled[b][a] = dpi_scale_point(&(holes[b][a]));
     }
-    m_graphicsInterface.draw_polygon_with_holes(static_cast<NavitGraphicsContextInterface *>(gc), pin_scaled, count_in, hole_count, ccount, holes_scaled);
+    m_graphicsInterface.draw_polygon_with_holes(&gc->get_context_interface(), pin_scaled, count_in, hole_count, ccount, holes_scaled);
     /* free the hole arrays */
     for (b = 0; b < hole_count; b++)
         g_free(holes_scaled[b]);
@@ -1021,7 +1019,7 @@ void Graphics::draw_text(GraphicsContext *gc1, GraphicsContext *gc2,
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
-    m_graphicsInterface.draw_text(static_cast<NavitGraphicsContextInterface *>(gc1), gc2 ? static_cast<NavitGraphicsContextInterface *>(gc2) : nullptr, font->priv, text, &p_scaled, dx, dy);
+    m_graphicsInterface.draw_text(&gc1->get_context_interface(), gc2 ? &gc2->get_context_interface() : nullptr, font->priv, text, &p_scaled, dx, dy);
 }
 
 /**
@@ -1067,7 +1065,7 @@ void Graphics::draw_image(GraphicsContext *gc, struct point *p, struct graphics_
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
-    m_graphicsInterface.draw_image(gc, &p_scaled, img->priv);
+    m_graphicsInterface.draw_image(&gc->get_context_interface(), &p_scaled, img->priv);
 }
 
 /**
@@ -1087,7 +1085,7 @@ void Graphics::draw_image_warp(GraphicsContext *gc, struct point *p, int count, 
 
     for (a = 0; a < count; a++)
         p_scaled[a] = dpi_scale_point(&(p[a]));
-    m_graphicsInterface.draw_image_warp(gc, p_scaled, count, img->priv);
+    m_graphicsInterface.draw_image_warp(&gc->get_context_interface(), p_scaled, count, img->priv);
     if (count >= ALLOCA_COORD_LIMIT)
         g_free(p_scaled);
 }
@@ -1107,7 +1105,7 @@ int Graphics::draw_drag(struct point *p)
 
 void Graphics::background_gc(GraphicsContext *gc)
 {
-    m_graphicsInterface.background_gc(gc);
+    m_graphicsInterface.background_gc(&gc->get_context_interface());
 }
 
 void Graphics::set_layout(struct layout *l)
@@ -3076,4 +3074,8 @@ void GraphicsContext::set_dashes(int width, int offset, unsigned char dash_list[
                                   dash_list_scaled, n);
 }
 
+NavitGraphicsContextInterface &GraphicsContext::get_context_interface()
+{
+    return m_contextInterface;
+}
 #pragma endregion

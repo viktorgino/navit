@@ -87,7 +87,7 @@ void QNavitQuick_2::paint(QPainter *painter)
 {
     QPaintEvent event = QPaintEvent(QRect(boundingRect().x(), boundingRect().y(), boundingRect().width(),
                                           boundingRect().height()));
-    GraphicsContextQt5 *background = static_cast<GraphicsContextQt5 *>(graphics_priv->background());
+    GraphicsContextQt5 *background = graphics_priv->get_background_gc();
     /* color background if any */
     if (background != nullptr)
     {

@@ -51,7 +51,6 @@ extern "C"
     void navit_handle_resize(NavitHandle navit, int w, int h);
     int navit_get_width(NavitHandle navit);
     int navit_get_height(NavitHandle navit);
-    void navit_ignore_graphics_events(NavitHandle navit, int ignore);
     void navit_set_timeout(NavitHandle navit);
     void navit_handle_motion(NavitHandle navit, struct point *p);
     void navit_zoom_in(NavitHandle navit, int factor, struct point *p);

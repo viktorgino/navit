@@ -1,5 +1,10 @@
 #ifndef NAVIT_DISPLAYLIST_GRAPHICS_H
 #define NAVIT_DISPLAYLIST_GRAPHICS_H
+
+#include <array>
+
+extern "C"
+{
 #include "coord.h"
 #include "item.h"
 #include "point.h"
@@ -10,8 +15,10 @@
 #include "debug.h"
 #include "map.h"
 #include "mapset.h"
-#include "graphics.h"
 #include <glib.h>
+}
+
+#include "graphics.h"
 
 #define HASH_SIZE 1024
 struct hash_entry
@@ -87,7 +94,7 @@ private:
     struct callback *idle_cb;
     struct event_idle *idle_ev;
     unsigned int seq;
-    struct hash_entry hash_entries[HASH_SIZE];
+    std::array<hash_entry, HASH_SIZE> hash_entries;
     GList *m_selection;
 
     int displayitem_within_dist(struct displayitem *di, struct point *p, int dist);

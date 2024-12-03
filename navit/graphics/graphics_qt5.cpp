@@ -241,11 +241,6 @@ QPixmap &GraphicsQt5::pixmap()
     return m_pixmap;
 }
 
-NavitGraphicsContextInterface *GraphicsQt5::background()
-{
-    return m_background_graphics_gc_priv;
-}
-
 struct graphics_image_priv *GraphicsQt5::image_new(struct graphics_image_methods *meth, char *path,
                                                    int *w, int *h, struct point *hot, int rotation)
 {
@@ -425,7 +420,7 @@ void GraphicsQt5::draw_rectangle(NavitGraphicsContextInterface *gc, struct point
 void GraphicsQt5::draw_circle(NavitGraphicsContextInterface *gc, struct point *p, int r)
 {
     //        dbg(lvl_debug,"enter gr=%p, gc=%p, (%d,%d) r=%d", gr, gc, p->x, p->y, r);
-    GraphicsContextQt5 *context = static_cast<GraphicsContextQt5 *>(gc);
+    GraphicsContextQt5 *context = dynamic_cast<GraphicsContextQt5 *>(gc);
     if (m_painter == nullptr)
         return;
     m_painter->setPen(context->pen());
@@ -597,7 +592,13 @@ void GraphicsQt5::draw_drag(struct point *p)
 void GraphicsQt5::background_gc(NavitGraphicsContextInterface *gc)
 {
     //        dbg(lvl_debug,"register context %p on %p", gc, gr);
-    m_background_graphics_gc_priv = gc;
+    m_background_gc = static_cast<GraphicsContextQt5 *>(gc);
+    assert(m_background_gc);
+}
+
+GraphicsContextQt5 *GraphicsQt5::get_background_gc()
+{
+    return m_background_gc;
 }
 
 void GraphicsQt5::draw_mode(enum draw_mode_num mode)

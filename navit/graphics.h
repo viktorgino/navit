@@ -183,16 +183,18 @@ struct transformation;
 
 class Graphics;
 
-class GraphicsContext : public NavitGraphicsContextInterface
+class GraphicsContext
 {
 public:
     GraphicsContext(NavitGraphicsContextInterface &contextInterface, Graphics *graphics);
     ~GraphicsContext();
-    void set_foreground(struct color *c) override;
-    void set_background(struct color *c) override;
-    void set_texture(struct graphics_image *img) override;
-    void set_linewidth(int width) override;
-    void set_dashes(int width, int offset, unsigned char dash_list[], int n) override;
+    void set_foreground(struct color *c);
+    void set_background(struct color *c);
+    void set_texture(struct graphics_image *img);
+    void set_linewidth(int width);
+    void set_dashes(int width, int offset, unsigned char dash_list[], int n);
+
+    NavitGraphicsContextInterface &get_context_interface();
 
 private:
     NavitGraphicsContextInterface &m_contextInterface;
@@ -217,6 +219,7 @@ class Graphics
 public:
     Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions);
     Graphics(NavitInterface &navit, Graphics &parent, point *p, int w, int h, int wraparound);
+    ~Graphics();
     GraphicsFunctions &get_graphics_functions();
     NavitGraphicsInterface &get_graphics_interface();
     NavitInterface &get_navit_interface();
@@ -233,7 +236,6 @@ public:
     struct graphics_font *font_new(int size, int flags);
     struct graphics_font *named_font_new(char *font, int size, int flags);
     void font_destroy(struct graphics_font *gra_font);
-    void free();
     struct graphics_image *image_new_scaled(char *path, int w, int h);
     struct graphics_image *image_new_scaled_rotated(char *path, int w, int h, int rotate);
     struct graphics_image *image_new(char *path);
@@ -272,6 +274,7 @@ public:
     navit_float get_dpi();
     void dpi_patch(struct callback_list *l, enum attr_type type, int pcount, void **p);
     int dpi_scale(int p);
+    struct point dpi_scale_point(struct point *p);
     void convert_color(struct color *in, struct color *out);
     void label_line(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, struct point *p, int count, char *label);
     void display_add(struct hash_entry *entry, struct item *item, int count, struct coord *c, char **label, int label_count);
@@ -316,7 +319,6 @@ private:
     /* for dpi compensation */
     int m_dpi_factor;
 
-    struct point dpi_scale_point(struct point *p);
     int dpi_unscale(int p);
     struct point dpi_unscale_point(struct point *p);
     int set_attr_do(struct attr *attr);

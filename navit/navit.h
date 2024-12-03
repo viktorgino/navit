@@ -81,7 +81,6 @@ public:
     void handle_resize(int w, int h);
     int get_width() override;
     int get_height() override;
-    void ignore_graphics_events(int ignore);
     void set_timeout();
     void handle_motion(struct point *p);
     void zoom_level(int level, struct point *p) override;
@@ -146,8 +145,6 @@ public:
     void vehicle_update_position(struct navit_vehicle *nv);
 
     static char *get_user_data_directory(int create);
-
-    int m_ignore_graphics_events;
 
 private:
     Graphics m_graphics;
