@@ -7,7 +7,6 @@ MapControls 1.0 MapControls.qml
 MapNavigationBar 1.0 MapNavigationBar.qml
 MapPinpointPopup 1.0 MapPinpointPopup.qml
 MenuDrawer 1.0 MenuDrawer.qml
-NavitMain 1.0 NavitMain.qml
 POIs 1.0 POIs.qml
 SearchDrawer 1.0 SearchDrawer.qml
 SearchDrawerBreadcrumbs 1.0 SearchDrawerBreadcrumbs.qml

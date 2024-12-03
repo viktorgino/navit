@@ -485,7 +485,7 @@ void Graphics::font_destroy(struct graphics_font *gra_font)
 {
     if (!gra_font)
         return;
-    gra_font->meth.font_destroy(gra_font->priv);
+    m_graphicsInterface.font_destroy(gra_font->priv);
     g_free(gra_font);
 }
 
@@ -503,7 +503,7 @@ void Graphics::font_destroy_all()
     {
         if (!m_font[i])
             continue;
-        m_font[i]->meth.font_destroy(m_font[i]->priv);
+        m_graphicsInterface.font_destroy(m_font[i]->priv);
         g_free(m_font[i]);
         m_font[i] = NULL;
     }

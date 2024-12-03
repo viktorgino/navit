@@ -74,8 +74,6 @@ void QNavitQuick_2::paintOverlays(QPainter *painter, GraphicsQt5 *gp, QPaintEven
             QRect rr = overlay->rect();
             if (event->rect().intersects(rr))
             {
-                qDebug() << "Draw overlay" << rr.x(), rr.y(), rr.width(), rr.height();
-
                 painter->drawPixmap(rr.x(), rr.y(), overlay->pixmap());
                 paintOverlays(painter, overlay, event);
             }
@@ -104,7 +102,6 @@ void QNavitQuick_2::paint(QPainter *painter)
     {
         paintOverlays(painter, graphics_priv, &event);
     }
-    // qDebug() << "Painting thread : " << QThread::currentThread();
     updateZoomLevel();
 }
 
@@ -211,18 +208,15 @@ void QNavitQuick_2::mapMove(int originX, int originY, int destinationX, int dest
     destination->y = destinationY;
 
     emit onMapMove(m_navitInstance, origin, destination);
-    // navit_drag_map(m_navitInstance->getNavit(), origin, destination);
 }
 
 void QNavitQuick_2::zoomIn(int zoomLevel, point *p)
 {
     emit onZoomIn(m_navitInstance, zoomLevel, p);
-    // navit_zoom_in(m_navitInstance->getNavit(), zoomLevel, p);
 }
 void QNavitQuick_2::zoomOut(int zoomLevel, point *p)
 {
     emit onZoomOut(m_navitInstance, zoomLevel, p);
-    // navit_zoom_out(m_navitInstance->getNavit(), zoomLevel, p);
 }
 
 void QNavitQuick_2::zoomInToPoint(int zoomLevel, int x, int y)
@@ -249,7 +243,6 @@ void QNavitQuick_2::zoomOutFromPoint(int zoomLevel, int x, int y)
 void QNavitQuick_2::zoomToRoute()
 {
     emit onZoomToRoute(m_navitInstance);
-    // navit_zoom_to_route(m_navitInstance->getNavit(), 1);
 }
 
 void QNavitQuick_2::setNavitNumProperty(enum attr_type type, int value)
@@ -262,7 +255,6 @@ void QNavitQuick_2::setNavitNumProperty(enum attr_type type, int value)
         attr.u.num = value;
 
         emit onSetNumAttr(m_navitInstance, &attr);
-        // navit_set_attr(m_navitInstance->getNavit(), &attr);
     }
 }
 
@@ -283,7 +275,6 @@ void QNavitQuick_2::setPitch(int pitch)
 
 void QNavitQuick_2::setFollowVehicle(bool followVehicle)
 {
-    // qDebug() << "setFollowVehicle " << followVehicle;
     setNavitNumProperty(attr_follow, followVehicle);
     setNavitNumProperty(attr_follow_cursor, followVehicle);
 }
@@ -359,7 +350,6 @@ QString QNavitQuick_2::getAddress(int x, int y)
 void QNavitQuick_2::centerOnPosition()
 {
     emit onCenterOnPosition(m_navitInstance);
-    // navit_set_center_cursor_draw(m_navitInstance->getNavit());
 }
 
 void QNavitQuick_2::updateZoomLevel()

@@ -7,7 +7,6 @@
         <file>NavitGUI/MapNavigationBar.qml</file>
         <file>NavitGUI/MapPinpointPopup.qml</file>
         <file>NavitGUI/MenuDrawer.qml</file>
-        <file>NavitGUI/NavitMain.qml</file>
         <file>NavitGUI/POIs.qml</file>
         <file>NavitGUI/SearchDrawer.qml</file>
         <file>NavitGUI/SearchDrawerMain.qml</file>

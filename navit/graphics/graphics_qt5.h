@@ -118,7 +118,7 @@ public:
     void overlay_resize(struct point *p, int w, int h, int wraparound) override;
     void overlay_add(GraphicsQt5 &overlay);
     void overlay_remove(GraphicsQt5 &overlay);
-    QSet<GraphicsQt5 *> overlay_get_all();
+    QSet<GraphicsQt5 *> &overlay_get_all();
 
     bool is_root();
     bool disabled();

@@ -76,7 +76,7 @@ class NavitGraphicsInterface
 public:
     NavitGraphicsInterface() = default;
     explicit NavitGraphicsInterface(NavitInterface &navit, callback_list *cbl) {};
-    explicit NavitGraphicsInterface(struct point *p, int w, int h, int wraparound) {};
+    explicit NavitGraphicsInterface(struct point *p, int w, int h, int wraparound, NavitGraphicsInterface &parent) {};
     virtual void draw_mode(enum draw_mode_num mode) = 0;
     virtual void draw_lines(NavitGraphicsContextInterface *gc, struct point *p, int count) = 0;
     virtual void draw_polygon(NavitGraphicsContextInterface *gc, struct point *p, int count) = 0;

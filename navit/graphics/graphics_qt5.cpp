@@ -158,7 +158,7 @@ GraphicsQt5::GraphicsQt5(NavitInterface &navit, callback_list *cbl, QObject *par
 GraphicsQt5::GraphicsQt5(point p, int w, int h, int wraparound, NavitGraphicsInterface &parent) : QObject(&dynamic_cast<GraphicsQt5 &>(parent)),
                                                                                                   m_parent(&dynamic_cast<GraphicsQt5 &>(parent)),
                                                                                                   m_navitInstance(m_parent->get_navit_instance()),
-                                                                                                  m_pixmap(200, 200)
+                                                                                                  m_pixmap(w, h)
 
 {
     qDebug() << "graphics_qt5_new::overlay";
@@ -201,7 +201,7 @@ void GraphicsQt5::overlay_remove(GraphicsQt5 &overlay)
     m_overlays.remove(&overlay);
 }
 
-QSet<GraphicsQt5 *> GraphicsQt5::overlay_get_all()
+QSet<GraphicsQt5 *> &GraphicsQt5::overlay_get_all()
 {
     return m_overlays;
 }
