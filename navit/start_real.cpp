@@ -52,6 +52,8 @@
 #include <QThread>
 #include <QDebug>
 
+#include "NavitConfig.h"
+
 int main_argc;
 char *const *main_argv;
 
@@ -65,6 +67,9 @@ int navit_enter(int argc, char *const *argv)
     char *config_file = NULL, *command = NULL, *startup_file = NULL;
     char *cp;
     struct attr navit, conf;
+
+    // NavitConfig navitConfig;
+
     char program_name[] = "Navit";
     GList *list = NULL, *li;
     main_argc = argc;
@@ -211,6 +216,9 @@ int main(int argc, char **argv)
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
     QGuiApplication app(argc, argv);
+    app.setApplicationName(QString("Navit"));
+    app.setOrganizationName(QString("navit"));
+    app.setOrganizationDomain(QString("navit-project.org"));
 
     navit_enter(argc, argv);
 
