@@ -228,15 +228,17 @@ void Graphics::dpi_patch(struct callback_list *l, enum attr_type type, int pcoun
     /* any more?  attr_keypress doesn't come with coordinates */
 }
 
-Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions) : m_parent(std::nullopt),
-                                                                                  m_navit(navit),
-                                                                                  m_graphics_functions(graphicsFunctions),
-                                                                                  m_callbacks(callback_list_new()),
-                                                                                  m_graphicsInterface(*m_graphics_functions.new_graphics(navit, m_callbacks)),
-                                                                                  m_contextInterface(*m_graphics_functions.new_graphics_context()),
-                                                                                  m_gcBackground(m_contextInterface, this),
-                                                                                  m_gcMiddground(m_contextInterface, this),
-                                                                                  m_gcForeground(m_contextInterface, this)
+Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions,
+                   QObject *parent) : QObject(parent),
+                                      m_parent(std::nullopt),
+                                      m_navit(navit),
+                                      m_graphics_functions(graphicsFunctions),
+                                      m_callbacks(callback_list_new()),
+                                      m_graphicsInterface(*m_graphics_functions.new_graphics(navit, m_callbacks)),
+                                      m_contextInterface(*m_graphics_functions.new_graphics_context()),
+                                      m_gcBackground(m_contextInterface, this),
+                                      m_gcMiddground(m_contextInterface, this),
+                                      m_gcForeground(m_contextInterface, this)
 {
 
     /* start with no scaling */
@@ -274,20 +276,21 @@ Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions) 
  */
 
 Graphics::Graphics(
-    NavitInterface &navit, Graphics &parent,
-    point *p, int w, int h, int wraparound) : m_parent(&parent),
-                                              m_navit(navit),
-                                              m_graphics_functions(parent.get_graphics_functions()),
-                                              m_callbacks(callback_list_new()),
-                                              m_graphicsInterface(
-                                                  *m_graphics_functions.new_graphics_overlay(parent.dpi_scale_point(p),
-                                                                                             parent.dpi_scale(w),
-                                                                                             parent.dpi_scale(h),
-                                                                                             wraparound, parent.get_graphics_interface())),
-                                              m_contextInterface(*m_graphics_functions.new_graphics_context()),
-                                              m_gcBackground(m_contextInterface, this),
-                                              m_gcMiddground(m_contextInterface, this),
-                                              m_gcForeground(m_contextInterface, this)
+    NavitInterface &navit, Graphics &parent_graphics,
+    point *p, int w, int h, int wraparound, QObject *parent) : QObject(parent),
+                                                               m_parent(&parent_graphics),
+                                                               m_navit(navit),
+                                                               m_graphics_functions(parent_graphics.get_graphics_functions()),
+                                                               m_callbacks(callback_list_new()),
+                                                               m_graphicsInterface(
+                                                                   *m_graphics_functions.new_graphics_overlay(parent_graphics.dpi_scale_point(p),
+                                                                                                              parent_graphics.dpi_scale(w),
+                                                                                                              parent_graphics.dpi_scale(h),
+                                                                                                              wraparound, parent_graphics.get_graphics_interface())),
+                                                               m_contextInterface(*m_graphics_functions.new_graphics_context()),
+                                                               m_gcBackground(m_contextInterface, this),
+                                                               m_gcMiddground(m_contextInterface, this),
+                                                               m_gcForeground(m_contextInterface, this)
 {
     assert(m_parent);
 
@@ -303,8 +306,8 @@ Graphics::Graphics(
         },
     };
 
-    m_dpi_factor = parent.get_dpi_factor();
-    m_image_cache_hash = parent.getImageCacheHash();
+    m_dpi_factor = parent_graphics.get_dpi_factor();
+    m_image_cache_hash = parent_graphics.getImageCacheHash();
 
     m_font_size = 20;
     set_rect(&pr);

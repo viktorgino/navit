@@ -29,6 +29,8 @@
 #include <memory>
 #include <cassert>
 
+#include <QObject>
+
 #include "NavitInterfaces.h"
 extern "C"
 {
@@ -214,11 +216,12 @@ struct display_context
     int maxlen;
 };
 
-class Graphics
+class Graphics : public QObject
 {
+    Q_OBJECT
 public:
-    Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions);
-    Graphics(NavitInterface &navit, Graphics &parent, point *p, int w, int h, int wraparound);
+    Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions, QObject *parent = nullptr);
+    Graphics(NavitInterface &navit, Graphics &parent_graphics, point *p, int w, int h, int wraparound, QObject *parent = nullptr);
     ~Graphics();
     GraphicsFunctions &get_graphics_functions();
     NavitGraphicsInterface &get_graphics_interface();

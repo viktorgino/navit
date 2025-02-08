@@ -118,7 +118,10 @@ GraphicsFunctions &getGraphicsFunctions()
     return *static_cast<GraphicsFunctions *>(ret());
 }
 
-Navit::Navit(struct attr *parent, struct attr **attrs) : m_graphics(*this, getGraphicsFunctions()), m_displaylist(m_graphics)
+Navit::Navit(struct attr *parent_attr, struct attr **attrs, QObject *parent) : QObject(parent),
+                                                                               m_parent_attr(parent_attr),
+                                                                               m_graphics(*this, getGraphicsFunctions(), this),
+                                                                               m_displaylist(m_graphics)
 {
     struct pcoord center;
     struct coord co;

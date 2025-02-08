@@ -528,18 +528,20 @@ void GraphicsQt5::draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsCont
     m_painter->setWorldTransform(m, TRUE);
     m_painter->setFont(*font->font);
 
-    // Paint bg
-    QPen shadow;
+    QPen outline;
     QPainterPath path;
-    shadow.setColor(bgContext->pen().color());
-    shadow.setWidth(3);
-    m_painter->setPen(shadow);
+    // outline.setColor(bgContext->pen().color());
+    // TODO: find an universal way for setting this
+    outline.setColor(QColor(0, 0, 0, 200));
+    outline.setWidth(3);
+    m_painter->setPen(outline);
     path.addText(0, 0, *font->font, tmp);
     m_painter->drawPath(path);
 
     // Paint fg
     m_painter->setPen(fgContext->pen());
     m_painter->drawText(0, 0, tmp);
+
     m_painter->setWorldTransform(sav);
 #endif
 }
@@ -834,6 +836,10 @@ QPen &GraphicsContextQt5::pen() { return m_pen; }
 
 QBrush &GraphicsContextQt5::brush() { return m_brush; }
 
+QPen &GraphicsContextQt5::bg_pen() { return m_bg_pen; }
+
+QBrush &GraphicsContextQt5::bg_brush() { return m_bg_brush; }
+
 void GraphicsContextQt5::set_linewidth(int w)
 {
     //        dbg(lvl_debug,"enter gc=%p, %d", gc, w);
@@ -867,18 +873,15 @@ void GraphicsContextQt5::set_dashes(int w, int offset, unsigned char *dash_list,
 void GraphicsContextQt5::set_foreground(struct color *c)
 {
     QColor col(c->r >> 8, c->g >> 8, c->b >> 8, c->a >> 8);
-    //        dbg(lvl_debug,"context %p: color %02x%02x%02x",gc, c->r >> 8, c->g >> 8, c->b >> 8);
     m_pen.setColor(col);
     m_brush.setColor(col);
-    // m_c=*c;
 }
 
 void GraphicsContextQt5::set_background(struct color *c)
 {
     QColor col(c->r >> 8, c->g >> 8, c->b >> 8, c->a >> 8);
-    //        dbg(lvl_debug,"context %p: color %02x%02x%02x",gc, c->r >> 8, c->g >> 8, c->b >> 8);
-    // m_pen.setColor(col);
-    // m_brush.setColor(col);
+    m_bg_pen.setColor(col);
+    m_bg_brush.setColor(col);
 }
 
 void GraphicsContextQt5::set_texture(struct graphics_image *img)
@@ -978,8 +981,9 @@ graphics_font_priv *GraphicsQt5::font_new(char *font, int size, int flags)
     }
 
     /* Convert silly font size to pixels. by 64 is to convert fixpoint to int. */
-    dbg(lvl_debug, "(font %s, %d=%f, %d)", font, size, ((float)size) / 64.0, ((size * 300) / 72) / 64);
-    font_priv->font->setPixelSize(((size * 300) / 72) / 64);
+    // TODO : Fix below calculation
+    font_priv->font->setPixelSize(((size * 400) / 72) / 64);
+    // font_priv->font->setStyleStrategy(QFont::PreferAntialias);
     // font_priv->font->setStyleStrategy(QFont::NoSubpixelAntialias);
     /* Check for bold font */
     if (flags)

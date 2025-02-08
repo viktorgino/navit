@@ -329,7 +329,10 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
         m_order_hashed = m_order;
         m_layout_hashed = m_layout;
     }
-    pro = transform_get_projection(m_display_context.trans);
+    if (m_display_context.trans)
+    {
+        pro = transform_get_projection(m_display_context.trans);
+    }
     while (!cancel)
     {
         if (!m_mapset_handle)

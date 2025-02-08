@@ -66,10 +66,15 @@ public:
     QPen &pen();
     QBrush &brush();
 
+    QPen &bg_pen();
+    QBrush &bg_brush();
+
 private:
     GraphicsQt5 *m_graphics;
     QPen m_pen;
     QBrush m_brush;
+    QPen m_bg_pen;
+    QBrush m_bg_brush;
 };
 
 class GraphicsQt5 : public QObject, public NavitGraphicsInterface

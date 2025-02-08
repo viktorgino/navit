@@ -21,6 +21,9 @@
 #define NAVIT_NAVIT_H
 
 #include <string>
+
+#include <QObject>
+
 #include "NavitInterfaces.h"
 #include "graphics.h"
 
@@ -65,10 +68,11 @@ extern "C"
 }
 #endif
 
-class Navit : public NavitInterface
+class Navit : public QObject, public NavitInterface
 {
+    Q_OBJECT
 public:
-    Navit(struct attr *parent, struct attr **attrs);
+    Navit(struct attr *parent_attr, struct attr **attrs, QObject *parent = nullptr);
     void add_mapset(struct mapset *ms);
     struct mapset *get_mapset() override;
     struct map *get_search_results_map();
@@ -147,6 +151,7 @@ public:
     static char *get_user_data_directory(int create);
 
 private:
+    struct attr *m_parent_attr; // Not used
     Graphics m_graphics;
     GraphicsDisplayList m_displaylist;
 
