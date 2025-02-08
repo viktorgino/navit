@@ -82,19 +82,19 @@ private:
     int busy;
     int m_workload;
     struct callback *cb;
-    struct layout *layout, *layout_hashed;
-    struct display_context dc;
-    int order, order_hashed, max_offset;
-    struct mapset *ms;
-    struct mapset_handle *msh;
+    struct layout *m_layout, *m_layout_hashed;
+    struct display_context m_display_context;
+    int m_order, m_order_hashed, m_max_offset;
+    struct mapset *m_mapset;
+    struct mapset_handle *m_mapset_handle;
     struct map *m;
     int conv;
-    struct map_selection *sel;
-    struct map_rect *mr;
+    struct map_selection *m_map_selection;
+    struct map_rect *m_map_rect;
     struct callback *idle_cb;
     struct event_idle *idle_ev;
     unsigned int seq;
-    std::array<hash_entry, HASH_SIZE> hash_entries;
+    std::array<hash_entry, HASH_SIZE> m_hash_entries;
     GList *m_selection;
 
     int displayitem_within_dist(struct displayitem *di, struct point *p, int dist);

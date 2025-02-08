@@ -18,9 +18,9 @@ struct displaylist_handle
 
 GraphicsDisplayList::GraphicsDisplayList(Graphics &graphics) : m_graphics(graphics)
 {
-    dc.maxlen = ALLOCA_COORD_LIMIT;
+    m_display_context.maxlen = ALLOCA_COORD_LIMIT;
 
-    for (auto &hash_entry : hash_entries)
+    for (auto &hash_entry : m_hash_entries)
     {
         hash_entry.di = nullptr;
         hash_entry.type = type_none;
@@ -69,20 +69,20 @@ void GraphicsDisplayList::load_mapset(struct mapset *mapset, struct transformati
     xdisplay_free();
     dbg(lvl_debug, "order=%d", order);
 
-    dc.gra = &m_graphics;
-    ms = mapset;
-    if (dc.trans && dc.trans != trans)
-        transform_destroy(dc.trans);
-    if (dc.trans != trans)
-        dc.trans = transform_dup(trans);
+    m_display_context.gra = &m_graphics;
+    m_mapset = mapset;
+    if (m_display_context.trans && m_display_context.trans != trans)
+        transform_destroy(m_display_context.trans);
+    if (m_display_context.trans != trans)
+        m_display_context.trans = transform_dup(trans);
     m_workload = async ? 100 : 0;
     cb = cb;
     seq++;
     if (l)
         order += l->order_delta;
-    order = order > 0 ? order : 0;
+    m_order = order > 0 ? order : 0;
     busy = 1;
-    layout = l;
+    m_layout = l;
     if (async)
     {
         if (!idle_cb)
@@ -98,7 +98,7 @@ void GraphicsDisplayList::load_mapset(struct mapset *mapset, struct transformati
 
 void GraphicsDisplayList::clear_hash()
 {
-    for (auto &hash_entry : hash_entries)
+    for (auto &hash_entry : m_hash_entries)
     {
         hash_entry.type = type_none;
     }
@@ -106,22 +106,22 @@ void GraphicsDisplayList::clear_hash()
 
 void GraphicsDisplayList::update_hash()
 {
-    max_offset = 0;
+    m_max_offset = 0;
     clear_hash();
-    update_layers(layout->layers, order);
+    update_layers(m_layout->layers, m_order);
     // dbg(lvl_debug, "max offset %d", max_offset);
 }
 
 struct hash_entry *GraphicsDisplayList::get_hash_entry(enum item_type type)
 {
     int hashidx = (type * 2654435761UL) & (HASH_SIZE - 1);
-    int offset = max_offset;
+    int offset = m_max_offset;
     do
     {
-        if (!hash_entries[hashidx].type)
+        if (!m_hash_entries[hashidx].type)
             return nullptr;
-        if (hash_entries[hashidx].type == type)
-            return &hash_entries[hashidx];
+        if (m_hash_entries[hashidx].type == type)
+            return &m_hash_entries[hashidx];
         hashidx = (hashidx + 1) & (HASH_SIZE - 1);
     } while (offset-- > 0);
     return nullptr;
@@ -133,15 +133,15 @@ struct hash_entry *GraphicsDisplayList::set_hash_entry(enum item_type type)
     int offset = 0;
     for (;;)
     {
-        if (!hash_entries[hashidx].type)
+        if (!m_hash_entries[hashidx].type)
         {
-            hash_entries[hashidx].type = type;
-            if (max_offset < offset)
-                max_offset = offset;
-            return &hash_entries[hashidx];
+            m_hash_entries[hashidx].type = type;
+            if (m_max_offset < offset)
+                m_max_offset = offset;
+            return &m_hash_entries[hashidx];
         }
-        if (hash_entries[hashidx].type == type)
-            return &hash_entries[hashidx];
+        if (m_hash_entries[hashidx].type == type)
+            return &m_hash_entries[hashidx];
         hashidx = (hashidx + 1) & (HASH_SIZE - 1);
         offset++;
     }
@@ -179,8 +179,8 @@ struct displayitem *GraphicsDisplayList::next(struct displaylist_handle *dlh)
             ret = NULL;
             break;
         }
-        if (hash_entries[dlh->hashidx].type)
-            dlh->di = hash_entries[dlh->hashidx].di;
+        if (m_hash_entries[dlh->hashidx].type)
+            dlh->di = m_hash_entries[dlh->hashidx].di;
         dlh->hashidx++;
     }
     return ret;
@@ -193,8 +193,8 @@ void GraphicsDisplayList::close(struct displaylist_handle *dlh)
 
 void GraphicsDisplayList::destroy()
 {
-    if (dc.trans)
-        transform_destroy(dc.trans);
+    if (m_display_context.trans)
+        transform_destroy(m_display_context.trans);
 }
 
 #pragma endregion
@@ -208,7 +208,7 @@ void GraphicsDisplayList::destroy()
  */
 void GraphicsDisplayList::xdisplay_free()
 {
-    for (auto &hash_entry : hash_entries)
+    for (auto &hash_entry : m_hash_entries)
     {
         struct displayitem *di = hash_entry.di;
         while (di)
@@ -231,16 +231,16 @@ void GraphicsDisplayList::xdisplay_draw_elements(struct itemgra *itm, struct lay
     while (es)
     {
         e = (struct element *)es->data;
-        dc.e = e;
+        m_display_context.e = e;
         types = itm->type;
         while (types)
         {
-            dc.type = (item_type)GPOINTER_TO_INT(types->data);
-            entry = get_hash_entry(dc.type);
+            m_display_context.type = (item_type)GPOINTER_TO_INT(types->data);
+            entry = get_hash_entry(m_display_context.type);
             if (entry && entry->di)
             {
-                m_graphics.displayitem_draw(entry->di, l, &dc);
-                m_graphics.display_context_free(&dc);
+                m_graphics.displayitem_draw(entry->di, l, &m_display_context);
+                m_graphics.display_context_free(&m_display_context);
             }
             types = g_list_next(types);
         }
@@ -304,7 +304,7 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
 {
     struct item *item;
     int count;
-    int max = dc.maxlen;
+    int max = m_display_context.maxlen;
     int workload = 0;
     int used = 0;
     struct coord *ca;
@@ -323,37 +323,37 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
         need_free = 1;
     }
 
-    if (order != order_hashed || layout != layout_hashed)
+    if (m_order != m_order_hashed || m_layout != m_layout_hashed)
     {
         update_hash();
-        order_hashed = order;
-        layout_hashed = layout;
+        m_order_hashed = m_order;
+        m_layout_hashed = m_layout;
     }
-    pro = transform_get_projection(dc.trans);
+    pro = transform_get_projection(m_display_context.trans);
     while (!cancel)
     {
-        if (!msh)
-            msh = mapset_open(ms);
+        if (!m_mapset_handle)
+            m_mapset_handle = mapset_open(m_mapset);
         if (!m)
         {
-            m = mapset_next(msh, 1);
+            m = mapset_next(m_mapset_handle, 1);
             if (!m)
             {
-                mapset_close(msh);
-                msh = NULL;
+                mapset_close(m_mapset_handle);
+                m_mapset_handle = NULL;
                 break;
             }
-            dc.pro = map_projection(m);
+            m_display_context.pro = map_projection(m);
             conv = map_requires_conversion(m);
             if (route_selection)
-                sel = (map_selection *)route_selection;
+                m_map_selection = (map_selection *)route_selection;
             else
-                sel = get_selection();
-            mr = map_rect_new(m, sel);
+                m_map_selection = get_selection();
+            m_map_rect = map_rect_new(m, m_map_selection);
         }
-        if (mr)
+        if (m_map_rect)
         {
-            while ((item = map_rect_get_item(mr)))
+            while ((item = map_rect_get_item(m_map_rect)))
             {
                 int label_count = 0;
                 char *labels[2];
@@ -375,7 +375,7 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
                 entry = get_hash_entry(item->type);
                 if (!entry)
                     continue;
-                count = item_coord_get_within_selection(item, ca, item->type < type_line ? 1 : max, sel);
+                count = item_coord_get_within_selection(item, ca, item->type < type_line ? 1 : max, m_map_selection);
                 /* abort if no coordinates within selection at all */
                 if (!count)
                     continue;
@@ -388,24 +388,24 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
                     /* increase to required space, or double space if we couldn't get required space */
                     if (coords_left > 0)
                     {
-                        dc.maxlen = (coords_left + 2);
+                        m_display_context.maxlen = (coords_left + 2);
                     }
                     else
                     {
-                        dc.maxlen = max * 2;
+                        m_display_context.maxlen = max * 2;
                     }
                     dbg(lvl_error, "point count overflow %d for %s " ITEM_ID_FMT ". Increase to %d", count, item_to_name(item->type),
-                        ITEM_ID_ARGS(*item), dc.maxlen);
+                        ITEM_ID_ARGS(*item), m_display_context.maxlen);
                     /* remember the new maximum */
-                    max = dc.maxlen;
+                    max = m_display_context.maxlen;
                     /* get more memory */
                     if (need_free)
                         g_free(ca);
-                    ca = (coord *)g_malloc(sizeof(struct coord) * (dc.maxlen));
+                    ca = (coord *)g_malloc(sizeof(struct coord) * (m_display_context.maxlen));
                     need_free = 1;
                     /* try again to get coordinates */
                     item_coord_rewind(item);
-                    count = item_coord_get_within_selection(item, ca, item->type < type_line ? 1 : max, sel);
+                    count = item_coord_get_within_selection(item, ca, item->type < type_line ? 1 : max, m_map_selection);
                     /* check if we got valid coordinates in second attempt. If not don't try to draw this at all */
                     if (count <= 0)
                     {
@@ -413,8 +413,8 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
                     }
                 }
                 /* transform the coordinates */
-                if (dc.pro != pro)
-                    transform_from_to_count(ca, dc.pro, ca, pro, count);
+                if (m_display_context.pro != pro)
+                    transform_from_to_count(ca, m_display_context.pro, ca, pro, count);
 
                 /* remember the peak coordinates actually used */
                 if (used < count)
@@ -461,12 +461,12 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
                     return;
                 }
             }
-            map_rect_destroy(mr);
+            map_rect_destroy(m_map_rect);
         }
         if (!route_selection)
-            map_selection_destroy(sel);
-        mr = NULL;
-        sel = NULL;
+            map_selection_destroy(m_map_selection);
+        m_map_rect = NULL;
+        m_map_selection = NULL;
         m = NULL;
     }
     if (idle_ev)
@@ -477,21 +477,21 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
     busy = 0;
     process_selection();
     if (!cancel)
-        draw(dc.trans, layout, flags);
-    map_rect_destroy(mr);
+        draw(m_display_context.trans, m_layout, flags);
+    map_rect_destroy(m_map_rect);
     if (!route_selection)
-        map_selection_destroy(sel);
-    mapset_close(msh);
-    mr = NULL;
-    sel = NULL;
+        map_selection_destroy(m_map_selection);
+    mapset_close(m_mapset_handle);
+    m_map_rect = NULL;
+    m_map_selection = NULL;
     m = NULL;
-    msh = NULL;
+    m_mapset_handle = NULL;
     callback_call_1(cb, cancel);
     /* check if we can shrink item buffer next time */
-    if ((dc.maxlen > ALLOCA_COORD_LIMIT) && (used < ALLOCA_COORD_LIMIT))
+    if ((m_display_context.maxlen > ALLOCA_COORD_LIMIT) && (used < ALLOCA_COORD_LIMIT))
     {
         dbg(lvl_debug, "Shrink memory. %d actually used", used);
-        dc.maxlen = ALLOCA_COORD_LIMIT;
+        m_display_context.maxlen = ALLOCA_COORD_LIMIT;
     }
     /* clean up if required */
     if (need_free)
@@ -503,12 +503,12 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
 void GraphicsDisplayList::draw(struct transformation *trans, struct layout *l, int flags)
 {
     int order = transform_get_order(trans);
-    if (dc.trans && dc.trans != trans)
-        transform_destroy(dc.trans);
-    if (dc.trans != trans)
-        dc.trans = transform_dup(trans);
-    dc.gra = &m_graphics;
-    dc.mindist = flags & 512 ? 15 : 2;
+    if (m_display_context.trans && m_display_context.trans != trans)
+        transform_destroy(m_display_context.trans);
+    if (m_display_context.trans != trans)
+        m_display_context.trans = transform_dup(trans);
+    m_display_context.gra = &m_graphics;
+    m_display_context.mindist = flags & 512 ? 15 : 2;
     // FIXME find a better place to set the background color
     m_graphics.set_layout(l);
     m_graphics.draw_mode((flags & 8) ? draw_mode_begin_clear : draw_mode_begin, flags & 1);
@@ -654,7 +654,7 @@ void GraphicsDisplayList::display_add(struct hash_entry *entry, struct item *ite
 
 struct map_selection *GraphicsDisplayList::get_selection()
 {
-    return transform_get_selection(dc.trans, dc.pro, order);
+    return transform_get_selection(m_display_context.trans, m_display_context.pro, m_order);
 }
 
 void GraphicsDisplayList::process_selection()
@@ -866,9 +866,9 @@ int GraphicsDisplayList::displayitem_within_dist(struct displayitem *di, struct 
     int result;
     struct point *pa;
     int count;
-    long pa_buf_size = sizeof(struct point) * dc.maxlen;
+    long pa_buf_size = sizeof(struct point) * m_display_context.maxlen;
 
-    if (dc.maxlen < ALLOCA_COORD_LIMIT)
+    if (m_display_context.maxlen < ALLOCA_COORD_LIMIT)
     {
         pa = (struct point *)g_alloca(pa_buf_size);
     }
@@ -877,7 +877,7 @@ int GraphicsDisplayList::displayitem_within_dist(struct displayitem *di, struct 
         pa = (struct point *)g_malloc(pa_buf_size);
     }
 
-    count = transform_point_buf(dc.trans, dc.pro, di->c, pa, pa_buf_size, di->count, 0, 0, NULL);
+    count = transform_point_buf(m_display_context.trans, m_display_context.pro, di->c, pa, pa_buf_size, di->count, 0, 0, NULL);
 
     if (di->item.type < type_line)
     {
@@ -890,7 +890,7 @@ int GraphicsDisplayList::displayitem_within_dist(struct displayitem *di, struct 
     else
         result = within_dist_polygon(p, pa, count, dist);
 
-    if (dc.maxlen >= ALLOCA_COORD_LIMIT)
+    if (m_display_context.maxlen >= ALLOCA_COORD_LIMIT)
     {
         g_free(pa);
     }
