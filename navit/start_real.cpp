@@ -52,7 +52,9 @@
 #include <QThread>
 #include <QDebug>
 
-#include "NavitConfig.h"
+#include "config_loader.h"
+#include "plugin_loader.h"
+#include "navit.h"
 
 int main_argc;
 char *const *main_argv;
@@ -61,48 +63,12 @@ char *const *main_argv;
 extern void builtin_init(void);
 #endif /* USE_PLUGINS*/
 
-int navit_enter(int argc, char *const *argv)
+int load_xml_config()
 {
-    xmlerror *error = NULL;
-    char *config_file = NULL, *command = NULL, *startup_file = NULL;
-    char *cp;
-    struct attr navit, conf;
-
-    // NavitConfig navitConfig;
-
-    char program_name[] = "Navit";
     GList *list = NULL, *li;
-    main_argc = argc;
-    main_argv = argv;
+    xmlerror *error = NULL;
+    char *config_file = NULL;
 
-    // _g_slice_thread_init_nomessage();
-
-    atom_init();
-    main_init(argv[0]);
-    navit_nls_main_init();
-    //    debug_init(argv[0]);
-
-    cp = getenv("NAVIT_LOGFILE");
-    if (cp)
-    {
-        debug_set_logfile(cp);
-    }
-
-    file_init();
-#ifndef USE_PLUGINS
-    builtin_init();
-#endif
-    // Add plugins
-
-    route_init();
-    navigation_init();
-    tracking_init();
-    search_init();
-    linguistics_init();
-    geom_init();
-    traffic_init();
-    debug_init(program_name);
-    config_file = NULL;
 #ifdef HAVE_GETOPT_H
     opterr = 0; // don't bomb out on errors.
 #endif          /* _MSC_VER */
@@ -143,7 +109,7 @@ int navit_enter(int argc, char *const *argv)
         li = g_list_next(li);
     }
 
-    dbg(lvl_debug, "Loading config from '%s'", config_file);
+    qDebug() << "Loading config from: " << config_file;
     if (!config_load(config_file, &error))
     {
         dbg(lvl_error, _("Error parsing config file '%s': %s"), config_file, error ? error->message : "");
@@ -162,8 +128,50 @@ int navit_enter(int argc, char *const *argv)
         li = g_list_next(li);
     }
     g_list_free(list);
+    return 0;
+}
 
-    // if (! config_get_attr(config, attr_plugins, &plugins, NULL)) {
+int navit_enter(int argc, char *const *argv)
+{
+    char *cp;
+
+    char program_name[] = "Navit";
+    main_argc = argc;
+    main_argv = argv;
+
+    atom_init();
+    main_init(argv[0]);
+    navit_nls_main_init();
+    //    debug_init(argv[0]);
+
+    cp = getenv("NAVIT_LOGFILE");
+    if (cp)
+    {
+        debug_set_logfile(cp);
+    }
+
+    file_init();
+#ifndef USE_PLUGINS
+    builtin_init();
+#endif
+    // Add plugins
+
+    route_init();
+    navigation_init();
+    tracking_init();
+    search_init();
+    linguistics_init();
+    geom_init();
+    traffic_init();
+    debug_init(program_name);
+
+    // if (load_xml_config() > 0)
+    // {
+    //     return 4;
+    // }
+
+    // if (!config_get_attr(config, attr_plugins, &plugins, NULL))
+    // {
     //     dbg(lvl_error, "Internal initialization failed, can't get plugins");
     //     exit(6);
     // }
@@ -171,40 +179,7 @@ int navit_enter(int argc, char *const *argv)
 
     // add_plugin(&navit, plugins.u.plugins, "graphics/libnavit_graphics");
     // plugins_init(plugins.u.plugins);
-
-    if (!(config && config_get_attr(config, attr_navit, &navit, NULL)))
-    {
-        dbg(lvl_error, "%s", _("Internal initialization failed, exiting. Check previous error messages."));
-        exit(5);
-    }
-    conf.type = attr_config;
-    conf.u.config = config;
-    if (startup_file)
-    {
-        FILE *f = fopen(startup_file, "r");
-        if (f)
-        {
-            char buffer[4096];
-            int fclose_ret;
-            while (fgets(buffer, sizeof(buffer), f))
-            {
-                command_evaluate(&conf, buffer);
-            }
-            fclose_ret = fclose(f);
-            if (fclose_ret != 0)
-            {
-                dbg(lvl_error, "Could not close the specified startup file: %s", startup_file);
-            }
-        }
-        else
-        {
-            dbg(lvl_error, "Could not open the specified startup file: %s", startup_file);
-        }
-    }
-    if (command)
-    {
-        command_evaluate(&conf, command);
-    }
+    // plugin_register_category(plugin_category_graphics, "qt5", );
 
     return 0;
 }
@@ -223,6 +198,13 @@ int main(int argc, char **argv)
     navit_enter(argc, argv);
 
     QQmlApplicationEngine engine;
+    ConfigLoader configLoader(&engine);
+    NavitConfig &navitConfig = configLoader.loadNavit("navit.json");
+
+    PluginLoader pluginLoader(navitConfig, &engine);
+    pluginLoader.loadPlugins(navitConfig.plugins);
+
+    Navit navit(navitConfig, pluginLoader, &engine);
 
     engine.addImportPath("navit/");
     engine.addImportPath("navit/graphics");

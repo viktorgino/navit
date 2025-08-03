@@ -26,6 +26,8 @@
 
 #include "NavitInterfaces.h"
 #include "graphics.h"
+#include "config_loader.h"
+#include "plugin_loader.h"
 
 extern "C"
 {
@@ -72,7 +74,7 @@ class Navit : public QObject, public NavitInterface
 {
     Q_OBJECT
 public:
-    Navit(struct attr *parent_attr, struct attr **attrs, QObject *parent = nullptr);
+    Navit(NavitConfig &navitConfig, PluginLoader &pluginLoader, QObject *parent = nullptr);
     void add_mapset(struct mapset *ms);
     struct mapset *get_mapset() override;
     struct map *get_search_results_map();
@@ -151,30 +153,25 @@ public:
     static char *get_user_data_directory(int create);
 
 private:
-    struct attr *m_parent_attr; // Not used
+    NavitConfig &m_config;
+    PluginLoader &m_pluginLoader;
     Graphics m_graphics;
     GraphicsDisplayList m_displaylist;
 
-    struct attr m_self;
+    QList<layer *> m_layers;
 
-    navit_object m_navit_object;
+    struct attr m_self;
 
     GList *m_mapsets;
     GList *m_layouts;
-    char *m_default_layout_name;     /*!< The default layout indicated by the config file (if any) */
     struct layout *m_layout_current; /*!< The current layout theme used to display the map */
     struct action *m_action;
     struct transformation *m_trans, *m_trans_cursor;
     struct compass *m_compass;
-    struct route *m_route;
-    struct navigation *m_navigation;
     struct speech *m_speech;
     struct tracking *m_tracking;
     int m_ready;
     struct window *m_win;
-    int m_tracking_flag;
-    int m_orientation;
-    int m_recentdest_count;
     GList *m_vehicles;
     GList *m_windows_items;
     struct navit_vehicle *m_vehicle;
@@ -183,12 +180,7 @@ private:
     struct datawindow *m_roadbook_window;
     struct map *m_former_destination;
     struct point m_pressed, m_last, m_current;
-    int m_center_timeout;
-    int m_autozoom_secs;
-    int m_autozoom_min;
-    int m_autozoom_max;
-    int m_autozoom_active;
-    int m_autozoom_paused;
+
     struct event_timeout *m_button_timeout, *m_motion_timeout;
     struct callback *m_motion_timeout_callback;
     struct log *m_textfile_debug_log;
@@ -199,33 +191,28 @@ private:
                       1: draw operations are blocked
                       2: draw operations are pending, requiring a redraw once draw operations are unblocked */
     int m_w, m_h;
-    int m_drag_bitmap;
-    int m_use_mousewheel;
+    int m_prevTs;
+    int m_graphics_flags;
+
+    int m_autozoom_active;
+    int m_autozoom_paused;
+
     struct messagelist *m_messages;
     struct callback *m_resize_callback, *m_motion_callback, *m_predraw_callback;
     struct vehicleprofile *m_vehicleprofile;
     GList *m_vehicleprofiles;
-    int m_pitch;
-    int m_follow_cursor;
-    int m_prevTs;
-    int m_graphics_flags;
-    int m_zoom_min, m_zoom_max;
-    int m_radius;
     struct bookmarks *m_bookmarks;
-    int m_flags;
-    /* 1=No graphics ok */
-    /* 2=No gui ok */
-    int m_border;
-    int m_imperial;
-    int m_waypoints_flag;
-    struct coord_geo m_center;
-    int m_auto_switch;        /*auto switching between day/night layout enabled ?*/
-    int m_tunnel_nightlayout; /* switch to nightlayout if we are in a tunnel? */
-    std::string m_layout_before_tunnel;
-    int m_sunrise_degrees;
 
-    void draw_vehicle(struct navit_vehicle *nv, struct point *pnt);
+    struct coord_geo m_center;
+    std::string m_layout_before_tunnel;
+
+    void draw_vehicle(struct navit_vehicle *nv, point *pnt);
+
     int add_vehicle(struct vehicle *v);
+    int add_layout(struct layout *layout);
+    int add_log(struct log *log);
+    int add_layer(struct layer *layer);
+
     int set_attr_do(struct attr *attr, int init);
     int get_cursor_pnt(struct point *p, int keep_orientation, int *dir);
     void set_cursors();
@@ -244,8 +231,6 @@ private:
     int former_destinations_active();
     void add_former_destinations_from_file();
     void set_center_coord_screen(struct coord *c, struct point *p, int set_timeout_);
-    int add_layout(struct layout *layout);
-    int add_log(struct log *log);
 };
 /* end of prototypes */
 

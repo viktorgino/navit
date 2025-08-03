@@ -1,0 +1,163 @@
+{
+    "center": "5150 N 75 W",
+    "zoom": 256,
+    "vehicle_tracking": 1,
+    "orientation": -1,
+    "recent_dest": 250,
+    "drag_bitmap": 0,
+    "default_layout": "Car-Modern",
+    "log": {
+        "enabled": false,
+        "type": "textfile_debug",
+        "data": "debug_%Y%m%d-%i.txt",
+        "flush_size": 1000,
+        "flush_time": 30
+    },
+    "debug": [
+        {
+            "name": "graphics_qt5",
+            "dbg_level": "debug"
+        },
+        {
+            "name": "global",
+            "dbg_level": "error"
+        },
+        {
+            "name": "navit:do_draw",
+            "dbg_level": "error"
+        },
+        {
+            "name": "navit",
+            "dbg_level": "warning"
+        },
+        {
+            "name": "segv",
+            "level": 1
+        },
+        {
+            "name": "timestamps",
+            "level": "0"
+        },
+        {
+            "name": "graphics_qt5",
+            "dbg_level": "info"
+        },
+        {
+            "name": "event_qt5",
+            "dbg_level": "debug"
+        }
+    ],
+    "plugins": [
+        {
+            "path": "navit/*/lib*.so",
+            "ondemand": true
+        },
+        {
+            "path": "$NAVIT_LIBDIR/map/binfile/libmap_binfile.so",
+            "ondemand": true
+        },
+        {
+            "path": "navit/map/textfile/libmap_textfile.so",
+            "ondemand": true
+        },
+        {
+            "path": "navit/map/binfile/libmap_binfile.so",
+            "ondemand": true
+        },
+        {
+            "path": "navit/vehicle/demo/libvehicle_demo.so",
+            "ondemand": true
+        },
+        {
+            "path": "$NAVIT_LIBDIR/*/lib*.so",
+            "active": true
+        },
+        {
+            "path": "$NAVIT_LIBDIR/autoload/${NAVIT_LIBPREFIX}lib*.so"
+        },
+        {
+            "path": "$NAVIT_LIBDIR/*/${NAVIT_LIBPREFIX}libgraphics_null.so",
+            "active": false
+        }
+    ],
+    "vehicle": [
+        {
+            "name": "Local GPS",
+            "profilename": "car",
+            "enabled": false,
+            "source": "gpsd://localhost",
+            "gpsd_query": "w+xj",
+            "log": {
+                "enabled": false,
+                "type": "gpx",
+                "attr_types": "position_time_iso8601,position_direction,position_speed,profilename,position_radius",
+                "data": "track_%Y%m%d-%%i.gpx",
+                "flush_size": 1000,
+                "flush_time": 30
+            }
+        },
+        {
+            "name": "Demo",
+            "profilename": "car",
+            "enabled": true,
+            "active": 1,
+            "follow": 1,
+            "source": "demo://"
+        }
+    ],
+    "tracking": {
+        "cdf_histsize": 0
+    },
+    "route": {
+        "destination_distance": 50
+    },
+    "navigation": {
+        "announce": [
+            {
+                "type": "street_0,street_1_city,street_parking_lane,living_street,street_service",
+                "level0": 25,
+                "level1": 100,
+                "level2": 200,
+                "unit": "m"
+            },
+            {
+                "type": "street_2_city,street_3_city,street_4_city,ramp",
+                "level0": 50,
+                "level1": 200,
+                "level2": 500,
+                "unit": "m"
+            },
+            {
+                "type": "highway_city,street_1_land,street_2_land,street_3_land,street_4_land",
+                "level0": 100,
+                "level1": 400,
+                "level2": 1000,
+                "unit": "m"
+            },
+            {
+                "type": "street_n_lanes,highway_land",
+                "level0": 300,
+                "level1": 1000,
+                "level2": 2000,
+                "unit": "m"
+            }
+        ]
+    },
+    "mapset": {
+        "enabled": true
+    },
+    "layout": {
+        "layer": {
+            "itemgra": {
+                "polyline": {
+                    "color": "#0000a0",
+                    "width": 20
+                },
+                "item_types": "street_route_occluded",
+                "order": "0-"
+            },
+            "name": "streets"
+        },
+        "name": "Route"
+    }
+}

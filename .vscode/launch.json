@@ -8,6 +8,8 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
+            "visualizerFile": "${workspaceFolder}/.vscode/qt5.natvis.xml",
+            "showDisplayString": true,
             "program": "${workspaceFolder}/build/navit_app",
             "args": [],
             "stopAtEntry": false,
@@ -23,8 +25,13 @@
                     "ignoreFailures": true
                 },
                 {
-                    "description":  "Set Disassembly Flavor to Intel",
+                    "description": "Set Disassembly Flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Enable MIEngine",
+                    "text": "-interpreter=mi",
                     "ignoreFailures": true
                 }
             ]

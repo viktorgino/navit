@@ -19,7 +19,6 @@
 
 #include "plugin.h"
 
-
 /**
  * @defgroup plugins
  * @brief A interface to handle all plugins inside navit
@@ -29,7 +28,8 @@
 
 static GList *plugin_categories[plugin_category_last];
 
-struct plugin {
+struct plugin
+{
     int active;
     int lazy;
     int ondemand;
@@ -38,48 +38,57 @@ struct plugin {
     void (*init)(void);
 };
 
-struct plugins {
+struct plugins
+{
     GHashTable *hash;
     GList *list;
 } *pls;
 
-static struct plugin *plugin_new_from_path(char *plugin) {
+static struct plugin *plugin_new_from_path(char *plugin)
+{
 #ifdef USE_PLUGINS
     struct plugin *ret;
-    if (! g_module_supported()) {
+    if (!g_module_supported())
+    {
         return NULL;
     }
-    ret=g_new0(struct plugin, 1);
-    ret->name=g_strdup(plugin);
+    ret = g_new0(struct plugin, 1);
+    ret->name = g_strdup(plugin);
     return ret;
 #else
     return NULL;
 #endif
 }
 
-int plugin_load(struct plugin *pl) {
+int plugin_load(struct plugin *pl)
+{
 #ifdef USE_PLUGINS
     gpointer init;
 
     GModule *mod;
 
-    if (pl->mod) {
-        dbg(lvl_debug,"'%s' already loaded, returning", pl->name);
+    if (pl->mod)
+    {
+        dbg(lvl_debug, "'%s' already loaded, returning", pl->name);
         return 1;
     }
-    mod=g_module_open(pl->name, G_MODULE_BIND_LOCAL | (pl->lazy ? G_MODULE_BIND_LAZY : 0));
-    if (! mod) {
-        dbg(lvl_error,"can't load '%s', Error '%s'", pl->name, g_module_error());
+    mod = g_module_open(pl->name, G_MODULE_BIND_LOCAL | (pl->lazy ? G_MODULE_BIND_LAZY : 0));
+    if (!mod)
+    {
+        dbg(lvl_error, "can't load '%s', Error '%s'", pl->name, g_module_error());
         return 0;
     }
-    if (!g_module_symbol(mod, "plugin_init", &init)) {
-        dbg(lvl_error,"can't load '%s', plugin_init not found", pl->name);
+    if (!g_module_symbol(mod, "plugin_init", &init))
+    {
+        dbg(lvl_error, "can't load '%s', plugin_init not found", pl->name);
         g_module_close(mod);
         return 0;
-    } else {
+    }
+    else
+    {
         printf("loaded module %s\n", pl->name);
-        pl->mod=mod;
-        pl->init=init;
+        pl->mod = mod;
+        pl->init = init;
     }
     return 1;
 #else
@@ -87,114 +96,122 @@ int plugin_load(struct plugin *pl) {
 #endif
 }
 
-char *plugin_get_name(struct plugin *pl) {
+char *plugin_get_name(struct plugin *pl)
+{
     return pl->name;
 }
 
-int plugin_get_active(struct plugin *pl) {
+int plugin_get_active(struct plugin *pl)
+{
     return pl->active;
 }
 
-void plugin_set_active(struct plugin *pl, int active) {
-    pl->active=active;
+void plugin_set_active(struct plugin *pl, int active)
+{
+    pl->active = active;
 }
 
-void plugin_set_lazy(struct plugin *pl, int lazy) {
-    pl->lazy=lazy;
+void plugin_set_lazy(struct plugin *pl, int lazy)
+{
+    pl->lazy = lazy;
 }
 
 #ifdef USE_PLUGINS
-static int plugin_get_ondemand(struct plugin *pl) {
+static int plugin_get_ondemand(struct plugin *pl)
+{
     return pl->ondemand;
 }
 #endif
 
-static void plugin_set_ondemand(struct plugin *pl, int ondemand) {
-    pl->ondemand=ondemand;
+static void plugin_set_ondemand(struct plugin *pl, int ondemand)
+{
+    pl->ondemand = ondemand;
 }
 
-void plugin_call_init(struct plugin *pl) {
+void plugin_call_init(struct plugin *pl)
+{
     pl->init();
 }
 
-void plugin_unload(struct plugin *pl) {
+void plugin_unload(struct plugin *pl)
+{
 #ifdef USE_PLUGINS
     g_module_close(pl->mod);
-    pl->mod=NULL;
+    pl->mod = NULL;
 #endif
 }
 
-void plugin_destroy(struct plugin *pl) {
+void plugin_destroy(struct plugin *pl)
+{
     g_free(pl);
 }
 
 struct plugins *
-plugins_new(struct attr * in, struct attr ** out) {
-    struct plugins *ret=g_new0(struct plugins, 1);
-    ret->hash=g_hash_table_new(g_str_hash, g_str_equal);
-    pls=ret;
+plugins_new(struct attr *in, struct attr **out)
+{
+    struct plugins *ret = g_new0(struct plugins, 1);
+    ret->hash = g_hash_table_new(g_str_hash, g_str_equal);
+    pls = ret;
     return ret;
 }
 
 struct plugin *
-plugin_new(struct attr *parent, struct attr **attrs) {
-#ifdef USE_PLUGINS
-    struct attr *path_attr, *attr;
+plugin_new(char *path_pattern, int active, int lazy, int ondemand)
+{
     struct file_wordexp *we;
-    int active=1; // default active
-    int lazy=0, ondemand=0;
     int i, count;
     char **array;
     char *name;
-    struct plugin *pl=NULL;
-    struct plugins *pls=NULL;
+    struct plugin *pl = NULL;
+    struct plugins *pls = NULL;
 
-    if (parent)
-        pls=parent->u.plugins;
-
-    if (! (path_attr=attr_search(attrs, attr_path))) {
-        dbg(lvl_error,"missing path");
+    // if (parent)
+    // pls = parent->u.plugins;
+    if (!path_pattern)
+    {
+        dbg(lvl_error, "Invalid path_pattern");
         return NULL;
     }
-    if ( (attr=attr_search(attrs, attr_active))) {
-        active=attr->u.num;
-    }
-    if ( (attr=attr_search(attrs, attr_lazy))) {
-        lazy=attr->u.num;
-    }
-    if ( (attr=attr_search(attrs, attr_ondemand))) {
-        ondemand=attr->u.num;
-    }
-    dbg(lvl_debug, "path=\"%s\", active=%d, lazy=%d, ondemand=%d",path_attr->u.str, active, lazy, ondemand);
 
-    we=file_wordexp_new(path_attr->u.str);
-    count=file_wordexp_get_count(we);
-    array=file_wordexp_get_array(we);
-    dbg(lvl_info,"expanded to %d words",count);
-    if (count != 1 || file_exists(array[0])) {
-        for (i = 0 ; i < count ; i++) {
-            name=array[i];
-            dbg(lvl_info,"found plugin module file [%d]: '%s'", i, name);
-            if (! (pls && (pl=g_hash_table_lookup(pls->hash, name)))) {
-                pl=plugin_new_from_path(name);
-                if (! pl) {
-                    dbg(lvl_error,"failed to create plugin from file '%s'", name);
+    dbg(lvl_debug, "path=\"%s\", active=%d, lazy=%d, ondemand=%d", path_pattern, active, lazy, ondemand);
+
+    we = file_wordexp_new(path_pattern);
+    count = file_wordexp_get_count(we);
+    array = file_wordexp_get_array(we);
+    dbg(lvl_info, "expanded to %d words", count);
+    if (count != 1 || file_exists(array[0]))
+    {
+        for (i = 0; i < count; i++)
+        {
+            name = array[i];
+            dbg(lvl_info, "found plugin module file [%d]: '%s'", i, name);
+            if (!(pls && (pl = g_hash_table_lookup(pls->hash, name))))
+            {
+                pl = plugin_new_from_path(name);
+                if (!pl)
+                {
+                    dbg(lvl_error, "failed to create plugin from file '%s'", name);
                     continue;
                 }
-                if (pls) {
+                if (pls)
+                {
                     g_hash_table_insert(pls->hash, plugin_get_name(pl), pl);
-                    pls->list=g_list_append(pls->list, pl);
+                    pls->list = g_list_append(pls->list, pl);
                 }
-            } else {
-                if (pls) {
-                    pls->list=g_list_remove(pls->list, pl);
-                    pls->list=g_list_append(pls->list, pl);
+            }
+            else
+            {
+                if (pls)
+                {
+                    pls->list = g_list_remove(pls->list, pl);
+                    pls->list = g_list_append(pls->list, pl);
                 }
             }
             plugin_set_active(pl, active);
             plugin_set_lazy(pl, lazy);
             plugin_set_ondemand(pl, ondemand);
-            if (!pls && active) {
+            if (!pls && active)
+            {
                 if (!plugin_load(pl))
                     plugin_set_active(pl, 0);
                 else
@@ -204,41 +221,46 @@ plugin_new(struct attr *parent, struct attr **attrs) {
     }
     file_wordexp_destroy(we);
     return pl;
-#else
-    return 0;
-#endif
 }
 
-int plugins_init(struct plugins *pls) {
+int plugins_init(struct plugins *pls)
+{
     struct plugin *pl;
     GList *l;
 
-    l=pls->list;
-    if (l) {
-        while (l) {
-            pl=l->data;
-            if (! plugin_get_ondemand(pl)) {
+    l = pls->list;
+    if (l)
+    {
+        while (l)
+        {
+            pl = l->data;
+            if (!plugin_get_ondemand(pl))
+            {
                 if (plugin_get_active(pl))
                     if (!plugin_load(pl))
                         plugin_set_active(pl, 0);
                 if (plugin_get_active(pl))
                     plugin_call_init(pl);
             }
-            l=g_list_next(l);
+            l = g_list_next(l);
         }
-    } else {
+    }
+    else
+    {
         dbg(lvl_error, "Warning: No plugins found. Is Navit installed correctly?");
     }
     return 0;
 }
 
-void plugins_destroy(struct plugins *pls) {
+void plugins_destroy(struct plugins *pls)
+{
     GList *l;
     struct plugin *pl;
 
-    l=pls->list;
-    while (l) {
-        pl=l->data;
+    l = pls->list;
+    while (l)
+    {
+        pl = l->data;
         plugin_unload(pl);
         plugin_destroy(pl);
     }
@@ -247,18 +269,21 @@ void plugins_destroy(struct plugins *pls) {
     g_free(pls);
 }
 
-static void *find_by_name(enum plugin_category category, const char *name) {
-    GList *name_list=plugin_categories[category];
-    while (name_list) {
-        struct name_val *nv=name_list->data;
+static void *find_by_name(enum plugin_category category, const char *name)
+{
+    GList *name_list = plugin_categories[category];
+    while (name_list)
+    {
+        struct name_val *nv = name_list->data;
         if (!g_ascii_strcasecmp(nv->name, name))
             return nv->val;
-        name_list=g_list_next(name_list);
+        name_list = g_list_next(name_list);
     }
     return NULL;
 }
 
-const char * plugin_category_to_category_name(enum plugin_category category) {
+const char *plugin_category_to_category_name(enum plugin_category category)
+{
     switch (category)
     {
     case plugin_category_graphics:
@@ -284,55 +309,58 @@ const char * plugin_category_to_category_name(enum plugin_category category) {
     }
 }
 
-void *plugin_get_category(enum plugin_category category, const char *name) {
+void *plugin_get_category(enum plugin_category category, const char *name)
+{
     GList *plugin_list;
     struct plugin *pl;
-    char *mod_name, *filename=NULL, *corename=NULL;
-    void *result=NULL;
+    char *mod_name, *filename = NULL, *corename = NULL;
+    void *result = NULL;
     const char *category_name = plugin_category_to_category_name(category);
     dbg(lvl_debug, "category=\"%s\", name=\"%s\"", category_name, name);
 
-    if ((result=find_by_name(category, name))) {
+    if ((result = find_by_name(category, name)))
+    {
         return result;
     }
     if (!pls)
         return NULL;
-    plugin_list=pls->list;
-    filename=g_strjoin("", "lib", category_name, "_", name, NULL);
-    corename=g_strjoin("", "lib", category_name, "_", "core", NULL);
-    while (plugin_list) {
-        pl=plugin_list->data;
-        if ((mod_name=g_strrstr(pl->name, "/")))
+    plugin_list = pls->list;
+    filename = g_strjoin("", "lib", category_name, "_", name, NULL);
+    corename = g_strjoin("", "lib", category_name, "_", "core", NULL);
+    while (plugin_list)
+    {
+        pl = plugin_list->data;
+        if ((mod_name = g_strrstr(pl->name, "/")))
             mod_name++;
         else
-            mod_name=pl->name;
-        if (!g_ascii_strncasecmp(mod_name, filename, strlen(filename))
-                || !g_ascii_strncasecmp(mod_name, corename, strlen(corename))) {
-            dbg(lvl_debug, "Loading module \"%s\"",pl->name) ;
+            mod_name = pl->name;
+        if (!g_ascii_strncasecmp(mod_name, filename, strlen(filename)) || !g_ascii_strncasecmp(mod_name, corename, strlen(corename)))
+        {
+            dbg(lvl_debug, "Loading module \"%s\"", pl->name);
             if (plugin_get_active(pl))
                 if (!plugin_load(pl))
                     plugin_set_active(pl, 0);
             if (plugin_get_active(pl))
                 plugin_call_init(pl);
-            if ((result=find_by_name(category, name))) {
+            if ((result = find_by_name(category, name)))
+            {
                 g_free(filename);
                 g_free(corename);
                 return result;
             }
         }
-        plugin_list=g_list_next(plugin_list);
+        plugin_list = g_list_next(plugin_list);
     }
     g_free(filename);
     g_free(corename);
     return NULL;
 }
 
-
 void plugin_register_category(enum plugin_category category, const char *name, void *plugin_new)
 {
     struct name_val *nv;
-    nv=g_new(struct name_val, 1);
-    nv->name=g_strdup(name);
-	nv->val=plugin_new;
-	plugin_categories[category]=g_list_append(plugin_categories[category], nv);
+    nv = g_new(struct name_val, 1);
+    nv->name = g_strdup(name);
+    nv->val = plugin_new;
+    plugin_categories[category] = g_list_append(plugin_categories[category], nv);
 }

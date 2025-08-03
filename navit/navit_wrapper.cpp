@@ -79,7 +79,9 @@ void navit_zoom_out_cursor(NavitHandle navit, int factor)
 }
 NavitHandle navit_new(struct attr *parent, struct attr **attrs)
 {
-    return (NavitHandle) new Navit(parent, attrs);
+    // return (NavitHandle) new Navit(attrs);
+    qCritical() << "Trying to construct navit through C API";
+    return nullptr;
 }
 void navit_add_message(NavitHandle navit, const char *message)
 {

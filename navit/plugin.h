@@ -91,12 +91,12 @@ extern "C"
     void plugin_unload(struct plugin *pl);
     void plugin_destroy(struct plugin *pl);
     struct plugins *plugins_new(struct attr *, struct attr **);
-    struct plugin *plugin_new(struct attr *parent, struct attr **attrs);
+    struct plugin *plugin_new(char *path_pattern, int active, int lazy, int ondemand);
     int plugins_init(struct plugins *pls);
     void plugins_destroy(struct plugins *pls);
     void *plugin_get_category(enum plugin_category category, const char *name);
     void plugin_register_category(enum plugin_category category, const char *name, void *plugin_new);
-    const char * plugin_category_to_category_name(enum plugin_category category);
+    const char *plugin_category_to_category_name(enum plugin_category category);
     /* end of prototypes */
 
 #ifdef __cplusplus

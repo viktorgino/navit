@@ -93,6 +93,11 @@
         "cfenv": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp",
-        "valarray": "cpp"
-    }
+        "valarray": "cpp",
+        "qfile": "c",
+        "qjsondocument": "c",
+        "qmetaproperty": "c",
+        "qcolor": "c"
+    },
+    "C_Cpp.loggingLevel": "Error"
 }
