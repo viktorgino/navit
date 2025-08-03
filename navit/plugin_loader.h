@@ -12,13 +12,14 @@ extern "C"
 #include "track.h"
 #include "route.h"
 #include "navigation.h"
+#include "navit_wrapper.h"
 }
 
 class PluginLoader : public QObject
 {
     Q_OBJECT
 public:
-    PluginLoader(NavitConfig &navitConfig, QObject *parent = nullptr);
+    PluginLoader(NavitConfig &navitConfig, NavitHandle navit, QObject *parent = nullptr);
     void loadDebug(QList<NavitDebugConfig> &debugConfigs);
     void loadPlugins(QList<NavitPluginConfig> &plugins);
     void loadVehicles(QList<NavitVehicleConfig> &vehicles);
@@ -32,6 +33,7 @@ public:
 
 private:
     NavitConfig &m_navitConfig;
+    NavitHandle m_navit;
 
     QList<debug *> m_debugConfigs;
     QList<plugin *> m_plugins;

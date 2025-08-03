@@ -201,10 +201,7 @@ int main(int argc, char **argv)
     ConfigLoader configLoader(&engine);
     NavitConfig &navitConfig = configLoader.loadNavit("navit.json");
 
-    PluginLoader pluginLoader(navitConfig, &engine);
-    pluginLoader.loadPlugins(navitConfig.plugins);
-
-    Navit navit(navitConfig, pluginLoader, &engine);
+    Navit navit(navitConfig, &engine);
 
     engine.addImportPath("navit/");
     engine.addImportPath("navit/graphics");

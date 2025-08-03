@@ -118,11 +118,11 @@ GraphicsFunctions &getGraphicsFunctions()
     return *static_cast<GraphicsFunctions *>(ret());
 }
 
-Navit::Navit(NavitConfig &navitConfig, PluginLoader &pluginLoader, QObject *parent) : QObject(parent),
-                                                                                      m_config(navitConfig),
-                                                                                      m_pluginLoader(pluginLoader),
-                                                                                      m_graphics(*this, getGraphicsFunctions(), this),
-                                                                                      m_displaylist(m_graphics)
+Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
+                                                          m_config(navitConfig),
+                                                          m_pluginLoader(m_config, this, this),
+                                                          m_graphics(*this, getGraphicsFunctions(), this),
+                                                          m_displaylist(m_graphics)
 {
     struct pcoord center;
     struct coord co;

@@ -1,6 +1,8 @@
 #include "plugin_loader.h"
 
-PluginLoader::PluginLoader(NavitConfig &navitConfig, QObject *parent) : QObject(parent), m_navitConfig(navitConfig)
+PluginLoader::PluginLoader(NavitConfig &navitConfig, NavitHandle navit, QObject *parent) : QObject(parent),
+                                                                                           m_navitConfig(navitConfig),
+                                                                                           m_navit(navit)
 {
     loadDebug(m_navitConfig.debug);
     loadPlugins(m_navitConfig.plugins);
@@ -28,9 +30,11 @@ void PluginLoader::loadPlugins(QList<NavitPluginConfig> &plugins)
 
 void PluginLoader::loadVehicles(QList<NavitVehicleConfig> &vehicles)
 {
-    // for (const NavitVehicleConfig &vehicle : vehicles)
-    // {
-    // }
+    struct attr *a = g_new0(struct attr, 0);
+    for (const NavitVehicleConfig &vehicle : vehicles)
+    {
+        vehicle_new(NULL);
+    }
 }
 
 void PluginLoader::loadTracking(NavitTrackingConfig &tracking)
@@ -38,7 +42,7 @@ void PluginLoader::loadTracking(NavitTrackingConfig &tracking)
     struct attr *a = g_new0(struct attr, 1);
     a->type = attr_cdf_histsize;
     a->u.num = tracking.cdf_histsize;
-    m_tracking = tracking_new(NULL, &a);
+    m_tracking = tracking_new(NULL, attr_generic_set_attr(NULL, a));
 }
 
 void PluginLoader::loadRoute(NavitRouteConfig &route)
@@ -51,12 +55,15 @@ void PluginLoader::loadRoute(NavitRouteConfig &route)
 
 void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
 {
-    struct attr *a = g_new0(struct attr, 1);
-    m_navigation = navigation_new(NULL, &a);
+    struct attr *parent = g_new0(struct attr, 1);
+    parent->u.navit = m_navit;
+
+    struct attr *a = g_new0(struct attr, 0);
+
+    m_navigation = navigation_new(parent, &a);
 
     for (const NavitAnnounceConfig &announce : navigation.announce)
     {
-        // QStringList typeBits =
         for (const QString &type : announce.type.split(","))
         {
             item_type itemType = item_from_name(type.toLocal8Bit().data());

@@ -74,7 +74,7 @@ class Navit : public QObject, public NavitInterface
 {
     Q_OBJECT
 public:
-    Navit(NavitConfig &navitConfig, PluginLoader &pluginLoader, QObject *parent = nullptr);
+    Navit(NavitConfig &navitConfig, QObject *parent = nullptr);
     void add_mapset(struct mapset *ms);
     struct mapset *get_mapset() override;
     struct map *get_search_results_map();
@@ -154,7 +154,7 @@ public:
 
 private:
     NavitConfig &m_config;
-    PluginLoader &m_pluginLoader;
+    PluginLoader m_pluginLoader;
     Graphics m_graphics;
     GraphicsDisplayList m_displaylist;
 
@@ -169,7 +169,6 @@ private:
     struct transformation *m_trans, *m_trans_cursor;
     struct compass *m_compass;
     struct speech *m_speech;
-    struct tracking *m_tracking;
     int m_ready;
     struct window *m_win;
     GList *m_vehicles;
