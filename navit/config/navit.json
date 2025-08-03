@@ -143,9 +143,12 @@
             }
         ]
     },
-    "mapset": {
-        "enabled": true
-    },
+    "mapset": [
+        {
+            "type": "binfile",
+            "data": "/home/viktorgino/.navit/osm_bbox_-9.7,49.6,2.2,61.2.bin"
+        }
+    ],
     "layout": {
         "layer": {
             "itemgra": {

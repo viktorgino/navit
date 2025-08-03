@@ -137,6 +137,8 @@ Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
 
     m_pluginLoader.loadModules();
 
+    add_vehicle(m_pluginLoader.getVehicle());
+
     m_attr_cbl = callback_list_new();
 
     m_autozoom_active = 0;
@@ -2608,7 +2610,7 @@ int Navit::add_attr(struct attr *attr)
         qWarning() << "Can't change tracking";
         break;
     case attr_vehicle:
-        ret = add_vehicle(attr->u.vehicle);
+        qWarning() << "Can't change vehicle";
         break;
     case attr_vehicleprofile:
         m_vehicleprofiles = g_list_append(m_vehicleprofiles, attr->u.vehicleprofile);

@@ -103,7 +103,7 @@
 <!ATTLIST map enabled CDATA #IMPLIED>
 <!ATTLIST map active CDATA #IMPLIED>
 <!ATTLIST map data CDATA #REQUIRED>
-<!ATTLIST map debug CDATA #IMPLIED>
+<!ATTLIST map cursor CDATA #IMPLIED>
 <!ELEMENT layout (cursor*,xi:include*,layer+)*>
 <!ATTLIST layout name CDATA #REQUIRED>
 <!ATTLIST layout active CDATA #IMPLIED>

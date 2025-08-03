@@ -80,7 +80,7 @@ void PluginLoader::loadVehicles(QList<NavitVehicleConfig> &vehicles)
     vehicleAttrs = attr_generic_set_attr(vehicleAttrs, follow);
     vehicleAttrs = attr_generic_set_attr(vehicleAttrs, active);
 
-    vehicle_new(NULL, vehicleAttrs);
+    m_vehicle = vehicle_new(NULL, vehicleAttrs);
 }
 
 void PluginLoader::loadTracking(NavitTrackingConfig &tracking)
@@ -131,8 +131,14 @@ void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
     }
 }
 
+void PluginLoader::loadMaps(QList<NavitMap> &maps)
+{
+}
+
 tracking *PluginLoader::getTracking() { return m_tracking; }
 
 route *PluginLoader::getRoute() { return m_route; }
 
 navigation *PluginLoader::getNavigation() { return m_navigation; }
+
+vehicle *PluginLoader::getVehicle() { return m_vehicle; }

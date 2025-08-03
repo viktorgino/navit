@@ -26,6 +26,7 @@ public:
     tracking *getTracking();
     route *getRoute();
     navigation *getNavigation();
+    vehicle *getVehicle();
 
 private:
     NavitConfig &m_navitConfig;
@@ -33,7 +34,7 @@ private:
 
     QList<debug *> m_debugConfigs;
     QList<plugin *> m_plugins;
-    QList<vehicle *> m_vehicles;
+    vehicle *m_vehicle;
     tracking *m_tracking;
     route *m_route;
     navigation *m_navigation;

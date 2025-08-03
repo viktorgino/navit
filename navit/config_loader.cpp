@@ -41,6 +41,10 @@ const static QMap<QString, NewTypeBuilder> typeBuilders{
         "NavitNavigationConfig*",
         build_struct<NavitNavigationConfig>,
     },
+    {
+        "QList<NavitMap>*",
+        build_struct<QList<NavitMap>>,
+    },
 };
 
 template <typename T>

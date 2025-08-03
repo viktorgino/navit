@@ -132,6 +132,18 @@ private:
     }
 };
 
+struct NavitMap
+{
+    Q_GADGET
+    Q_PROPERTY(QString type MEMBER type REQUIRED)
+    Q_PROPERTY(QString data MEMBER data REQUIRED)
+    Q_PROPERTY(bool enabled MEMBER enabled)
+public:
+    QString type;
+    QString data;
+    bool enabled = true;
+};
+
 struct NavitConfig
 {
     Q_GADGET
@@ -151,6 +163,7 @@ struct NavitConfig
     Q_PROPERTY(NavitTrackingConfig *tracking READ getTracking CONSTANT)
     Q_PROPERTY(NavitRouteConfig *route READ getRoute CONSTANT)
     Q_PROPERTY(NavitNavigationConfig *navigation READ getNavigation CONSTANT)
+    Q_PROPERTY(QList<NavitMap> *maps READ getNavigation CONSTANT)
 
 public:
     QString center;
@@ -169,6 +182,7 @@ public:
     NavitTrackingConfig tracking;
     NavitRouteConfig route;
     NavitNavigationConfig navigation;
+    QList<NavitMap> maps;
 
     int tracking_flag = 1;
     int recentdest_count = 10;
@@ -219,6 +233,10 @@ private:
     {
         return &navigation;
     }
+    QList<NavitMap> *getMaps()
+    {
+        return &maps;
+    }
 };
 
 Q_DECLARE_METATYPE(NavitLogConfig *)
@@ -229,6 +247,7 @@ Q_DECLARE_METATYPE(NavitTrackingConfig *)
 Q_DECLARE_METATYPE(NavitRouteConfig *)
 Q_DECLARE_METATYPE(QList<NavitAnnounceConfig> *)
 Q_DECLARE_METATYPE(NavitNavigationConfig *)
+Q_DECLARE_METATYPE(QList<NavitMap> *)
 
 class ConfigLoader : public QObject
 {
