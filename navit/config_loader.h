@@ -163,7 +163,7 @@ struct NavitConfig
     Q_PROPERTY(NavitTrackingConfig *tracking READ getTracking CONSTANT)
     Q_PROPERTY(NavitRouteConfig *route READ getRoute CONSTANT)
     Q_PROPERTY(NavitNavigationConfig *navigation READ getNavigation CONSTANT)
-    Q_PROPERTY(QList<NavitMap> *maps READ getNavigation CONSTANT)
+    Q_PROPERTY(QList<NavitMap> *maps READ getMaps CONSTANT)
 
 public:
     QString center;

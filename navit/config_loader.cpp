@@ -43,7 +43,7 @@ const static QMap<QString, NewTypeBuilder> typeBuilders{
     },
     {
         "QList<NavitMap>*",
-        build_struct<QList<NavitMap>>,
+        build_struct<NavitMap>,
     },
 };
 

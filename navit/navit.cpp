@@ -138,6 +138,7 @@ Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
     m_pluginLoader.loadModules();
 
     add_vehicle(m_pluginLoader.getVehicle());
+    add_mapset(m_pluginLoader.getMapset());
 
     m_attr_cbl = callback_list_new();
 
@@ -2166,7 +2167,7 @@ int Navit::set_attr_do(struct attr *attr, int init)
         m_config.sunrise_degrees = attr->u.num;
         break;
     default:
-        qCritical() << "Calling generic attribute setter: " << attr_to_name(attr->type);
+        qCritical() << "Calling generic attribute setter: " << attr_to_name(attr->type) << attr->type;
         dbg(lvl_debug, "calling generic setter method for attribute type %s", attr_to_name(attr->type));
         // return navit_object_set_attr(&m_navit_object, attr);
         return 1;

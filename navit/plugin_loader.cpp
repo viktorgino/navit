@@ -13,6 +13,7 @@ void PluginLoader::loadModules()
     loadTracking(m_navitConfig.tracking);
     loadRoute(m_navitConfig.route);
     loadNavigation(m_navitConfig.navigation);
+    loadMaps(m_navitConfig.maps);
 }
 
 void PluginLoader::loadDebug(QList<NavitDebugConfig> &debugConfigs)
@@ -35,7 +36,6 @@ void PluginLoader::loadVehicles(QList<NavitVehicleConfig> &vehicles)
 {
     bool vehicleFound = false;
 
-    struct attr *a = g_new0(struct attr, 0);
     struct attr **vehicleAttrs = NULL;
 
     struct attr *navit = g_new0(struct attr, 1);
@@ -85,18 +85,18 @@ void PluginLoader::loadVehicles(QList<NavitVehicleConfig> &vehicles)
 
 void PluginLoader::loadTracking(NavitTrackingConfig &tracking)
 {
-    struct attr *a = g_new0(struct attr, 1);
-    a->type = attr_cdf_histsize;
-    a->u.num = tracking.cdf_histsize;
-    m_tracking = tracking_new(NULL, attr_generic_set_attr(NULL, a));
+    struct attr *attrs = g_new0(struct attr, 1);
+    attrs->type = attr_cdf_histsize;
+    attrs->u.num = tracking.cdf_histsize;
+    m_tracking = tracking_new(NULL, attr_generic_set_attr(NULL, attrs));
 }
 
 void PluginLoader::loadRoute(NavitRouteConfig &route)
 {
-    struct attr *a = g_new0(struct attr, 1);
-    a->type = attr_destination_distance;
-    a->u.num = route.destination_distance;
-    m_route = route_new(NULL, &a);
+    struct attr *attrs = g_new0(struct attr, 1);
+    attrs->type = attr_destination_distance;
+    attrs->u.num = route.destination_distance;
+    m_route = route_new(NULL, &attrs);
 }
 
 void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
@@ -104,9 +104,9 @@ void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
     struct attr *parent = g_new0(struct attr, 1);
     parent->u.navit = m_navit;
 
-    struct attr *a = g_new0(struct attr, 0);
+    struct attr *attrs = g_new0(struct attr, 0);
 
-    m_navigation = navigation_new(parent, &a);
+    m_navigation = navigation_new(parent, &attrs);
 
     for (const NavitAnnounceConfig &announce : navigation.announce)
     {
@@ -133,6 +133,24 @@ void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
 
 void PluginLoader::loadMaps(QList<NavitMap> &maps)
 {
+    struct attr *attrs = g_new0(struct attr, 0);
+
+    m_mapset = mapset_new(NULL, &attrs);
+
+    for (const NavitMap &map : maps)
+    {
+        struct attr map_attr;
+        struct attr *map_attrs = g_new0(struct attr, 2);
+
+        map_attrs[0].type = attr_type;
+        map_attrs[0].u.str = map.type.toLocal8Bit().data();
+        map_attrs[1].type = attr_data;
+        map_attrs[1].u.str = map.data.toLocal8Bit().data();
+
+        map_attr.type = attr_map;
+        map_attr.u.map = map_new(NULL, &map_attrs);
+        mapset_add_attr(m_mapset, &map_attr);
+    }
 }
 
 tracking *PluginLoader::getTracking() { return m_tracking; }
@@ -142,3 +160,5 @@ route *PluginLoader::getRoute() { return m_route; }
 navigation *PluginLoader::getNavigation() { return m_navigation; }
 
 vehicle *PluginLoader::getVehicle() { return m_vehicle; }
+
+mapset *PluginLoader::getMapset() { return m_mapset; }

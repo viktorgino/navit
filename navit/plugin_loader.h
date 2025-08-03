@@ -12,6 +12,8 @@ extern "C"
 #include "track.h"
 #include "route.h"
 #include "navigation.h"
+#include "mapset.h"
+#include "map.h"
 #include "navit_wrapper.h"
 }
 
@@ -27,6 +29,7 @@ public:
     route *getRoute();
     navigation *getNavigation();
     vehicle *getVehicle();
+    mapset *getMapset();
 
 private:
     NavitConfig &m_navitConfig;
@@ -38,6 +41,7 @@ private:
     tracking *m_tracking;
     route *m_route;
     navigation *m_navigation;
+    mapset *m_mapset;
 
     void loadDebug(QList<NavitDebugConfig> &debugConfigs);
     void loadPlugins(QList<NavitPluginConfig> &plugins);
@@ -45,6 +49,7 @@ private:
     void loadTracking(NavitTrackingConfig &tracking);
     void loadRoute(NavitRouteConfig &route);
     void loadNavigation(NavitNavigationConfig &navigation);
+    void loadMaps(QList<NavitMap> &maps);
 };
 
 #endif
