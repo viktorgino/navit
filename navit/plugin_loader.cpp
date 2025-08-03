@@ -6,6 +6,9 @@ PluginLoader::PluginLoader(NavitConfig &navitConfig, NavitHandle navit, QObject 
 {
     loadDebug(m_navitConfig.debug);
     loadPlugins(m_navitConfig.plugins);
+}
+void PluginLoader::loadModules()
+{
     loadVehicles(m_navitConfig.vehicle);
     loadTracking(m_navitConfig.tracking);
     loadRoute(m_navitConfig.route);

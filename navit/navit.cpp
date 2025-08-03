@@ -135,6 +135,8 @@ Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
     m_self.type = attr_navit;
     m_self.u.navit = this;
 
+    m_pluginLoader.loadModules();
+
     m_attr_cbl = callback_list_new();
 
     m_autozoom_active = 0;
