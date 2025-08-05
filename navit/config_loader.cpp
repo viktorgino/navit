@@ -55,6 +55,7 @@ void populateProperties(const QMetaObject *configMeta, QVariantMap &jsonObjectMa
 
         if (configValue.isValid())
         {
+            qDebug() << property.typeName() << property.type();
             if (property.type() == QVariant::Type::UserType)
             {
                 // Custom types
@@ -77,6 +78,7 @@ void populateProperties(const QMetaObject *configMeta, QVariantMap &jsonObjectMa
         populateProperties(configMeta->superClass(), jsonObjectMap, configObject, parent);
     }
 }
+
 template <typename T>
 void build_struct(const QVariant &jsonObject, QVariant &configVariant, QObject *parent)
 {
@@ -105,13 +107,43 @@ void build_list(const QVariant &jsonList, QVariant &propertyValue, QObject *pare
     }
 }
 
+LayoutElementType element_type_from_string(const QString type)
+{
+    if (type == "point")
+        return LayoutElementType::LayoutElementPoint;
+    else if (type == "polyline")
+        return LayoutElementType::LayoutElementPolyline;
+    else if (type == "polygon")
+        return LayoutElementType::LayoutElementPolygon;
+    else if (type == "circle")
+        return LayoutElementType::LayoutElementCircle;
+    else if (type == "text")
+        return LayoutElementType::LayoutElementText;
+    else if (type == "icon")
+        return LayoutElementType::LayoutElementIcon;
+    else if (type == "image")
+        return LayoutElementType::LayoutElementImage;
+    else if (type == "arrows")
+        return LayoutElementType::LayoutElementArrows;
+    else if (type == "spikes")
+        return LayoutElementType::LayoutElementSpikes;
+    else
+        assert(false);
+};
+
 template <typename T>
 LayoutItemGraphItem *build_itemgraph_item(const QVariant &jsonItem, QObject *parent)
 {
-    T *newItem = new T;
+    // Exctract type and remove it from map
+    assert(jsonItem.type() == QVariant::Type::Map);
+    QVariantMap jsonObjectMap = jsonItem.toMap();
+    LayoutElementType type = element_type_from_string(jsonObjectMap["type"].toString());
+    jsonObjectMap.remove("type");
+
+    T *newItem = new T(type);
     newItem->setParent(parent);
     QVariant newItemVariant = QVariant::fromValue(newItem);
-    build_struct<T>(jsonItem, newItemVariant, parent);
+    build_struct<T>(jsonObjectMap, newItemVariant, parent);
     return newItem;
 }
 

@@ -202,12 +202,39 @@ int main(int argc, char **argv)
     Layout layout;
 
     ConfigLoader::loadNavit("navit.json", navitConfig);
-    ConfigLoader::loadLayout("navit_layout_car_modern_2.json", layout);
+    ConfigLoader::loadLayout("navit_layout_car_modern.json", layout);
 
-    LayoutCircle *circle = static_cast<LayoutCircle *>(layout.cursors[0]->itemgra[0]->items[1]);
-    qDebug() << circle->radius;
-    qDebug() << circle->width;
-    qDebug() << circle->color;
+    auto cursors = layout.getCursors();
+    auto cursor = cursors[0][0];
+    auto itemgras = cursor->getItemgra();
+    auto itemgra = itemgras[0][0];
+    auto items = itemgra->getItems();
+    auto item = items[0][1];
+
+    LayoutCircle *circle = static_cast<LayoutCircle *>(item);
+    LayoutElementType type = circle->getType();
+    qDebug() << circle->getRadius();
+    qDebug() << circle->getWidth();
+    qDebug() << circle->getColor();
+
+    if (type == LayoutElementPoint)
+        qDebug() << "Point";
+    if (type == LayoutElementPolyline)
+        qDebug() << "Polyline";
+    if (type == LayoutElementPolygon)
+        qDebug() << "Polygon";
+    if (type == LayoutElementCircle)
+        qDebug() << "Circle";
+    if (type == LayoutElementText)
+        qDebug() << "Text";
+    if (type == LayoutElementIcon)
+        qDebug() << "Icon";
+    if (type == LayoutElementImage)
+        qDebug() << "Image";
+    if (type == LayoutElementArrows)
+        qDebug() << "Arrows";
+    if (type == LayoutElementSpikes)
+        qDebug() << "Spike";
 
     Navit navit(navitConfig, &engine);
 

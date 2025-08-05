@@ -6,7 +6,7 @@
 			"label": "CMake: build",
 			"command": "build",
 			"targets": [
-				"all"
+				"navit_app"
 			],
 			"group": "build",
 			"problemMatcher": [],

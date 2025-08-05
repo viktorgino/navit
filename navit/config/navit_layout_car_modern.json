@@ -2,8 +2,8 @@
     "name": "Car-Modern",
     "color": "#bbe2c6",
     "font": "Liberation Sans",
-    "icon_w": "22",
-    "icon_h": "22",
+    "icon_w": 22,
+    "icon_h": 22,
     "underground_alpha": "0x77",
     "cursors": [
         {
