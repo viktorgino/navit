@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "visualizerFile": "${workspaceFolder}/.vscode/qt5.natvis.xml",
+            "visualizerFile": "${workspaceFolder}/.vscode/qt5_2.natvis",
             "showDisplayString": true,
             "program": "${workspaceFolder}/build/navit_app",
             "args": [],

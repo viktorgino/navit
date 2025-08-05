@@ -37,7 +37,7 @@ add_library (navit_core SHARED announcement.c atom.c attr.c cache.c callback.c c
 event.c file.c geom.c graphics.cpp graphics_displaylist.cpp item.c layout.c log.c main.c map.c maps.c
 linguistics.c mapset.c maptype.c messages.c bookmarks.c navit.cpp navit_wrapper.cpp navit_nls.c navigation.c param.c phrase.c plugin.c
 profile.c profile_option.c projection.c roadprofile.c route.c search.c speech.c sunriset.c transform.c track.c
-search_houseno_interpol.c traffic.c util.c vehicle.c vehicleprofile.c xmlconfig.c start_real.cpp includes/NavitConfig.h config_loader.cpp plugin_loader.cpp)
+search_houseno_interpol.c traffic.c util.c vehicle.c vehicleprofile.c xmlconfig.c start_real.cpp includes/NavitConfig.h config_loader.cpp plugin_loader.cpp config_loader_navit.h config_loader_layout.h)
 
 target_compile_definitions(navit_core PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>)
 target_link_libraries(navit_core ${NAVIT_LIBS})
@@ -62,7 +62,7 @@ message("Copying files: ${XML_FILES}")
 add_custom_target(navit_config_xml ALL DEPENDS COMMAND cp ${XML_FILES} ${CMAKE_BINARY_DIR})
 
 # Install all JSON files
-set(JSONCFG_ALL_FILE_PREFIXES "navit")
+set(JSONCFG_ALL_FILE_PREFIXES "navit;navit_layout_car_modern")
 set(JSON_FILES "")
 foreach(JSONFILE_PREFIX ${JSONCFG_ALL_FILE_PREFIXES})
     set(JSON_FILES ${JSON_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/config/${JSONFILE_PREFIX}.json)

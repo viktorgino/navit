@@ -198,23 +198,31 @@ int main(int argc, char **argv)
     navit_enter(argc, argv);
 
     QQmlApplicationEngine engine;
-    ConfigLoader configLoader(&engine);
-    NavitConfig &navitConfig = configLoader.loadNavit("navit.json");
+    NavitConfig navitConfig;
+    Layout layout;
 
-    Navit navit(navitConfig, &engine);
+    // ConfigLoader::loadNavit("navit.json", navitConfig);
+    ConfigLoader::loadLayout("navit_layout_car_modern_2.json", layout);
 
-    engine.addImportPath("navit/");
-    engine.addImportPath("navit/graphics");
+    LayoutCircle *circle = static_cast<LayoutCircle *>(layout.cursors[0].itemgra[0].items[1]);
+    qDebug() << circle->radius;
+    qDebug() << circle->width;
+    qDebug() << circle->color;
+    return 0;
+    // Navit navit(navitConfig, &engine);
 
-    engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
-    if (engine.rootObjects().isEmpty())
-        return -1;
+    // engine.addImportPath("navit/");
+    // engine.addImportPath("navit/graphics");
 
-    qDebug() << "Loading QML";
-    int ret = app.exec();
-    navit_exit();
-    qDebug() << "Finished with : " << ret;
-    return ret;
+    // engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
+    // if (engine.rootObjects().isEmpty())
+    //     return -1;
+
+    // qDebug() << "Loading QML";
+    // int ret = app.exec();
+    // navit_exit();
+    // qDebug() << "Finished with : " << ret;
+    // return ret;
 }
 
 void navit_exit()
