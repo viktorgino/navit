@@ -87,7 +87,7 @@ public:
     int cdf_histsize;
 };
 
-class NavitRouteConfig
+class NavitRouteConfig : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int destination_distance MEMBER destination_distance)
@@ -238,6 +238,6 @@ Q_DECLARE_METATYPE(QList<NavitDebugConfig *> *)
 Q_DECLARE_METATYPE(QList<NavitVehicleConfig *> *)
 Q_DECLARE_METATYPE(NavitTrackingConfig *)
 Q_DECLARE_METATYPE(NavitRouteConfig *)
-Q_DECLARE_METATYPE(QList<NavitAnnounceConfig> *)
+Q_DECLARE_METATYPE(QList<NavitAnnounceConfig *> *)
 Q_DECLARE_METATYPE(NavitNavigationConfig *)
 Q_DECLARE_METATYPE(QList<NavitMap *> *)

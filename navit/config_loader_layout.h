@@ -26,6 +26,7 @@ public:
     int x;
     int y;
 };
+
 class LayoutItemGraphItem : public QObject
 {
     Q_OBJECT
@@ -47,6 +48,7 @@ private:
         return &coords;
     }
 };
+
 class LayoutSpikes : public LayoutItemGraphItem
 {
     Q_OBJECT
@@ -57,6 +59,7 @@ public:
     int width;
     int distance;
 };
+
 class LayoutArrows : public LayoutItemGraphItem
 {
     Q_OBJECT
@@ -65,6 +68,7 @@ class LayoutArrows : public LayoutItemGraphItem
 public:
     int width;
 };
+
 class LayoutIcon : public LayoutItemGraphItem
 {
     Q_OBJECT
@@ -83,6 +87,7 @@ public:
     int y;
     int rotation;
 };
+
 class LayoutCircle : public LayoutItemGraphItem
 {
     Q_OBJECT
@@ -95,6 +100,7 @@ public:
     int width;
     QString background_color;
 };
+
 class LayoutText : public LayoutItemGraphItem
 {
     Q_OBJECT
@@ -103,6 +109,7 @@ class LayoutText : public LayoutItemGraphItem
 public:
     QString background_color;
 };
+
 class LayoutPolyline : public LayoutItemGraphItem
 {
     Q_OBJECT
@@ -119,6 +126,7 @@ public:
     int directed;
     int radius;
 };
+
 class LayoutPolygon : public LayoutItemGraphItem
 {
     Q_OBJECT
@@ -137,12 +145,14 @@ public:
     int y;
     int rotation;
 };
+
 class LayoutImage : public LayoutItemGraphItem
 {
     Q_OBJECT
 
 public:
 };
+
 class LayoutItemGraph : public QObject
 {
     Q_OBJECT
@@ -163,6 +173,7 @@ private:
         return &items;
     }
 };
+
 class LayoutCursor : public QObject
 {
     Q_OBJECT
@@ -181,6 +192,7 @@ private:
         return &itemgra;
     }
 };
+
 class LayoutLayer : public QObject
 {
     Q_OBJECT
@@ -207,6 +219,7 @@ private:
         return &itemgraphs;
     }
 };
+
 class Layout : public QObject
 {
     Q_OBJECT

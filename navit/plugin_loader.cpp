@@ -16,23 +16,23 @@ void PluginLoader::loadModules()
     loadMaps(m_navitConfig.maps);
 }
 
-void PluginLoader::loadDebug(QList<NavitDebugConfig> &debugConfigs)
+void PluginLoader::loadDebug(QList<NavitDebugConfig *> &debugConfigs)
 {
     // for (const NavitDebugConfig &debug : debugConfigs)
     // {
     // }
 }
 
-void PluginLoader::loadPlugins(QList<NavitPluginConfig> &plugins)
+void PluginLoader::loadPlugins(QList<NavitPluginConfig *> &plugins)
 {
-    for (const NavitPluginConfig &plugin : plugins)
+    for (const NavitPluginConfig *plugin : plugins)
     {
-        auto pl = plugin_new(plugin.path.toLocal8Bit().data(), plugin.active, plugin.lazy, plugin.ondemand);
+        auto pl = plugin_new(plugin->path.toLocal8Bit().data(), plugin->active, plugin->lazy, plugin->ondemand);
         m_plugins.append(pl);
     }
 }
 
-void PluginLoader::loadVehicles(QList<NavitVehicleConfig> &vehicles)
+void PluginLoader::loadVehicles(QList<NavitVehicleConfig *> &vehicles)
 {
     bool vehicleFound = false;
 
@@ -54,16 +54,16 @@ void PluginLoader::loadVehicles(QList<NavitVehicleConfig> &vehicles)
 
     navit->u.navit = m_navit;
 
-    for (const NavitVehicleConfig &vehicle : vehicles)
+    for (const NavitVehicleConfig *vehicle : vehicles)
     {
-        if (vehicle.active)
+        if (vehicle->active)
         {
             vehicleFound = true;
-            profilename->u.str = vehicle.profilename.toLocal8Bit().data();
-            source->u.str = vehicle.source.toLocal8Bit().data();
-            name->u.str = vehicle.name.toLocal8Bit().data();
-            follow->u.num = vehicle.follow;
-            active->u.num = vehicle.active;
+            profilename->u.str = vehicle->profilename.toLocal8Bit().data();
+            source->u.str = vehicle->source.toLocal8Bit().data();
+            name->u.str = vehicle->name.toLocal8Bit().data();
+            follow->u.num = vehicle->follow;
+            active->u.num = vehicle->active;
         }
     }
 
@@ -108,15 +108,15 @@ void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
 
     m_navigation = navigation_new(parent, &attrs);
 
-    for (const NavitAnnounceConfig &announce : navigation.announce)
+    for (const NavitAnnounceConfig *announce : navigation.announce)
     {
-        for (const QString &type : announce.type.split(","))
+        for (const QString &type : announce->type.split(","))
         {
             item_type itemType = item_from_name(type.toLocal8Bit().data());
             int level[] = {
-                announce.level0,
-                announce.level1,
-                announce.level2,
+                announce->level0,
+                announce->level1,
+                announce->level2,
             };
 
             if (itemType != type_none)
@@ -131,21 +131,21 @@ void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
     }
 }
 
-void PluginLoader::loadMaps(QList<NavitMap> &maps)
+void PluginLoader::loadMaps(QList<NavitMap *> &maps)
 {
     struct attr *attrs = g_new0(struct attr, 0);
 
     m_mapset = mapset_new(NULL, &attrs);
 
-    for (const NavitMap &map : maps)
+    for (const NavitMap *map : maps)
     {
         struct attr map_attr;
         struct attr *map_attrs = g_new0(struct attr, 2);
 
         map_attrs[0].type = attr_type;
-        map_attrs[0].u.str = map.type.toLocal8Bit().data();
+        map_attrs[0].u.str = map->type.toLocal8Bit().data();
         map_attrs[1].type = attr_data;
-        map_attrs[1].u.str = map.data.toLocal8Bit().data();
+        map_attrs[1].u.str = map->data.toLocal8Bit().data();
 
         map_attr.type = attr_map;
         map_attr.u.map = map_new(NULL, &map_attrs);

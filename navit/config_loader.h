@@ -19,7 +19,7 @@ public:
 
 private:
     template <typename T>
-    static void loadFromFile(const QString &fileName, QVariant &configObject);
+    static void loadFromFile(const QString &fileName, QObject &configObject);
     template <typename T>
-    static void loadFromJson(const QVariant &configJson, QVariant &configObject);
+    static void loadFromJson(const QVariant &configJson, QObject &configObject);
 };

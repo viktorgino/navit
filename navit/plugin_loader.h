@@ -43,13 +43,13 @@ private:
     navigation *m_navigation;
     mapset *m_mapset;
 
-    void loadDebug(QList<NavitDebugConfig> &debugConfigs);
-    void loadPlugins(QList<NavitPluginConfig> &plugins);
-    void loadVehicles(QList<NavitVehicleConfig> &vehicles);
+    void loadDebug(QList<NavitDebugConfig *> &debugConfigs);
+    void loadPlugins(QList<NavitPluginConfig *> &plugins);
+    void loadVehicles(QList<NavitVehicleConfig *> &vehicles);
     void loadTracking(NavitTrackingConfig &tracking);
     void loadRoute(NavitRouteConfig &route);
     void loadNavigation(NavitNavigationConfig &navigation);
-    void loadMaps(QList<NavitMap> &maps);
+    void loadMaps(QList<NavitMap *> &maps);
 };
 
 #endif
