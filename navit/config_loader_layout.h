@@ -1,6 +1,6 @@
 #pragma once
 #include <QObject>
-#include <QList>
+#include <QVector>
 #include <QString>
 #include <QColor>
 
@@ -23,11 +23,11 @@ class LayoutCoord : public QObject
     Q_PROPERTY(int y MEMBER m_y REQUIRED)
 
 public:
-    int getX()
+    int &getX()
     {
         return m_x;
     }
-    int getY()
+    int &getY()
     {
         return m_y;
     }
@@ -43,7 +43,7 @@ class LayoutItemGraphItem : public QObject
     Q_PROPERTY(QString color MEMBER m_color)
     Q_PROPERTY(int oneway MEMBER m_oneway)
     Q_PROPERTY(int text_size MEMBER m_text_size)
-    Q_PROPERTY(QList<LayoutCoord *> *coords READ getCoords CONSTANT)
+    Q_PROPERTY(QVector<LayoutCoord *> coords MEMBER m_coords)
     Q_PROPERTY(LayoutElementType type MEMBER m_type)
 
 public:
@@ -52,21 +52,21 @@ public:
     {
         return m_type;
     }
-    QString getColor()
+    QString &getColor()
     {
         return m_color;
     }
-    int getOneway()
+    int &getOneway()
     {
         return m_oneway;
     }
-    int getTextSize()
+    int &getTextSize()
     {
         return m_text_size;
     }
-    QList<LayoutCoord *> *getCoords()
+    QVector<LayoutCoord *> getCoords()
     {
-        return &m_coords;
+        return m_coords;
     }
 
 private:
@@ -74,7 +74,7 @@ private:
     QString m_color;
     int m_oneway;
     int m_text_size;
-    QList<LayoutCoord *> m_coords;
+    QVector<LayoutCoord *> m_coords;
     Q_ENUM(LayoutElementType)
 };
 
@@ -86,11 +86,11 @@ class LayoutSpikes : public LayoutItemGraphItem
 
 public:
     using LayoutItemGraphItem::LayoutItemGraphItem;
-    int getWidth()
+    int &getWidth()
     {
         return m_width;
     }
-    int getDistance()
+    int &getDistance()
     {
         return m_distance;
     }
@@ -107,7 +107,7 @@ class LayoutArrows : public LayoutItemGraphItem
 
 public:
     using LayoutItemGraphItem::LayoutItemGraphItem;
-    int getWidth()
+    int &getWidth()
     {
         return m_width;
     }
@@ -128,27 +128,27 @@ class LayoutIcon : public LayoutItemGraphItem
 
 public:
     using LayoutItemGraphItem::LayoutItemGraphItem;
-    QString getSrc()
+    QString &getSrc()
     {
         return m_src;
     }
-    int getW()
+    int &getW()
     {
         return m_w;
     }
-    int getH()
+    int &getH()
     {
         return m_h;
     }
-    int getX()
+    int &getX()
     {
         return m_x;
     }
-    int getY()
+    int &getY()
     {
         return m_y;
     }
-    int getRotation()
+    int &getRotation()
     {
         return m_rotation;
     }
@@ -171,15 +171,15 @@ class LayoutCircle : public LayoutItemGraphItem
 
 public:
     using LayoutItemGraphItem::LayoutItemGraphItem;
-    int getRadius()
+    int &getRadius()
     {
         return m_radius;
     }
-    int getWidth()
+    int &getWidth()
     {
         return m_width;
     }
-    QString getBackgroundColor()
+    QString &getBackgroundColor()
     {
         return m_background_color;
     }
@@ -197,7 +197,7 @@ class LayoutText : public LayoutItemGraphItem
 
 public:
     using LayoutItemGraphItem::LayoutItemGraphItem;
-    QString getBackgroundColor()
+    QString &getBackgroundColor()
     {
         return m_background_color;
     }
@@ -217,23 +217,23 @@ class LayoutPolyline : public LayoutItemGraphItem
 
 public:
     using LayoutItemGraphItem::LayoutItemGraphItem;
-    int getWidth()
+    int &getWidth()
     {
         return m_width;
     }
-    QString getDash()
+    QString &getDash()
     {
         return m_dash;
     }
-    int getOffset()
+    int &getOffset()
     {
         return m_offset;
     }
-    int getDirected()
+    int &getDirected()
     {
         return m_directed;
     }
-    int getRadius()
+    int &getRadius()
     {
         return m_radius;
     }
@@ -258,27 +258,27 @@ class LayoutPolygon : public LayoutItemGraphItem
 
 public:
     using LayoutItemGraphItem::LayoutItemGraphItem;
-    QString getSrc()
+    QString &getSrc()
     {
         return m_src;
     }
-    int getW()
+    int &getW()
     {
         return m_w;
     }
-    int getH()
+    int &getH()
     {
         return m_h;
     }
-    int getX()
+    int &getX()
     {
         return m_x;
     }
-    int getY()
+    int &getY()
     {
         return m_y;
     }
-    int getRotation()
+    int &getRotation()
     {
         return m_rotation;
     }
@@ -308,31 +308,31 @@ class LayoutItemGraph : public QObject
     Q_PROPERTY(QString item_types MEMBER m_item_types)
     Q_PROPERTY(QString order MEMBER m_order)
     Q_PROPERTY(QString speed_range MEMBER m_speed_range)
-    Q_PROPERTY(QList<LayoutItemGraphItem *> *items READ getItems CONSTANT)
+    Q_PROPERTY(QVector<LayoutItemGraphItem *> items MEMBER m_items)
 
 public:
-    QString getItemTypes()
+    QString &getItemTypes()
     {
         return m_item_types;
     }
-    QString getOrder()
+    QString &getOrder()
     {
         return m_order;
     }
-    QString getSpeedRange()
+    QString &getSpeedRange()
     {
         return m_speed_range;
     }
-    QList<LayoutItemGraphItem *> *getItems()
+    QVector<LayoutItemGraphItem *> getItems()
     {
-        return &m_items;
+        return m_items;
     }
 
 private:
     QString m_item_types;
     QString m_order;
     QString m_speed_range;
-    QList<LayoutItemGraphItem *> m_items;
+    QVector<LayoutItemGraphItem *> m_items;
 };
 
 class LayoutCursor : public QObject
@@ -340,26 +340,26 @@ class LayoutCursor : public QObject
     Q_OBJECT
     Q_PROPERTY(int w MEMBER m_w REQUIRED)
     Q_PROPERTY(int h MEMBER m_h REQUIRED)
-    Q_PROPERTY(QList<LayoutItemGraph *> *itemgra READ getItemgra CONSTANT)
+    Q_PROPERTY(QVector<LayoutItemGraph *> itemgra MEMBER m_itemgra)
 
 public:
-    int getW()
+    int &getW()
     {
         return m_w;
     }
-    int getH()
+    int &getH()
     {
         return m_h;
     }
-    QList<LayoutItemGraph *> *getItemgra()
+    QVector<LayoutItemGraph *> getItemgra()
     {
-        return &m_itemgra;
+        return m_itemgra;
     }
 
 private:
     int m_w;
     int m_h;
-    QList<LayoutItemGraph *> m_itemgra;
+    QVector<LayoutItemGraph *> m_itemgra;
 };
 
 class LayoutLayer : public QObject
@@ -371,36 +371,36 @@ class LayoutLayer : public QObject
     Q_PROPERTY(QString order MEMBER m_order)
     Q_PROPERTY(QString ref MEMBER m_ref)
     Q_PROPERTY(QString active MEMBER m_active)
-    Q_PROPERTY(QList<LayoutItemGraph *> *itemgraphs READ getItemgraphs CONSTANT)
+    Q_PROPERTY(QVector<LayoutItemGraph *> itemgraphs MEMBER m_itemgraphs)
 
 public:
-    QString getEnabled()
+    QString &getEnabled()
     {
         return m_enabled;
     }
-    QString getName()
+    QString &getName()
     {
         return m_name;
     }
-    QString getDetails()
+    QString &getDetails()
     {
         return m_details;
     }
-    QString getOrder()
+    QString &getOrder()
     {
         return m_order;
     }
-    QString getRef()
+    QString &getRef()
     {
         return m_ref;
     }
-    QString getActive()
+    QString &getActive()
     {
         return m_active;
     }
-    QList<LayoutItemGraph *> *getItemgraphs()
+    QVector<LayoutItemGraph *> getItemgraphs()
     {
-        return &m_itemgraphs;
+        return m_itemgraphs;
     }
 
 private:
@@ -410,7 +410,7 @@ private:
     QString m_order;
     QString m_ref;
     QString m_active;
-    QList<LayoutItemGraph *> m_itemgraphs;
+    QVector<LayoutItemGraph *> m_itemgraphs;
 };
 
 class Layout : public QObject
@@ -425,53 +425,53 @@ class Layout : public QObject
     Q_PROPERTY(int icon_w MEMBER m_icon_w)
     Q_PROPERTY(int icon_h MEMBER m_icon_h)
     Q_PROPERTY(QString underground_alpha MEMBER m_underground_alpha)
-    Q_PROPERTY(QList<LayoutCursor *> *cursors READ getCursors CONSTANT)
-    Q_PROPERTY(QList<LayoutLayer *> *layers READ getLayers CONSTANT)
+    Q_PROPERTY(QVector<LayoutCursor *> cursors MEMBER m_cursors)
+    Q_PROPERTY(QVector<LayoutLayer *> layers MEMBER m_layers)
 
 public:
-    QString getName()
+    QString &getName()
     {
         return m_name;
     }
-    int getActive()
+    int &getActive()
     {
         return m_active;
     }
-    QString getColor()
+    QString &getColor()
     {
         return m_color;
     }
-    QString getFont()
+    QString &getFont()
     {
         return m_font;
     }
-    QString getDaylayout()
+    QString &getDaylayout()
     {
         return m_daylayout;
     }
-    QString getNightlayout()
+    QString &getNightlayout()
     {
         return m_nightlayout;
     }
-    int getIconW()
+    int &getIconW()
     {
         return m_icon_w;
     }
-    int getIconH()
+    int &getIconH()
     {
         return m_icon_h;
     }
-    QString getUndergroundAlpha()
+    QString &getUndergroundAlpha()
     {
         return m_underground_alpha;
     }
-    QList<LayoutCursor *> *getCursors()
+    QVector<LayoutCursor *> getCursors()
     {
-        return &m_cursors;
+        return m_cursors;
     }
-    QList<LayoutLayer *> *getLayers()
+    QVector<LayoutLayer *> getLayers()
     {
-        return &m_layers;
+        return m_layers;
     }
 
 private:
@@ -484,22 +484,22 @@ private:
     int m_icon_w;
     int m_icon_h;
     QString m_underground_alpha;
-    QList<LayoutCursor *> m_cursors;
-    QList<LayoutLayer *> m_layers;
+    QVector<LayoutCursor *> m_cursors;
+    QVector<LayoutLayer *> m_layers;
 };
 
 Q_DECLARE_METATYPE(LayoutElementType)
-Q_DECLARE_METATYPE(QList<LayoutCoord *> *)
-Q_DECLARE_METATYPE(QList<LayoutItemGraphItem *> *)
-Q_DECLARE_METATYPE(QList<LayoutSpikes *> *)
-Q_DECLARE_METATYPE(QList<LayoutArrows *> *)
-Q_DECLARE_METATYPE(QList<LayoutIcon *> *)
-Q_DECLARE_METATYPE(QList<LayoutCircle *> *)
-Q_DECLARE_METATYPE(QList<LayoutText *> *)
-Q_DECLARE_METATYPE(QList<LayoutPolyline *> *)
-Q_DECLARE_METATYPE(QList<LayoutPolygon *> *)
-Q_DECLARE_METATYPE(QList<LayoutImage *> *)
-Q_DECLARE_METATYPE(QList<LayoutItemGraph *> *)
-Q_DECLARE_METATYPE(QList<LayoutCursor *> *)
-Q_DECLARE_METATYPE(QList<LayoutLayer *> *)
-Q_DECLARE_METATYPE(QList<Layout *> *)
+Q_DECLARE_METATYPE(QVector<LayoutCoord *> *)
+Q_DECLARE_METATYPE(QVector<LayoutItemGraphItem *> *)
+Q_DECLARE_METATYPE(QVector<LayoutSpikes *> *)
+Q_DECLARE_METATYPE(QVector<LayoutArrows *> *)
+Q_DECLARE_METATYPE(QVector<LayoutIcon *> *)
+Q_DECLARE_METATYPE(QVector<LayoutCircle *> *)
+Q_DECLARE_METATYPE(QVector<LayoutText *> *)
+Q_DECLARE_METATYPE(QVector<LayoutPolyline *> *)
+Q_DECLARE_METATYPE(QVector<LayoutPolygon *> *)
+Q_DECLARE_METATYPE(QVector<LayoutImage *> *)
+Q_DECLARE_METATYPE(QVector<LayoutItemGraph *> *)
+Q_DECLARE_METATYPE(QVector<LayoutCursor *> *)
+Q_DECLARE_METATYPE(QVector<LayoutLayer *> *)
+Q_DECLARE_METATYPE(QVector<Layout *> *)

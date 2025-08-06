@@ -19,17 +19,17 @@ const static QMap<QString, NewTypeBuilder> typeBuilders{
     {"NavitTrackingConfig*", build_struct<NavitTrackingConfig>},
     {"NavitRouteConfig*", build_struct<NavitRouteConfig>},
     {"NavitNavigationConfig*", build_struct<NavitNavigationConfig>},
-    {"QList<NavitPluginConfig*>*", build_list<NavitPluginConfig>},
-    {"QList<NavitDebugConfig*>*", build_list<NavitDebugConfig>},
-    {"QList<NavitVehicleConfig*>*", build_list<NavitVehicleConfig>},
-    {"QList<NavitAnnounceConfig*>*", build_list<NavitAnnounceConfig>},
-    {"QList<NavitMap>*", build_struct<NavitMap>},
-    {"QList<LayoutCoord*>*", build_list<LayoutCoord>},
-    {"QList<LayoutItemGraphItem*>*", build_itemgraph_list},
-    {"QList<LayoutItemGraph*>*", build_list<LayoutItemGraph>},
-    {"QList<LayoutCursor*>*", build_list<LayoutCursor>},
-    {"QList<LayoutLayer*>*", build_list<LayoutLayer>},
-    {"QList<Layout*>*", build_list<Layout>},
+    {"QVector<NavitPluginConfig*>", build_list<NavitPluginConfig>},
+    {"QVector<NavitDebugConfig*>", build_list<NavitDebugConfig>},
+    {"QVector<NavitVehicleConfig*>", build_list<NavitVehicleConfig>},
+    {"QVector<NavitAnnounceConfig*>", build_list<NavitAnnounceConfig>},
+    {"QVector<NavitMap>", build_struct<NavitMap>},
+    {"QVector<LayoutCoord*>", build_list<LayoutCoord>},
+    {"QVector<LayoutItemGraphItem*>", build_itemgraph_list},
+    {"QVector<LayoutItemGraph*>", build_list<LayoutItemGraph>},
+    {"QVector<LayoutCursor*>", build_list<LayoutCursor>},
+    {"QVector<LayoutLayer*>", build_list<LayoutLayer>},
+    {"QVector<Layout*>", build_list<Layout>},
 };
 
 const static QMap<QString, NewItemGraphItemBuilder> itemGraphItemBuilders{
@@ -59,9 +59,10 @@ void populateProperties(const QMetaObject *configMeta, QVariantMap &jsonObjectMa
             if (property.type() == QVariant::Type::UserType)
             {
                 // Custom types
-                QVariant propertyValue = property.read(configObject);
+                QVariant propertyValue = configObject->property(property.name());
                 assert(typeBuilders.contains(property.typeName()) && propertyValue.isValid());
                 typeBuilders.value(property.typeName())(configValue, propertyValue, parent);
+                configObject->setProperty(property.name(), propertyValue);
             }
             else
             {
@@ -94,7 +95,7 @@ template <typename T>
 void build_list(const QVariant &jsonList, QVariant &propertyValue, QObject *parent)
 {
     assert(jsonList.type() == QVariant::Type::List);
-    QList<T *> *listPtr = propertyValue.value<QList<T *> *>();
+    QVector<T *> *listPtr = static_cast<QVector<T *> *>(propertyValue.data());
     assert(listPtr);
 
     for (const QVariant &jsonItem : jsonList.toList())
@@ -150,8 +151,8 @@ LayoutItemGraphItem *build_itemgraph_item(const QVariant &jsonItem, QObject *par
 void build_itemgraph_list(const QVariant &jsonList, QVariant &propertyValue, QObject *parent)
 {
     assert(jsonList.type() == QVariant::Type::List);
-    QList<LayoutItemGraphItem *> *configPtr = propertyValue.value<QList<LayoutItemGraphItem *> *>();
-    assert(configPtr != nullptr);
+    QVector<LayoutItemGraphItem *> *configPtr = static_cast<QVector<LayoutItemGraphItem *> *>(propertyValue.data());
+    assert(configPtr);
     for (const QVariant &jsonItem : jsonList.toList())
     {
         assert(jsonItem.type() == QVariant::Type::Map);

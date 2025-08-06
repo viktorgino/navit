@@ -201,15 +201,11 @@ int main(int argc, char **argv)
     NavitConfig navitConfig;
     Layout layout;
 
-    ConfigLoader::loadNavit("navit.json", navitConfig);
+    // ConfigLoader::loadNavit("navit.json", navitConfig);
     ConfigLoader::loadLayout("navit_layout_car_modern.json", layout);
-
-    auto cursors = layout.getCursors();
-    auto cursor = cursors[0][0];
-    auto itemgras = cursor->getItemgra();
-    auto itemgra = itemgras[0][0];
-    auto items = itemgra->getItems();
-    auto item = items[0][1];
+    auto cursor = layout.getCursors()[0];
+    auto itemgra = cursor->getItemgra()[0];
+    auto item = itemgra->getItems()[1];
 
     LayoutCircle *circle = static_cast<LayoutCircle *>(item);
     LayoutElementType type = circle->getType();
@@ -236,20 +232,22 @@ int main(int argc, char **argv)
     if (type == LayoutElementSpikes)
         qDebug() << "Spike";
 
-    Navit navit(navitConfig, &engine);
+    return 0;
 
-    engine.addImportPath("navit/");
-    engine.addImportPath("navit/graphics");
+    // Navit navit(navitConfig, &engine);
 
-    engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
-    if (engine.rootObjects().isEmpty())
-        return -1;
+    // engine.addImportPath("navit/");
+    // engine.addImportPath("navit/graphics");
 
-    qDebug() << "Loading QML";
-    int ret = app.exec();
-    navit_exit();
-    qDebug() << "Finished with : " << ret;
-    return ret;
+    // engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
+    // if (engine.rootObjects().isEmpty())
+    //     return -1;
+
+    // qDebug() << "Loading QML";
+    // int ret = app.exec();
+    // navit_exit();
+    // qDebug() << "Finished with : " << ret;
+    // return ret;
 }
 
 void navit_exit()
