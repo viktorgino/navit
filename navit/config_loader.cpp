@@ -115,10 +115,6 @@ void populateProperties(const QMetaObject *configMeta, QVariantMap &jsonObjectMa
             qDebug() << "Property " << property.name() << " is required, but not set" << jsonObjectMap.value("name");
             assert(false);
         }
-        if (QString(property.name()) == "elements")
-        {
-            qDebug() << "Got elements!" << configValue;
-        }
         if (configValue.isValid())
         {
             // qDebug() << property.name() << property.typeName() << property.type();
