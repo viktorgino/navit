@@ -206,6 +206,7 @@ int main(int argc, char **argv)
     auto cursor = layout.getCursors()[0];
     auto itemgra = cursor->getItemgra()[0];
     auto item = itemgra->getItems()[1];
+    auto speed_range = itemgra->getSpeedRange();
 
     LayoutCircle *circle = static_cast<LayoutCircle *>(item);
     LayoutElementType type = circle->getType();
@@ -231,6 +232,16 @@ int main(int argc, char **argv)
         qDebug() << "Arrows";
     if (type == LayoutElementSpikes)
         qDebug() << "Spike";
+
+    qDebug() << speed_range->getMin();
+    qDebug() << speed_range->getMax();
+
+    auto itemTypes = layout.getLayers()[0]->getItemgraphs()[3]->getItemTypes();
+
+    for (auto itemType : itemTypes)
+    {
+        qDebug() << "itemType: " << item_to_name(itemType);
+    }
 
     return 0;
 

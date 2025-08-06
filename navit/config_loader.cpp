@@ -14,6 +14,64 @@ void build_itemgraph_list(const QVariant &jsonList, QVariant &propertyValue, QOb
 template <typename T>
 LayoutItemGraphItem *build_itemgraph_item(const QVariant &jsonItem, QObject *parent);
 
+void build_range(const QVariant &jsonObject, QVariant &propertyValue, QObject *parent)
+{
+    QString rangeStr = jsonObject.toString();
+
+    LayoutRange *range = propertyValue.value<LayoutRange *>();
+    assert(range);
+
+    int min = 0;
+    int max = 32767;
+    if (!rangeStr.contains("-"))
+    {
+        min = rangeStr.toInt();
+        max = min;
+    }
+    else if (rangeStr.startsWith("-"))
+    {
+        rangeStr = rangeStr.remove(0, 1);
+        max = rangeStr.toInt();
+    }
+    else
+    {
+        QStringList minMax = rangeStr.split("-");
+        assert(minMax.size() == 2);
+        min = minMax[0].toInt();
+        max = minMax[1].toInt();
+    }
+
+    range->setProperty("min", min);
+    range->setProperty("max", max);
+    qDebug() << "build_range" << jsonObject << min << max;
+}
+
+void build_item_type(const QVariant &jsonObject, QVariant &propertyValue, QObject *parent)
+{
+    QVector<item_type> *listPtr = static_cast<QVector<item_type> *>(propertyValue.data());
+    assert(listPtr);
+
+    QStringList itemTypes = jsonObject.toString().split(",");
+    for (QString itemType : itemTypes)
+    {
+        listPtr->append(item_from_name(itemType.toLocal8Bit().data()));
+    }
+}
+void build_int_list(const QVariant &jsonObject, QVariant &propertyValue, QObject *parent)
+{
+    QVector<int> *listPtr = static_cast<QVector<int> *>(propertyValue.data());
+    assert(listPtr);
+
+    QStringList itemTypes = jsonObject.toString().split(",");
+    for (QString itemType : itemTypes)
+    {
+        listPtr->append(itemType.toInt());
+    }
+
+    // listPtr->append(0);
+    // Don't think we need this
+}
+
 const static QMap<QString, NewTypeBuilder> typeBuilders{
     {"NavitLogConfig*", build_struct<NavitLogConfig>},
     {"NavitTrackingConfig*", build_struct<NavitTrackingConfig>},
@@ -30,6 +88,9 @@ const static QMap<QString, NewTypeBuilder> typeBuilders{
     {"QVector<LayoutCursor*>", build_list<LayoutCursor>},
     {"QVector<LayoutLayer*>", build_list<LayoutLayer>},
     {"QVector<Layout*>", build_list<Layout>},
+    {"LayoutRange*", build_range},
+    {"QVector<item_type>", build_item_type},
+    {"QVector<int>", build_int_list},
 };
 
 const static QMap<QString, NewItemGraphItemBuilder> itemGraphItemBuilders{

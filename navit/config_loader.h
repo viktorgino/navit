@@ -11,6 +11,8 @@
 #include "config_loader_navit.h"
 #include "config_loader_layout.h"
 
+#include "item.h"
+
 class ConfigLoader
 {
 public:

@@ -4,6 +4,8 @@
 #include <QString>
 #include <QColor>
 
+#include "item_type_def.h"
+
 enum LayoutElementType
 {
     LayoutElementPoint,
@@ -35,6 +37,27 @@ public:
 private:
     int m_x;
     int m_y;
+};
+
+class LayoutRange : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(int min MEMBER m_min REQUIRED)
+    Q_PROPERTY(int max MEMBER m_max REQUIRED)
+
+public:
+    int &getMin()
+    {
+        return m_min;
+    }
+    int &getMax()
+    {
+        return m_max;
+    }
+
+private:
+    int m_min;
+    int m_max;
 };
 
 class LayoutItemGraphItem : public QObject
@@ -210,7 +233,7 @@ class LayoutPolyline : public LayoutItemGraphItem
 {
     Q_OBJECT
     Q_PROPERTY(int width MEMBER m_width)
-    Q_PROPERTY(QString dash MEMBER m_dash)
+    Q_PROPERTY(QVector<int> dash MEMBER m_dash)
     Q_PROPERTY(int offset MEMBER m_offset)
     Q_PROPERTY(int directed MEMBER m_directed)
     Q_PROPERTY(int radius MEMBER m_radius)
@@ -221,7 +244,7 @@ public:
     {
         return m_width;
     }
-    QString &getDash()
+    QVector<int> &getDash()
     {
         return m_dash;
     }
@@ -240,7 +263,7 @@ public:
 
 private:
     int m_width;
-    QString m_dash;
+    QVector<int> m_dash;
     int m_offset;
     int m_directed;
     int m_radius;
@@ -305,23 +328,23 @@ private:
 class LayoutItemGraph : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString item_types MEMBER m_item_types)
-    Q_PROPERTY(QString order MEMBER m_order)
-    Q_PROPERTY(QString speed_range MEMBER m_speed_range)
+    Q_PROPERTY(QVector<item_type> item_types MEMBER m_item_types)
+    Q_PROPERTY(LayoutRange *order READ getOrder)
+    Q_PROPERTY(LayoutRange *speed_range READ getSpeedRange)
     Q_PROPERTY(QVector<LayoutItemGraphItem *> items MEMBER m_items)
 
 public:
-    QString &getItemTypes()
+    QVector<item_type> &getItemTypes()
     {
         return m_item_types;
     }
-    QString &getOrder()
+    LayoutRange *getOrder()
     {
-        return m_order;
+        return &m_order;
     }
-    QString &getSpeedRange()
+    LayoutRange *getSpeedRange()
     {
-        return m_speed_range;
+        return &m_speed_range;
     }
     QVector<LayoutItemGraphItem *> getItems()
     {
@@ -329,9 +352,9 @@ public:
     }
 
 private:
-    QString m_item_types;
-    QString m_order;
-    QString m_speed_range;
+    QVector<item_type> m_item_types;
+    LayoutRange m_order;
+    LayoutRange m_speed_range;
     QVector<LayoutItemGraphItem *> m_items;
 };
 
@@ -368,7 +391,7 @@ class LayoutLayer : public QObject
     Q_PROPERTY(QString enabled MEMBER m_enabled)
     Q_PROPERTY(QString name MEMBER m_name)
     Q_PROPERTY(QString details MEMBER m_details)
-    Q_PROPERTY(QString order MEMBER m_order)
+    Q_PROPERTY(LayoutRange *order READ getOrder)
     Q_PROPERTY(QString ref MEMBER m_ref)
     Q_PROPERTY(QString active MEMBER m_active)
     Q_PROPERTY(QVector<LayoutItemGraph *> itemgraphs MEMBER m_itemgraphs)
@@ -386,9 +409,9 @@ public:
     {
         return m_details;
     }
-    QString &getOrder()
+    LayoutRange *getOrder()
     {
-        return m_order;
+        return &m_order;
     }
     QString &getRef()
     {
@@ -407,7 +430,7 @@ private:
     QString m_enabled;
     QString m_name;
     QString m_details;
-    QString m_order;
+    LayoutRange m_order;
     QString m_ref;
     QString m_active;
     QVector<LayoutItemGraph *> m_itemgraphs;
@@ -488,18 +511,21 @@ private:
     QVector<LayoutLayer *> m_layers;
 };
 
+Q_DECLARE_METATYPE(LayoutRange *)
 Q_DECLARE_METATYPE(LayoutElementType)
-Q_DECLARE_METATYPE(QVector<LayoutCoord *> *)
-Q_DECLARE_METATYPE(QVector<LayoutItemGraphItem *> *)
-Q_DECLARE_METATYPE(QVector<LayoutSpikes *> *)
-Q_DECLARE_METATYPE(QVector<LayoutArrows *> *)
-Q_DECLARE_METATYPE(QVector<LayoutIcon *> *)
-Q_DECLARE_METATYPE(QVector<LayoutCircle *> *)
-Q_DECLARE_METATYPE(QVector<LayoutText *> *)
-Q_DECLARE_METATYPE(QVector<LayoutPolyline *> *)
-Q_DECLARE_METATYPE(QVector<LayoutPolygon *> *)
-Q_DECLARE_METATYPE(QVector<LayoutImage *> *)
-Q_DECLARE_METATYPE(QVector<LayoutItemGraph *> *)
-Q_DECLARE_METATYPE(QVector<LayoutCursor *> *)
-Q_DECLARE_METATYPE(QVector<LayoutLayer *> *)
-Q_DECLARE_METATYPE(QVector<Layout *> *)
+Q_DECLARE_METATYPE(QVector<int>)
+Q_DECLARE_METATYPE(QVector<item_type>)
+Q_DECLARE_METATYPE(QVector<LayoutCoord *>)
+Q_DECLARE_METATYPE(QVector<LayoutItemGraphItem *>)
+Q_DECLARE_METATYPE(QVector<LayoutSpikes *>)
+Q_DECLARE_METATYPE(QVector<LayoutArrows *>)
+Q_DECLARE_METATYPE(QVector<LayoutIcon *>)
+Q_DECLARE_METATYPE(QVector<LayoutCircle *>)
+Q_DECLARE_METATYPE(QVector<LayoutText *>)
+Q_DECLARE_METATYPE(QVector<LayoutPolyline *>)
+Q_DECLARE_METATYPE(QVector<LayoutPolygon *>)
+Q_DECLARE_METATYPE(QVector<LayoutImage *>)
+Q_DECLARE_METATYPE(QVector<LayoutItemGraph *>)
+Q_DECLARE_METATYPE(QVector<LayoutCursor *>)
+Q_DECLARE_METATYPE(QVector<LayoutLayer *>)
+Q_DECLARE_METATYPE(QVector<Layout *>)
