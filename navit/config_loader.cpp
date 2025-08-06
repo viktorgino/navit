@@ -1,7 +1,7 @@
 #include "config_loader.h"
 
 typedef void (*NewTypeBuilder)(const QVariant &, QVariant &, QObject *);
-typedef LayoutItemGraphItem *(*NewItemGraphItemBuilder)(const QVariant &, QObject *);
+typedef LayoutItemGraphElement *(*NewItemGraphItemBuilder)(const QVariant &, QObject *);
 
 template <typename T>
 void build_struct(const QVariant &jsonObject, QVariant &configVariant, QObject *parent);
@@ -12,7 +12,7 @@ void build_list(const QVariant &jsonList, QVariant &propertyValue, QObject *pare
 void build_itemgraph_list(const QVariant &jsonList, QVariant &propertyValue, QObject *parent);
 
 template <typename T>
-LayoutItemGraphItem *build_itemgraph_item(const QVariant &jsonItem, QObject *parent);
+LayoutItemGraphElement *build_itemgraph_item(const QVariant &jsonItem, QObject *parent);
 
 void build_range(const QVariant &jsonObject, QVariant &propertyValue, QObject *parent)
 {
@@ -43,7 +43,6 @@ void build_range(const QVariant &jsonObject, QVariant &propertyValue, QObject *p
 
     range->setProperty("min", min);
     range->setProperty("max", max);
-    qDebug() << "build_range" << jsonObject << min << max;
 }
 
 void build_item_type(const QVariant &jsonObject, QVariant &propertyValue, QObject *parent)
@@ -68,8 +67,7 @@ void build_int_list(const QVariant &jsonObject, QVariant &propertyValue, QObject
         listPtr->append(itemType.toInt());
     }
 
-    // listPtr->append(0);
-    // Don't think we need this
+    // listPtr->append(0); // Don't think we need this
 }
 
 const static QMap<QString, NewTypeBuilder> typeBuilders{
@@ -83,7 +81,7 @@ const static QMap<QString, NewTypeBuilder> typeBuilders{
     {"QVector<NavitAnnounceConfig*>", build_list<NavitAnnounceConfig>},
     {"QVector<NavitMap>", build_struct<NavitMap>},
     {"QVector<LayoutCoord*>", build_list<LayoutCoord>},
-    {"QVector<LayoutItemGraphItem*>", build_itemgraph_list},
+    {"QVector<LayoutItemGraphElement*>", build_itemgraph_list},
     {"QVector<LayoutItemGraph*>", build_list<LayoutItemGraph>},
     {"QVector<LayoutCursor*>", build_list<LayoutCursor>},
     {"QVector<LayoutLayer*>", build_list<LayoutLayer>},
@@ -112,11 +110,18 @@ void populateProperties(const QMetaObject *configMeta, QVariantMap &jsonObjectMa
         QVariant configValue = jsonObjectMap.value(property.name());
 
         // Make sure required properties are set from config
-        assert(!(configValue.isNull() && property.isRequired()));
-
+        if ((configValue.isNull() && property.isRequired()))
+        {
+            qDebug() << "Property " << property.name() << " is required, but not set" << jsonObjectMap.value("name");
+            assert(false);
+        }
+        if (QString(property.name()) == "elements")
+        {
+            qDebug() << "Got elements!" << configValue;
+        }
         if (configValue.isValid())
         {
-            qDebug() << property.typeName() << property.type();
+            // qDebug() << property.name() << property.typeName() << property.type();
             if (property.type() == QVariant::Type::UserType)
             {
                 // Custom types
@@ -194,7 +199,7 @@ LayoutElementType element_type_from_string(const QString type)
 };
 
 template <typename T>
-LayoutItemGraphItem *build_itemgraph_item(const QVariant &jsonItem, QObject *parent)
+LayoutItemGraphElement *build_itemgraph_item(const QVariant &jsonItem, QObject *parent)
 {
     // Exctract type and remove it from map
     assert(jsonItem.type() == QVariant::Type::Map);
@@ -212,7 +217,7 @@ LayoutItemGraphItem *build_itemgraph_item(const QVariant &jsonItem, QObject *par
 void build_itemgraph_list(const QVariant &jsonList, QVariant &propertyValue, QObject *parent)
 {
     assert(jsonList.type() == QVariant::Type::List);
-    QVector<LayoutItemGraphItem *> *configPtr = static_cast<QVector<LayoutItemGraphItem *> *>(propertyValue.data());
+    QVector<LayoutItemGraphElement *> *configPtr = static_cast<QVector<LayoutItemGraphElement *> *>(propertyValue.data());
     assert(configPtr);
     for (const QVariant &jsonItem : jsonList.toList())
     {
@@ -222,7 +227,7 @@ void build_itemgraph_list(const QVariant &jsonList, QVariant &propertyValue, QOb
         QString type = itemProperties.value("type").toString();
         assert(itemGraphItemBuilders.contains(type));
 
-        LayoutItemGraphItem *graphItem = itemGraphItemBuilders.value(type)(jsonItem, parent);
+        LayoutItemGraphElement *graphItem = itemGraphItemBuilders.value(type)(jsonItem, parent);
         configPtr->append(graphItem);
     }
 }

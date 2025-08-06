@@ -60,7 +60,7 @@ private:
     int m_max;
 };
 
-class LayoutItemGraphItem : public QObject
+class LayoutItemGraphElement : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString color MEMBER m_color)
@@ -70,7 +70,7 @@ class LayoutItemGraphItem : public QObject
     Q_PROPERTY(LayoutElementType type MEMBER m_type)
 
 public:
-    explicit LayoutItemGraphItem(LayoutElementType type, QObject *parent = nullptr) : QObject(parent), m_type(type) {}
+    explicit LayoutItemGraphElement(LayoutElementType type, QObject *parent = nullptr) : QObject(parent), m_type(type) {}
     LayoutElementType getType()
     {
         return m_type;
@@ -101,14 +101,14 @@ private:
     Q_ENUM(LayoutElementType)
 };
 
-class LayoutSpikes : public LayoutItemGraphItem
+class LayoutSpikes : public LayoutItemGraphElement
 {
     Q_OBJECT
     Q_PROPERTY(int width MEMBER m_width)
     Q_PROPERTY(int distance MEMBER m_distance)
 
 public:
-    using LayoutItemGraphItem::LayoutItemGraphItem;
+    using LayoutItemGraphElement::LayoutItemGraphElement;
     int &getWidth()
     {
         return m_width;
@@ -123,13 +123,13 @@ private:
     int m_distance;
 };
 
-class LayoutArrows : public LayoutItemGraphItem
+class LayoutArrows : public LayoutItemGraphElement
 {
     Q_OBJECT
     Q_PROPERTY(int width MEMBER m_width)
 
 public:
-    using LayoutItemGraphItem::LayoutItemGraphItem;
+    using LayoutItemGraphElement::LayoutItemGraphElement;
     int &getWidth()
     {
         return m_width;
@@ -139,7 +139,7 @@ private:
     int m_width;
 };
 
-class LayoutIcon : public LayoutItemGraphItem
+class LayoutIcon : public LayoutItemGraphElement
 {
     Q_OBJECT
     Q_PROPERTY(QString src MEMBER m_src REQUIRED)
@@ -150,7 +150,7 @@ class LayoutIcon : public LayoutItemGraphItem
     Q_PROPERTY(int rotation MEMBER m_rotation)
 
 public:
-    using LayoutItemGraphItem::LayoutItemGraphItem;
+    using LayoutItemGraphElement::LayoutItemGraphElement;
     QString &getSrc()
     {
         return m_src;
@@ -185,7 +185,7 @@ private:
     int m_rotation;
 };
 
-class LayoutCircle : public LayoutItemGraphItem
+class LayoutCircle : public LayoutItemGraphElement
 {
     Q_OBJECT
     Q_PROPERTY(int radius MEMBER m_radius REQUIRED)
@@ -193,7 +193,7 @@ class LayoutCircle : public LayoutItemGraphItem
     Q_PROPERTY(QString background_color MEMBER m_background_color)
 
 public:
-    using LayoutItemGraphItem::LayoutItemGraphItem;
+    using LayoutItemGraphElement::LayoutItemGraphElement;
     int &getRadius()
     {
         return m_radius;
@@ -213,13 +213,13 @@ private:
     QString m_background_color;
 };
 
-class LayoutText : public LayoutItemGraphItem
+class LayoutText : public LayoutItemGraphElement
 {
     Q_OBJECT
     Q_PROPERTY(QString background_color MEMBER m_background_color)
 
 public:
-    using LayoutItemGraphItem::LayoutItemGraphItem;
+    using LayoutItemGraphElement::LayoutItemGraphElement;
     QString &getBackgroundColor()
     {
         return m_background_color;
@@ -229,7 +229,7 @@ private:
     QString m_background_color;
 };
 
-class LayoutPolyline : public LayoutItemGraphItem
+class LayoutPolyline : public LayoutItemGraphElement
 {
     Q_OBJECT
     Q_PROPERTY(int width MEMBER m_width)
@@ -239,7 +239,7 @@ class LayoutPolyline : public LayoutItemGraphItem
     Q_PROPERTY(int radius MEMBER m_radius)
 
 public:
-    using LayoutItemGraphItem::LayoutItemGraphItem;
+    using LayoutItemGraphElement::LayoutItemGraphElement;
     int &getWidth()
     {
         return m_width;
@@ -269,7 +269,7 @@ private:
     int m_radius;
 };
 
-class LayoutPolygon : public LayoutItemGraphItem
+class LayoutPolygon : public LayoutItemGraphElement
 {
     Q_OBJECT
     Q_PROPERTY(QString src MEMBER m_src)
@@ -280,7 +280,7 @@ class LayoutPolygon : public LayoutItemGraphItem
     Q_PROPERTY(int rotation MEMBER m_rotation)
 
 public:
-    using LayoutItemGraphItem::LayoutItemGraphItem;
+    using LayoutItemGraphElement::LayoutItemGraphElement;
     QString &getSrc()
     {
         return m_src;
@@ -315,12 +315,12 @@ private:
     int m_rotation;
 };
 
-class LayoutImage : public LayoutItemGraphItem
+class LayoutImage : public LayoutItemGraphElement
 {
     Q_OBJECT
 
 public:
-    using LayoutItemGraphItem::LayoutItemGraphItem;
+    using LayoutItemGraphElement::LayoutItemGraphElement;
 
 private:
 };
@@ -331,7 +331,7 @@ class LayoutItemGraph : public QObject
     Q_PROPERTY(QVector<item_type> item_types MEMBER m_item_types)
     Q_PROPERTY(LayoutRange *order READ getOrder)
     Q_PROPERTY(LayoutRange *speed_range READ getSpeedRange)
-    Q_PROPERTY(QVector<LayoutItemGraphItem *> items MEMBER m_items)
+    Q_PROPERTY(QVector<LayoutItemGraphElement *> elements MEMBER m_elements)
 
 public:
     QVector<item_type> &getItemTypes()
@@ -346,16 +346,16 @@ public:
     {
         return &m_speed_range;
     }
-    QVector<LayoutItemGraphItem *> getItems()
+    QVector<LayoutItemGraphElement *> getElements()
     {
-        return m_items;
+        return m_elements;
     }
 
 private:
     QVector<item_type> m_item_types;
     LayoutRange m_order;
     LayoutRange m_speed_range;
-    QVector<LayoutItemGraphItem *> m_items;
+    QVector<LayoutItemGraphElement *> m_elements;
 };
 
 class LayoutCursor : public QObject
@@ -393,7 +393,7 @@ class LayoutLayer : public QObject
     Q_PROPERTY(QString details MEMBER m_details)
     Q_PROPERTY(LayoutRange *order READ getOrder)
     Q_PROPERTY(QString ref MEMBER m_ref)
-    Q_PROPERTY(QString active MEMBER m_active)
+    Q_PROPERTY(int active MEMBER m_active)
     Q_PROPERTY(QVector<LayoutItemGraph *> itemgraphs MEMBER m_itemgraphs)
 
 public:
@@ -417,7 +417,7 @@ public:
     {
         return m_ref;
     }
-    QString &getActive()
+    int &getActive()
     {
         return m_active;
     }
@@ -432,7 +432,7 @@ private:
     QString m_details;
     LayoutRange m_order;
     QString m_ref;
-    QString m_active;
+    int m_active = 1;
     QVector<LayoutItemGraph *> m_itemgraphs;
 };
 
@@ -499,7 +499,7 @@ public:
 
 private:
     QString m_name;
-    int m_active;
+    int m_active = 1;
     QString m_color;
     QString m_font;
     QString m_daylayout;
@@ -516,7 +516,7 @@ Q_DECLARE_METATYPE(LayoutElementType)
 Q_DECLARE_METATYPE(QVector<int>)
 Q_DECLARE_METATYPE(QVector<item_type>)
 Q_DECLARE_METATYPE(QVector<LayoutCoord *>)
-Q_DECLARE_METATYPE(QVector<LayoutItemGraphItem *>)
+Q_DECLARE_METATYPE(QVector<LayoutItemGraphElement *>)
 Q_DECLARE_METATYPE(QVector<LayoutSpikes *>)
 Q_DECLARE_METATYPE(QVector<LayoutArrows *>)
 Q_DECLARE_METATYPE(QVector<LayoutIcon *>)

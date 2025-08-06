@@ -205,7 +205,7 @@ int main(int argc, char **argv)
     ConfigLoader::loadLayout("navit_layout_car_modern.json", layout);
     auto cursor = layout.getCursors()[0];
     auto itemgra = cursor->getItemgra()[0];
-    auto item = itemgra->getItems()[1];
+    auto item = itemgra->getElements()[1];
     auto speed_range = itemgra->getSpeedRange();
 
     LayoutCircle *circle = static_cast<LayoutCircle *>(item);
