@@ -21,7 +21,6 @@ extern "C"
 #include "coord.h"
 #include "attr.h"
 #include "xmlconfig.h" // for NAVIT_OBJECT
-#include "layout.h"
 #include "map.h"
 #include "transform.h"
 

@@ -27,35 +27,24 @@ GraphicsDisplayList::GraphicsDisplayList(Graphics &graphics) : m_graphics(graphi
     }
 }
 
-void GraphicsDisplayList::update_layers(GList *layers, int order)
+void GraphicsDisplayList::update_layers(QVector<LayoutLayer *> layers, int order)
 {
-    while (layers)
+    for (LayoutLayer *layer : layers)
     {
-        struct layer *layer = (struct layer *)layers->data;
-        GList *itemgras;
-        if (layer->ref)
-            layer = layer->ref;
-        itemgras = layer->itemgras;
-        while (itemgras)
+        for (LayoutItemGraph *itemgra : layer->getItemgraphs())
         {
-            struct itemgra *itemgra = (struct itemgra *)itemgras->data;
-            GList *types = itemgra->type;
-            if (itemgra->order.min <= order && itemgra->order.max >= order)
+            if (itemgra->getOrder()->getMin() <= order && itemgra->getOrder()->getMax() >= order)
             {
-                while (types)
+                for (item_type type : itemgra->getItemTypes())
                 {
-                    enum item_type type = *(enum item_type *)types;
                     set_hash_entry(type);
-                    types = g_list_next(types);
                 }
             }
-            itemgras = g_list_next(itemgras);
         }
-        layers = g_list_next(layers);
     }
 }
 
-void GraphicsDisplayList::load_mapset(struct mapset *mapset, struct transformation *trans, struct layout *l, int async, struct callback *cb, int flags)
+void GraphicsDisplayList::load_mapset(struct mapset *mapset, struct transformation *trans, Layout *layout, int async, struct callback *cb, int flags)
 {
     int order = transform_get_order(trans);
 
@@ -78,11 +67,9 @@ void GraphicsDisplayList::load_mapset(struct mapset *mapset, struct transformati
     m_workload = async ? 100 : 0;
     cb = cb;
     seq++;
-    if (l)
-        order += l->order_delta;
     m_order = order > 0 ? order : 0;
     busy = 1;
-    m_layout = l;
+    m_layout = layout;
     if (async)
     {
         if (!idle_cb)
@@ -108,7 +95,7 @@ void GraphicsDisplayList::update_hash()
 {
     m_max_offset = 0;
     clear_hash();
-    update_layers(m_layout->layers, m_order);
+    update_layers(m_layout->getLayers(), m_order);
     // dbg(lvl_debug, "max offset %d", max_offset);
 }
 
@@ -221,45 +208,27 @@ void GraphicsDisplayList::xdisplay_free()
     }
 }
 
-void GraphicsDisplayList::xdisplay_draw_elements(struct itemgra *itm, struct layout *l)
+void GraphicsDisplayList::xdisplay_draw_elements(LayoutItemGraph *itemGraph, Layout *layout)
 {
-    struct element *e;
-    GList *es, *types;
     struct hash_entry *entry;
-
-    es = itm->elements;
-    while (es)
+    for (LayoutItemGraphElement *element : itemGraph->getElements())
     {
-        e = (struct element *)es->data;
-        m_display_context.e = e;
-        types = itm->type;
-        while (types)
+        m_display_context.element = element;
+        for (item_type type : itemGraph->getItemTypes())
         {
-            m_display_context.type = (item_type)GPOINTER_TO_INT(types->data);
-            entry = get_hash_entry(m_display_context.type);
-            if (entry && entry->di)
-            {
-                m_graphics.displayitem_draw(entry->di, l, &m_display_context);
-                m_graphics.display_context_free(&m_display_context);
-            }
-            types = g_list_next(types);
+            m_display_context.type = type;
+            entry = get_hash_entry(type);
+            m_graphics.display_context_free(&m_display_context);
         }
-        es = g_list_next(es);
     }
 }
 
-void GraphicsDisplayList::xdisplay_draw_layer(struct layer *lay, int order, struct layout *l)
+void GraphicsDisplayList::xdisplay_draw_layer(LayoutLayer *layer, int order, Layout *layout)
 {
-    GList *itms;
-    struct itemgra *itm;
-
-    itms = lay->itemgras;
-    while (itms)
+    for (LayoutItemGraph *itemGraph : layer->getItemgraphs())
     {
-        itm = (struct itemgra *)itms->data;
-        if (order >= itm->order.min && order <= itm->order.max)
-            xdisplay_draw_elements(itm, l);
-        itms = g_list_next(itms);
+        if (order >= itemGraph->getOrder()->getMin() && order <= itemGraph->getOrder()->getMax())
+            xdisplay_draw_elements(itemGraph, layout);
     }
 }
 
@@ -269,23 +238,19 @@ void GraphicsDisplayList::xdisplay_draw_layer(struct layer *lay, int order, stru
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void GraphicsDisplayList::xdisplay_draw(struct layout *l, int order)
+void GraphicsDisplayList::xdisplay_draw(Layout *layout, int order)
 {
-    GList *lays;
-    struct layer *lay;
 
     m_graphics.set_z_order(0);
-    lays = l->layers;
-    while (lays)
+    for (LayoutLayer *layer : layout->getLayers())
     {
-        lay = (struct layer *)lays->data;
-        if (lay->active)
+        if (layer->getActive())
         {
-            if (lay->ref)
-                lay = lay->ref;
-            xdisplay_draw_layer(lay, order, l);
+            // TODO: fix layer references
+            // if (lay->ref)
+            // lay = lay->ref;
+            xdisplay_draw_layer(layer, order, layout);
         }
-        lays = g_list_next(lays);
     }
 }
 
@@ -503,7 +468,7 @@ void GraphicsDisplayList::do_draw(int cancel, int flags)
     }
 }
 
-void GraphicsDisplayList::draw(struct transformation *trans, struct layout *l, int flags)
+void GraphicsDisplayList::draw(struct transformation *trans, Layout *layout, int flags)
 {
     int order = transform_get_order(trans);
     if (m_display_context.trans && m_display_context.trans != trans)
@@ -513,24 +478,23 @@ void GraphicsDisplayList::draw(struct transformation *trans, struct layout *l, i
     m_display_context.gra = &m_graphics;
     m_display_context.mindist = flags & 512 ? 15 : 2;
     // FIXME find a better place to set the background color
-    m_graphics.set_layout(l);
+    m_graphics.set_layout(layout);
     m_graphics.draw_mode((flags & 8) ? draw_mode_begin_clear : draw_mode_begin, flags & 1);
     if (!(flags & 2))
     {
         m_graphics.draw_background();
     }
-    if (l)
+    if (layout)
     {
-        order += l->order_delta;
-        xdisplay_draw(l, order > 0 ? order : 0);
+        xdisplay_draw(layout, order > 0 ? order : 0);
     }
     if (!(flags & 4))
         m_graphics.draw_mode(draw_mode_end, flags & 1);
 }
 
-void GraphicsDisplayList::draw_graphics(struct mapset *mapset, struct transformation *trans, struct layout *l, int async, struct callback *cb, int flags)
+void GraphicsDisplayList::draw_graphics(struct mapset *mapset, struct transformation *trans, Layout *layout, int async, struct callback *cb, int flags)
 {
-    load_mapset(mapset, trans, l, async, cb, flags);
+    load_mapset(mapset, trans, layout, async, cb, flags);
 }
 
 int GraphicsDisplayList::draw_cancel()

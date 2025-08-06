@@ -4,7 +4,6 @@
 #include "attr.h"
 #include "navit_wrapper.h"
 #include "xmlconfig.h" // for NAVIT_OBJECT
-#include "layout.h"
 #include "map.h"
 #include "transform.h"
 #include "vehicle.h"

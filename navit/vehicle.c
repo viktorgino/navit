@@ -50,7 +50,6 @@
 #include "point.h"
 #include "callback.h"
 #include "color.h"
-#include "layout.h"
 #include "vehicle.h"
 #include "navit_nls.h"
 

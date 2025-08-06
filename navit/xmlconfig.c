@@ -31,7 +31,6 @@
 #include "coord.h"
 #include "item.h"
 #include "xmlconfig.h"
-#include "layout.h"
 #include "mapset.h"
 #include "projection.h"
 #include "map.h"
@@ -239,23 +238,23 @@ static int xmlconfig_announce(struct xmlstate *state)
 #define INIT(x) (int (*)(void *))(x)
 #define DESTROY(x) (void (*)(void *))(x)
 
-static struct object_func object_funcs[] = {
-    {attr_announcement, NEW(announcement_new), GET(announcement_get_attr), NULL, NULL, SET(announcement_set_attr), ADD(announcement_add_attr)},
-    {attr_arrows, NEW(arrows_new)},
-    {attr_spikes, NEW(spikes_new)},
-    {attr_circle, NEW(circle_new), NULL, NULL, NULL, NULL, ADD(element_add_attr)},
-    {attr_coord, NEW(coord_new_from_attrs)},
-    {attr_cursor, NEW(cursor_new), NULL, NULL, NULL, NULL, ADD(cursor_add_attr)},
-    {attr_debug, NEW(debug_new)},
-    {attr_icon, NEW(icon_new), NULL, NULL, NULL, NULL, ADD(element_add_attr)},
-    {attr_image, NEW(image_new)},
-    {attr_itemgra, NEW(itemgra_new), NULL, NULL, NULL, NULL, ADD(itemgra_add_attr)},
-    {attr_plugins, NEW(plugins_new), NULL, NULL, NULL, NULL, NULL, NULL, INIT(plugins_init)},
-    {attr_plugin, NEW(plugin_new)},
-    {attr_polygon, NEW(polygon_new), NULL, NULL, NULL, NULL, ADD(element_add_attr)},
-    {attr_polyline, NEW(polyline_new), NULL, NULL, NULL, NULL, ADD(element_add_attr)},
-    {attr_text, NEW(text_new)},
-};
+// static struct object_func object_funcs[] = {
+//     {attr_announcement, NEW(announcement_new), GET(announcement_get_attr), NULL, NULL, SET(announcement_set_attr), ADD(announcement_add_attr)},
+//     {attr_arrows, NEW(arrows_new)},
+//     {attr_spikes, NEW(spikes_new)},
+//     {attr_circle, NEW(circle_new), NULL, NULL, NULL, NULL, ADD(element_add_attr)},
+//     {attr_coord, NEW(coord_new_from_attrs)},
+//     {attr_cursor, NEW(cursor_new), NULL, NULL, NULL, NULL, ADD(cursor_add_attr)},
+//     {attr_debug, NEW(debug_new)},
+//     {attr_icon, NEW(icon_new), NULL, NULL, NULL, NULL, ADD(element_add_attr)},
+//     {attr_image, NEW(image_new)},
+//     {attr_itemgra, NEW(itemgra_new), NULL, NULL, NULL, NULL, ADD(itemgra_add_attr)},
+//     {attr_plugins, NEW(plugins_new), NULL, NULL, NULL, NULL, NULL, NULL, INIT(plugins_init)},
+//     {attr_plugin, NEW(plugin_new)},
+//     {attr_polygon, NEW(polygon_new), NULL, NULL, NULL, NULL, ADD(element_add_attr)},
+//     {attr_polyline, NEW(polyline_new), NULL, NULL, NULL, NULL, ADD(element_add_attr)},
+//     {attr_text, NEW(text_new)},
+// };
 
 struct object_func *
 object_func_lookup(enum attr_type type)
@@ -298,11 +297,11 @@ object_func_lookup(enum attr_type type)
     case attr_vehicleprofile:
         return &vehicleprofile_func;
     default:
-        for (i = 0; i < sizeof(object_funcs) / sizeof(struct object_func); i++)
-        {
-            if (object_funcs[i].type == type)
-                return &object_funcs[i];
-        }
+        // for (i = 0; i < sizeof(object_funcs) / sizeof(struct object_func); i++)
+        // {
+        //     if (object_funcs[i].type == type)
+        //         return &object_funcs[i];
+        // }
         return NULL;
     }
 }
@@ -718,7 +717,7 @@ static void start_element(xml_context *context,
             dbg(lvl_error, "failed to create object of type '%s'", element_name);
         if (new->element_attr.type == attr_tracking)
             new->element_attr.type = attr_trackingo;
-        if (new->parent &&new->parent->object_func &&new->parent->object_func->add_attr)
+        if (new->parent && new->parent->object_func && new->parent->object_func->add_attr)
             new->parent->object_func->add_attr(new->parent->element_attr.u.data, &new->element_attr);
     }
     return;

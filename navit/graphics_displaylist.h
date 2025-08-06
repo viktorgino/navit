@@ -8,7 +8,6 @@ extern "C"
 #include "coord.h"
 #include "item.h"
 #include "point.h"
-#include "layout.h"
 #include "transform.h"
 #include "callback.h"
 #include "event.h"
@@ -19,6 +18,8 @@ extern "C"
 }
 
 #include "graphics.h"
+#include <QList>
+#include "config_loader_layout.h"
 
 #define HASH_SIZE 1024
 struct hash_entry
@@ -35,7 +36,7 @@ class GraphicsDisplayList
 {
 public:
     GraphicsDisplayList(Graphics &graphics);
-    void update_layers(GList *layers, int order);
+    void update_layers(QVector<LayoutLayer *> layers, int order);
     void update_hash();
     void clear_hash();
     struct hash_entry *get_hash_entry(enum item_type type);
@@ -65,16 +66,16 @@ public:
     struct displayitem *next(struct displaylist_handle *dlh);
     void close(struct displaylist_handle *dlh);
     void destroy();
-    void draw(struct transformation *trans, struct layout *l, int flags);
+    void draw(struct transformation *trans, Layout *layout, int flags);
     void do_draw(int cancel, int flags);
-    void load_mapset(struct mapset *mapset, struct transformation *trans, struct layout *l, int async, struct callback *cb, int flags);
+    void load_mapset(struct mapset *mapset, struct transformation *trans, Layout *layout, int async, struct callback *cb, int flags);
 
     static void static_do_draw(int cancel, int flags, void *context);
-    void draw_graphics(struct mapset *mapset, struct transformation *trans, struct layout *l, int async, struct callback *cb, int flags);
-    void xdisplay_draw(struct layout *l, int order);
+    void draw_graphics(struct mapset *mapset, struct transformation *trans, Layout *layout, int async, struct callback *cb, int flags);
+    void xdisplay_draw(Layout *layout, int order);
     int draw_cancel();
-    void xdisplay_draw_layer(struct layer *lay, int order, struct layout *l);
-    void xdisplay_draw_elements(struct itemgra *itm, struct layout *l);
+    void xdisplay_draw_layer(LayoutLayer *layer, int order, Layout *layout);
+    void xdisplay_draw_elements(LayoutItemGraph *itemGraph, Layout *layout);
     void xdisplay_free();
 
 private:
@@ -82,7 +83,7 @@ private:
     int busy;
     int m_workload;
     struct callback *cb;
-    struct layout *m_layout, *m_layout_hashed;
+    Layout *m_layout, *m_layout_hashed;
     struct display_context m_display_context;
     int m_order, m_order_hashed, m_max_offset;
     struct mapset *m_mapset;

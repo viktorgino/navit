@@ -320,7 +320,7 @@ int graphics_draw_drag(GraphicsHandle graphics, struct point *p)
 }
 char *graphics_icon_path(const char *icon)
 {
-    return Graphics::icon_path(icon);
+    return Graphics::icon_path(icon).toLocal8Bit().data();
 }
 
 struct object_func navit_func = {

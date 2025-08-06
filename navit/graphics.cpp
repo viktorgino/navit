@@ -50,7 +50,6 @@ extern "C"
 #include "plugin.h"
 #include "profile.h"
 #include "mapset.h"
-#include "layout.h"
 #include "route.h"
 #include "util.h"
 #include "callback.h"
@@ -327,7 +326,7 @@ Graphics::~Graphics()
         */
         for (ll = l = g_hash_to_list(m_image_cache_hash); l; l = g_list_next(l))
         {
-            img = (graphics_image *)l->data;
+            img = (graphics_image *)layout->data;
             if (img)
                 m_graphicsInterface.image_free(img->priv);
         }
@@ -338,7 +337,6 @@ Graphics::~Graphics()
     // m_gcBackground->destroy();
     // m_gcMiddground->destroy();
     // m_gcForeground->destroy();
-    g_free(m_default_font);
     font_destroy_all();
     g_free(m_font);
     // m_graphicsInterface.destroy();
@@ -1111,14 +1109,13 @@ void Graphics::background_gc(GraphicsContext *gc)
     m_graphicsInterface.background_gc(&gc->get_context_interface());
 }
 
-void Graphics::set_layout(struct layout *l)
+void Graphics::set_layout(Layout *layout)
 {
     if (l)
     {
-        m_gcBackground.set_background(&l->color);
-        m_gcBackground.set_foreground(&l->color);
-        g_free(m_default_font);
-        m_default_font = g_strdup(l->font);
+        m_gcBackground.set_background(&layout->getColor());
+        m_gcBackground.set_foreground(&layout->getColor());
+        m_default_font = layout->getFont();
     }
     background_gc(&m_gcBackground);
 }
@@ -2374,20 +2371,20 @@ void Graphics::draw_text_std(int text_size, char *text, struct point *p)
     draw_text(&m_gcMiddground, &m_gcForeground, font, text, p, 0x10000, 0);
 }
 
-char *Graphics::icon_path(const char *icon)
+QString Graphics::icon_path(QString icon)
 {
     static char *navit_sharedir;
-    char *ret = NULL;
+    QString ret;
     struct file_wordexp *wordexp = NULL;
     dbg(lvl_debug, "enter %s", icon);
-    if (strchr(icon, '$'))
+    if (icon.contains("$"))
     {
-        wordexp = file_wordexp_new(icon);
+        wordexp = file_wordexp_new(icon.toLocal8Bit().data());
         if (file_wordexp_get_count(wordexp))
             icon = file_wordexp_get_array(wordexp)[0];
     }
-    if (strchr(icon, '/'))
-        ret = g_strdup(icon);
+    if (icon.contains("/"))
+        ret = icon;
     else
     {
 #ifdef HAVE_API_ANDROID
@@ -2574,13 +2571,13 @@ void Graphics::displayitem_draw_polygon(struct display_context *dc, struct point
 {
 
     /* Set texture if any, and supported by graphics */
-    if (dc->e->u.polygon.src != NULL)
+    if (dc->element->u.polygon.src != NULL)
     {
         char *path;
         struct graphics_image *texture;
-        path = texture_path(dc->e->u.polygon.src);
-        texture = image_new_scaled_rotated(path, dc->e->u.polygon.width, dc->e->u.polygon.height,
-                                           dc->e->u.polygon.rotation);
+        path = texture_path(dc->element->u.polygon.src);
+        texture = image_new_scaled_rotated(path, dc->element->u.polygon.width, dc->element->u.polygon.height,
+                                           dc->element->u.polygon.rotation);
         g_free(path);
         if (texture != NULL)
             dc->gc->set_texture(texture);
@@ -2592,62 +2589,62 @@ void Graphics::displayitem_draw_polygon(struct display_context *dc, struct point
         draw_polygon_clipped(dc->gc, pa, count);
 }
 
-void Graphics::displayitem_draw_polyline(struct display_context *dc, struct element *e, struct point *pa, int count, int *width)
+void Graphics::displayitem_draw_polyline(struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count, int *width)
 {
     int i;
     dc->gc->set_linewidth(1);
-    if (e->u.polyline.width > 0 && e->u.polyline.dash_num > 0)
-        dc->gc->set_dashes(e->u.polyline.width, e->u.polyline.offset, e->u.polyline.dash_table,
-                           e->u.polyline.dash_num);
+    if (element->u.polyline.width > 0 && element->u.polyline.dash_num > 0)
+        dc->gc->set_dashes(element->u.polyline.width, element->u.polyline.offset, element->u.polyline.dash_table,
+                           element->u.polyline.dash_num);
     for (i = 0; i < count; i++)
     {
         if (width[i] < 2)
             width[i] = 2;
     }
-    draw_polyline_clipped(dc->gc, pa, count, width, e->u.polyline.width > 1);
+    draw_polyline_clipped(dc->gc, pa, count, width, element->u.polyline.width > 1);
 }
 
-void Graphics::displayitem_draw_circle(struct displayitem *di, struct display_context *dc, struct element *e, struct point *pa, int count)
+void Graphics::displayitem_draw_circle(struct displayitem *di, struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count)
 {
     if (count)
     {
-        if (e->u.circle.width > 1)
-            dc->gc->set_linewidth(e->u.polyline.width);
-        draw_circle(dc->gc, pa, e->u.circle.radius);
-        if (di->label && e->text_size)
+        if (element->u.circle.width > 1)
+            dc->gc->set_linewidth(element->u.polyline.width);
+        draw_circle(dc->gc, pa, element->u.circle.radius);
+        if (di->label && element->text_size)
         {
-            struct graphics_font *font = get_font(e->text_size);
+            struct graphics_font *font = get_font(element->text_size);
             GraphicsContext *gc_background = dc->gc_background;
-            if (!gc_background && e->u.circle.background_color.a)
+            if (!gc_background && element->u.circle.background_color.a)
             {
                 gc_background = new GraphicsContext(m_contextInterface, this);
-                gc_background->set_foreground(&e->u.circle.background_color);
+                gc_background->set_foreground(&element->u.circle.background_color);
                 dc->gc_background = gc_background;
             }
             if (font)
             {
                 struct point p;
                 /* Set p to the center of the circle */
-                p.x = pa[0].x + (e->u.circle.radius / 2);
-                p.y = pa[0].y + (e->u.circle.radius / 2);
-                multiline_label_draw(dc->gc, gc_background, font, p, di->label, e->text_size + 1);
+                p.x = pa[0].x + (element->u.circle.radius / 2);
+                p.y = pa[0].y + (element->u.circle.radius / 2);
+                multiline_label_draw(dc->gc, gc_background, font, p, di->label, element->text_size + 1);
             }
             else
-                dbg(lvl_error, "Failed to get font with size %d", e->text_size);
+                dbg(lvl_error, "Failed to get font with size %d", element->text_size);
         }
     }
 }
 
-void Graphics::displayitem_draw_text(struct displayitem *di, struct display_context *dc, struct element *e, struct point *pa, int count, struct displayitem_poly_holes *holes)
+void Graphics::displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count, struct displayitem_poly_holes *holes)
 {
     if (count && di->label)
     {
-        struct graphics_font *font = get_font(e->text_size);
+        struct graphics_font *font = get_font(element->text_size);
         GraphicsContext *gc_background = dc->gc_background;
-        if (!gc_background && e->u.text.background_color.a)
+        if (!gc_background && element->u.text.background_color.a)
         {
             gc_background = new GraphicsContext(m_contextInterface, this);
-            gc_background->set_foreground(&e->u.text.background_color);
+            gc_background->set_foreground(&element->u.text.background_color);
             dc->gc_background = gc_background;
         }
         if (font)
@@ -2661,59 +2658,57 @@ void Graphics::displayitem_draw_text(struct displayitem *di, struct display_cont
             }
         }
         else
-            dbg(lvl_error, "Failed to get font with size %d", e->text_size);
+            dbg(lvl_error, "Failed to get font with size %d", element->text_size);
     }
 }
 
-void Graphics::displayitem_draw_icon(struct displayitem *di, struct display_context *dc, struct element *e, struct point *pa, int count, struct layout *l)
+void Graphics::displayitem_draw_icon(struct displayitem *di, struct display_context *dc, LayoutIcon *element, struct point *pa, int count, Layout *layout)
 {
     if (count)
     {
         struct graphics_image *img = dc->img;
         if (!img || item_is_custom_poi(di->item))
         {
-            int icon_width = e->u.icon.width;
-            int icon_height = e->u.icon.height;
-            char *path;
+            int icon_width = element->getW();
+            int icon_height = element->getH();
+            QString path;
             /* get the standard icon size out of the layout if unset */
-            if (l != NULL)
+            if (layout)
             {
                 if (icon_height == -1)
-                    icon_height = l->icon_h;
+                    icon_height = layout->getIconH();
                 if (icon_width == -1)
-                    icon_width = l->icon_w;
+                    icon_width = layout->getIconW();
             }
             if (item_is_custom_poi(di->item))
             {
                 char *icon;
-                char *src;
+                QString src;
 
-                char src_str[] = "%s";
                 if (img)
                     image_free(img);
-                src = e->u.icon.src;
-                if (!src || !src[0])
-                    src = src_str;
-                icon = g_strdup_printf(src, di->label + strlen(di->label) + 1);
-                path = icon_path(icon);
+                src = element->getSrc();
+                if (src.isEmpty())
+                    src = QString("%s");
+                icon = g_strdup_printf(src.toLocal8Bit().data(), di->label + strlen(di->label) + 1);
+                path = icon_path(QString(icon));
                 g_free(icon);
             }
             else
-                path = icon_path(e->u.icon.src);
-            img = image_new_scaled_rotated(path, icon_width, icon_height, e->u.icon.rotation);
+                path = icon_path(element->getSrc());
+            img = image_new_scaled_rotated(path.toLocal8Bit().data(), icon_width, icon_height, element->getRotation());
             if (img)
                 dc->img = img;
             else
-                dbg(lvl_debug, "failed to load icon '%s'", path);
-            g_free(path);
+                dbg(lvl_debug, "failed to load icon '%s'", path.toLocal8Bit().data());
         }
         if (img)
         {
             struct point p;
-            if (e->u.icon.x != -1 || e->u.icon.y != -1)
+            if (element->getX() != -1 || element->getY() != -1)
             {
-                p.x = pa[0].x - e->u.icon.x;
-                p.y = pa[0].y - e->u.icon.y;
+                p.x = pa[0].x - element->getX();
+                p.y = pa[0].y - element->getY();
             }
             else
             {
@@ -2743,12 +2738,12 @@ void Graphics::displayitem_draw_image(struct displayitem *di, struct display_con
  * @brief l current layout for getting defaults and underground alpha
  * @brief dc The display_context to use to draw items
  */
-void Graphics::displayitem_draw(struct displayitem *di, struct layout *l, struct display_context *dc)
+void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct display_context *dc)
 {
     int *width;
     int limit = 0;
     struct point *pa;
-    struct element *e = dc->e;
+    LayoutItemGraphElement *element = dc->e;
     int draw_underground = 0;
     long pa_buf_size = sizeof(struct point) * dc->maxlen;
 
@@ -2773,7 +2768,7 @@ void Graphics::displayitem_draw(struct displayitem *di, struct layout *l, struct
 
         /* Skip elements that are to be drawn on oneway streets only
          * if street is not oneway or roundabout */
-        if ((e->oneway) && ((!(di->flags & AF_ONEWAY)) || (di->flags & AF_ROUNDABOUT)))
+        if ((element->getOneway()) && ((!(di->flags & AF_ONEWAY)) || (di->flags & AF_ROUNDABOUT)))
         {
             di = di->next;
             continue;
@@ -2783,17 +2778,17 @@ void Graphics::displayitem_draw(struct displayitem *di, struct layout *l, struct
         {
             GraphicsContext *gc = new GraphicsContext(m_contextInterface, this);
             dc->gc = gc;
-            dc->gc->set_foreground(&e->color);
+            dc->gc->set_foreground(&element->color);
         }
 
         /* If the element id flagged AF_UNDERGROUND, we apply predefined transparenc to it if
          * it's not the text. */
-        if ((di->flags & AF_UNDERGROUND) && (dc->e->type != element::element_text))
+        if ((di->flags & AF_UNDERGROUND) && (dc->element->type != element::element_text))
         {
             if (!draw_underground)
             {
-                struct color fg_color = e->color;
-                fg_color.a = (l != NULL) ? l->underground_alpha : UNDERGROUND_ALPHA_;
+                struct color fg_color = element->color;
+                fg_color.a = (l != NULL) ? layout->underground_alpha : UNDERGROUND_ALPHA_;
                 dc->gc->set_foreground(&fg_color);
                 draw_underground = 1;
             }
@@ -2802,11 +2797,11 @@ void Graphics::displayitem_draw(struct displayitem *di, struct layout *l, struct
         {
             if (draw_underground)
             {
-                dc->gc->set_foreground(&e->color);
+                dc->gc->set_foreground(&element->color);
                 draw_underground = 0;
             }
         }
-        if (item_type_is_area(dc->type) && (dc->e->type == element::element_polyline || dc->e->type == element::element_text))
+        if (item_type_is_area(dc->type) && (dc->element->type == element::element_polyline || dc->element->type == element::element_text))
             limit = 0;
 
         displayitem_transform_holes(dc->trans, dc->pro, di->holes, &t_holes, mindist);
@@ -2815,45 +2810,45 @@ void Graphics::displayitem_draw(struct displayitem *di, struct layout *l, struct
             count = limit_count(di->c, count);
         if (dc->type == type_poly_water_tiled)
             mindist = 0;
-        if (dc->e->type == element::element_polyline)
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, e->u.polyline.width,
+        if (dc->element->type == element::element_polyline)
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, element->u.polyline.width,
                                         width);
-        else if (dc->e->type == element::element_arrows)
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, e->u.arrows.width,
+        else if (dc->element->type == element::element_arrows)
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, element->u.arrows.width,
                                         width);
-        else if (dc->e->type == element::element_spikes)
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, e->u.spikes.width,
+        else if (dc->element->type == element::element_spikes)
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, element->u.spikes.width,
                                         width);
         else
             count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
-        switch (e->type)
+        switch (element->getType())
         {
-        case element::element_polygon:
+        case LayoutElementType::LayoutElementPolygon:
             displayitem_draw_polygon(dc, pa, count, &t_holes);
             break;
-        case element::element_polyline:
+        case LayoutElementType::LayoutElementPolyline:
             displayitem_draw_polyline(dc, e, pa, count, width);
             break;
-        case element::element_circle:
+        case LayoutElementType::LayoutElementCircle:
             displayitem_draw_circle(di, dc, e, pa, count);
             break;
-        case element::element_text:
+        case LayoutElementType::LayoutElementText:
             displayitem_draw_text(di, dc, e, pa, count, &t_holes);
             break;
-        case element::element_icon:
-            displayitem_draw_icon(di, dc, e, pa, count, l);
+        case LayoutElementType::LayoutElementIcon:
+            displayitem_draw_icon(di, dc, e, pa, count, layout);
             break;
-        case element::element_image:
+        case LayoutElementType::LayoutElementImage:
             displayitem_draw_image(di, dc, pa, count);
             break;
-        case element::element_arrows:
-            display_draw_arrows(dc, pa, count, width, e->oneway);
+        case LayoutElementType::LayoutElementArrows:
+            display_draw_arrows(dc, pa, count, width, element->oneway);
             break;
-        case element::element_spikes:
-            display_draw_spikes(dc, pa, count, width, e->u.spikes.distance);
+        case LayoutElementType::LayoutElementSpikes:
+            display_draw_spikes(dc, pa, count, width, element->u.spikes.distance);
             break;
-        default:
-            dbg(lvl_error, "Unhandled element type %d", e->type);
+        case LayoutElementType::LayoutElementPoint:
+            qWarning() << "Can't draw point";
         }
         /* free space allocated for holes */
         displayitem_free_holes(&t_holes);
@@ -2903,17 +2898,17 @@ void Graphics::draw_itemgra(struct itemgra *itm, struct transformation *t, char 
     dc.maxlen = max_coord;
     while (es)
     {
-        struct element *e = (struct element *)es->data;
-        if (e->coord_count)
+        LayoutItemGraphElement *element = (LayoutItemGraphElement *)es->data;
+        if (element->coord_count)
         {
-            if (e->coord_count > max_coord)
+            if (element->coord_count > max_coord)
             {
-                dbg(lvl_error, "maximum number of coords reached: %d > %d", e->coord_count, max_coord);
+                dbg(lvl_error, "maximum number of coords reached: %d > %d", element->coord_count, max_coord);
                 di->count = max_coord;
             }
             else
-                di->count = e->coord_count;
-            memcpy(di->c, e->coord, di->count * sizeof(struct coord));
+                di->count = element->coord_count;
+            memcpy(di->c, element->coord, di->count * sizeof(struct coord));
         }
         else
         {
@@ -2921,7 +2916,7 @@ void Graphics::draw_itemgra(struct itemgra *itm, struct transformation *t, char 
             di->c[0].y = 0;
             di->count = 1;
         }
-        dc.e = e;
+        dc.element = element;
         di->next = NULL;
         displayitem_draw(di, NULL, &dc);
         display_context_free(&dc);

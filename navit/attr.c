@@ -43,7 +43,6 @@
 #include "util.h"
 #include "types.h"
 #include "xmlconfig.h"
-#include "layout.h"
 
 struct attr_name
 {

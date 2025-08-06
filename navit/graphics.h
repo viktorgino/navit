@@ -32,6 +32,8 @@
 #include <QObject>
 
 #include "NavitInterfaces.h"
+#include "config_loader_layout.h"
+
 extern "C"
 {
 #include "coord.h"
@@ -205,7 +207,7 @@ private:
 struct display_context
 {
     Graphics *gra;
-    struct element *e;
+    LayoutItemGraphElement *element;
     GraphicsContext *gc;
     GraphicsContext *gc_background;
     struct graphics_image *img;
@@ -258,7 +260,7 @@ public:
     int draw_drag(struct point *p);
     void background_gc(GraphicsContext *gc);
     void draw_text_std(int text_size, char *text, struct point *p);
-    static char *icon_path(const char *icon);
+    static QString icon_path(QString icon);
     char *texture_path(const char *texture);
     void draw_itemgra(struct itemgra *itm, struct transformation *t, char *label);
 
@@ -284,11 +286,11 @@ public:
     static void static_dpi_patch(struct callback_list *l, enum attr_type type, int pcount, void **p, void *context);
 
     GHashTable *getImageCacheHash();
-    void set_layout(struct layout *l);
+    void set_layout(Layout *layout);
     void draw_background();
     void set_z_order(int z_order);
     void display_context_free(struct display_context *dc);
-    void displayitem_draw(struct displayitem *di, struct layout *l, struct display_context *dc);
+    void displayitem_draw(struct displayitem *di, Layout *layout, struct display_context *dc);
     void font_destroy_all();
     int get_dpi_factor();
 
@@ -305,7 +307,7 @@ private:
     GraphicsContext m_gcMiddground;
     GraphicsContext m_gcForeground;
 
-    char *m_default_font;
+    QString m_default_font;
     int m_font_len;
     graphics_font **m_font;
 
@@ -336,10 +338,10 @@ private:
     void displayitem_free_holes(struct displayitem_poly_holes *holes);
     void displayitem_draw_polygon(struct display_context *dc, struct point *pa, int count, struct displayitem_poly_holes *holes);
     void draw_polygon_with_holes(GraphicsContext *gc, struct point *pin, int count_in, int hole_count, int *ccount, struct point **holes);
-    void displayitem_draw_polyline(struct display_context *dc, struct element *e, struct point *pa, int count, int *width);
-    void displayitem_draw_circle(struct displayitem *di, struct display_context *dc, struct element *e, struct point *pa, int count);
-    void displayitem_draw_text(struct displayitem *di, struct display_context *dc, struct element *e, struct point *pa, int count, struct displayitem_poly_holes *holes);
-    void displayitem_draw_icon(struct displayitem *di, struct display_context *dc, struct element *e, struct point *pa, int count, struct layout *l);
+    void displayitem_draw_polyline(struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count, int *width);
+    void displayitem_draw_circle(struct displayitem *di, struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count);
+    void displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count, struct displayitem_poly_holes *holes);
+    void displayitem_draw_icon(struct displayitem *di, struct display_context *dc, LayoutIcon *element, struct point *pa, int count, Layout *layout);
     void display_draw_arrows(struct display_context *dc, struct point *pnt, int count, int *width, int filled);
     void display_draw_spike(struct point *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc);
     void display_draw_spikes(struct display_context *dc, struct point *pnt, int count, int *width, int distance);

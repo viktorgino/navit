@@ -18,7 +18,6 @@ extern "C"
 #include "coord.h"
 #include "attr.h"
 #include "xmlconfig.h" // for NAVIT_OBJECT
-#include "layout.h"
 #include "map.h"
 #include "transform.h"
 
@@ -28,7 +27,6 @@ extern "C"
 
 #include "event.h"
 #include "callback.h"
-#include "layout.h"
 }
 
 class NavitHelper

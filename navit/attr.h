@@ -29,13 +29,19 @@ extern "C"
 
 #include "attr_type_def.h"
 #include "item_type_def.h"
+#include "coord.h"
+#include "color.h"
 
     enum attr_format
     {
         attr_format_default = 0,
         attr_format_with_units = 1,
     };
-
+    struct poly_hole
+    {
+        int coord_count;
+        struct coord coord[1];
+    };
 #define AF_ONEWAY (1 << 0)
 #define AF_ONEWAYREV (1 << 1)
 #define AF_NOPASS (AF_ONEWAY | AF_ONEWAYREV)
