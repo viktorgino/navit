@@ -59,8 +59,8 @@ public:
     ~GraphicsContextQt5();
     void set_linewidth(int width) override;
     void set_dashes(int width, int offset, unsigned char dash_list[], int n) override;
-    void set_foreground(struct color *c) override;
-    void set_background(struct color *c) override;
+    void set_foreground(QColor *c) override;
+    void set_background(QColor *c) override;
     void set_texture(struct graphics_image *img) override;
 
     QPen &pen();

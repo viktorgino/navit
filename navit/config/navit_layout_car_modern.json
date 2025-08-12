@@ -4,7 +4,7 @@
     "font": "Liberation Sans",
     "icon_w": 22,
     "icon_h": 22,
-    "underground_alpha": "0x77",
+    "underground_alpha": 119,
     "cursors": [
         {
             "w": 57,

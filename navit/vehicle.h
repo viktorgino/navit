@@ -20,47 +20,68 @@
 #ifndef NAVIT_VEHICLE_H
 #define NAVIT_VEHICLE_H
 
-#include "navit_wrapper.h"
-#ifdef __cplusplus
+#include <QObject>
+#include "config_loader_layout.h"
 extern "C"
 {
-#endif
-
-    struct point;
-    struct vehicle_priv;
-
-    struct vehicle_methods
-    {
-        void (*destroy)(struct vehicle_priv *priv);
-        int (*position_attr_get)(struct vehicle_priv *priv, enum attr_type type, struct attr *attr);
-        int (*set_attr)(struct vehicle_priv *priv, struct attr *attr);
-    };
-
-    /* prototypes */
-    enum attr_type;
-    struct attr;
-    struct attr_iter;
-    struct cursor;
-    struct point;
-    struct vehicle;
-    struct vehicle *vehicle_new(struct attr *parent, struct attr **attrs);
-    void vehicle_destroy(struct vehicle *this_);
-    struct attr_iter *vehicle_attr_iter_new(void *unused);
-    void vehicle_attr_iter_destroy(struct attr_iter *iter);
-    int vehicle_get_attr(struct vehicle *this_, enum attr_type type, struct attr *attr, struct attr_iter *iter);
-    int vehicle_set_attr(struct vehicle *this_, struct attr *attr);
-    int vehicle_add_attr(struct vehicle *this_, struct attr *attr);
-    int vehicle_remove_attr(struct vehicle *this_, struct attr *attr);
-    void vehicle_set_cursor(struct vehicle *this_, struct cursor *cursor, int overwrite);
-    void vehicle_draw(struct vehicle *this_, GraphicsHandle gra, struct point *pnt, int angle, int speed);
-    int vehicle_get_cursor_data(struct vehicle *this_, struct point *pnt, int *angle, int *speed);
-    void vehicle_log_gpx_add_tag(char *tag, char **logstr);
-    struct vehicle *vehicle_ref(struct vehicle *this_);
-    void vehicle_unref(struct vehicle *this_);
-    /* end of prototypes */
-
-#ifdef __cplusplus
+#include "attr.h"
+#include "point.h"
+#include "glib.h"
 }
-#endif
+
+typedef void *GraphicsHandle;
+typedef void *GraphicsGCHandle;
+
+class Vehicle : public QObject
+{
+    Q_OBJECT
+public:
+    Vehicle(QObject *parent = nullptr);
+    // struct vehicle *new(struct attr *parent, struct attr **attrs);
+    void destroy();
+    int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter);
+    int set_attr(struct attr *attr);
+    int add_attr(struct attr *attr);
+    int remove_attr(struct attr *attr);
+    void set_cursor(struct cursor *cursor, int overwrite);
+    void draw(GraphicsHandle gra, struct point *pnt, int angle, int speed);
+    int get_cursor_data(struct point *pnt, int *angle, int *speed);
+    struct vehicle *ref();
+    void unref();
+
+    static attr_iter *attr_iter_new(void *unused);
+    static void attr_iter_destroy(struct attr_iter *iter);
+    static void log_gpx_add_tag(char *tag, char **logstr);
+
+private:
+    struct callback_list *m_cbl;
+    struct log *m_nmea_log, *m_gpx_log;
+    char *m_gpx_desc;
+
+    // cursor
+    LayoutCursor *m_cursor;
+    int m_cursor_fixed;
+    struct callback *m_animate_callback;
+    struct event_timeout *am_nimate_timer;
+    struct point m_cursor_pnt;
+    int m_need_resize;
+    int m_real_w;
+    int m_real_h;
+    GraphicsHandle m_gra;
+    GraphicsGCHandle *m_bg;
+    struct transformation *tm_rans;
+    int m_angle;
+    int m_speed;
+    int m_sequence;
+    GHashTable *m_log_to_cb;
+
+    void set_default_name(const QString &name);
+    void draw_do();
+    void log_nmea(struct log *log);
+    void log_gpx(struct log *log);
+    void log_textfile(struct log *log);
+    void log_binfile(struct log *log);
+    int add_log(struct log *log);
+};
 
 #endif

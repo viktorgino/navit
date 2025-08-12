@@ -105,7 +105,7 @@
 #include "fib-1.1/fib.h"
 #include "event.h"
 #include "callback.h"
-#include "vehicle.h"
+#include "vehicle_wrapper.h"
 #include "vehicleprofile.h"
 #include "roadprofile.h"
 #include "debug.h"

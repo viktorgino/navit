@@ -13,7 +13,6 @@ extern "C"
 #include "config.h"
 
 #include "callback.h"
-#include "color.h"
 #include "debug.h"
 #include "event.h"
 

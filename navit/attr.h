@@ -30,7 +30,11 @@ extern "C"
 #include "attr_type_def.h"
 #include "item_type_def.h"
 #include "coord.h"
-#include "color.h"
+
+    struct NavitColor
+    {
+        int r, g, b, a;
+    };
 
     enum attr_format
     {
@@ -41,6 +45,12 @@ extern "C"
     {
         int coord_count;
         struct coord coord[1];
+    };
+    struct displayitem_poly_holes
+    {
+        int count;
+        int *ccount;
+        struct coord **coords;
     };
 #define AF_ONEWAY (1 << 0)
 #define AF_ONEWAYREV (1 << 1)
@@ -153,7 +163,7 @@ extern "C"
             enum item_type item_type;
             enum projection projection;
             double *numd;
-            struct color *color;
+            struct NavitColor *color;
             struct coord_geo *coord_geo;
             void *navit;
             struct callback *callback;

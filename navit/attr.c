@@ -34,7 +34,6 @@
 #include "item.h"
 #include "coord.h"
 #include "transform.h"
-#include "color.h"
 #include "navigation.h"
 #include "attr.h"
 #include "map.h"
@@ -299,7 +298,7 @@ attr_new_from_text(const char *name, const char *value)
         }
         if (attr >= attr_type_color_begin && attr <= attr_type_color_end)
         {
-            struct color *color = g_new0(struct color, 1);
+            struct NavitColor *color = g_new0(struct NavitColor, 1);
             int r, g, b, a;
             ret->u.color = color;
             if (strlen(value) == 7)

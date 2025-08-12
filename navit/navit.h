@@ -124,8 +124,9 @@ public:
     void set_center_cursor_draw() override;
     int set_attr(struct attr *attr) override;
     int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter) override;
-    struct layout *get_layout_by_name(const char *layout_name);
-    void update_current_layout(struct layout *layout);
+    Layout *get_layout_by_name(const QString &name);
+    LayoutCursor *get_layout_cursor(const QString &name);
+    void update_current_layout(Layout *layout);
     int add_attr(struct attr *attr);
     int remove_attr(struct attr *attr);
     void add_callback(struct callback *cb) override;
@@ -136,9 +137,9 @@ public:
     struct route *get_route() override;
     struct navigation *get_navigation() override;
     void layout_switch();
-    int set_vehicle_by_name(const char *name);
-    int set_vehicleprofile_name(const std::string &name) override;
-    int set_layout_by_name(const char *name) override;
+    int set_vehicle_by_name(const QString &name);
+    int set_vehicleprofile_name(const QString &name) override;
+    int set_layout_by_name(const QString &name) override;
     int block(int block);
     int get_blocked();
     void destroy();
@@ -157,14 +158,14 @@ private:
     PluginLoader m_pluginLoader;
     Graphics m_graphics;
     GraphicsDisplayList m_displaylist;
+    QVector<Layout *> m_layouts;
 
-    QList<layer *> m_layers;
+    QList<LayoutLayer *> m_layers;
 
     struct attr m_self;
 
     GList *m_mapsets;
-    GList *m_layouts;
-    struct layout *m_layout_current; /*!< The current layout theme used to display the map */
+    Layout *m_layout_current; /*!< The current layout theme used to display the map */
     struct action *m_action;
     struct transformation *m_trans, *m_trans_cursor;
     struct compass *m_compass;
@@ -203,14 +204,13 @@ private:
     struct bookmarks *m_bookmarks;
 
     struct coord_geo m_center;
-    std::string m_layout_before_tunnel;
+    QString m_layout_before_tunnel;
 
     void draw_vehicle(struct navit_vehicle *nv, point *pnt);
 
     int add_vehicle(struct vehicle *v);
-    int add_layout(struct layout *layout);
+    int add_layout(Layout *layout);
     int add_log(struct log *log);
-    int add_layer(struct layer *layer);
 
     int set_attr_do(struct attr *attr, int init);
     int get_cursor_pnt(struct point *p, int keep_orientation, int *dir);

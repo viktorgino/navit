@@ -33,8 +33,9 @@ struct font_freetype_font;
 struct font_freetype_glyph;
 
 /** Methods provided by this plugin. */
-struct font_freetype_methods {
-    void (*destroy)(void);
+struct font_freetype_methods
+{
+	void (*destroy)(void);
 	/**
 	 * @brief Load a font, preferring one with the given font family.
 	 *
@@ -46,20 +47,22 @@ struct font_freetype_methods {
 	 * @param size requested size of font
 	 * @param flags extra flags for the font (bold,etc)
 	 * @returns loaded font, or NULL
-	*/
-	struct font_freetype_font *(*font_new) (struct graphics_priv * gr,
-						struct
-						graphics_font_methods *
-						meth, char *font, int size,
-						int flags);
-	void (*get_text_bbox) (struct graphics_priv * gr,
-			       struct font_freetype_font * font,
-			       char *text, int dx, int dy,
-			       struct point * ret, int estimate);
-	struct font_freetype_text *(*text_new) (char *text,
-						struct font_freetype_font *
-						font, int dx, int dy);
-	void (*text_destroy) (struct font_freetype_text * text);
+	 */
+	struct font_freetype_font *(*font_new)(struct graphics_priv *gr,
+										   struct
+										   graphics_font_methods *
+											   meth,
+										   char *font, int size,
+										   int flags);
+	void (*get_text_bbox)(struct graphics_priv *gr,
+						  struct font_freetype_font *font,
+						  char *text, int dx, int dy,
+						  struct point *ret, int estimate);
+	struct font_freetype_text *(*text_new)(char *text,
+										   struct font_freetype_font *
+											   font,
+										   int dx, int dy);
+	void (*text_destroy)(struct font_freetype_text *text);
 	/**
 	 * @brief Get glyph "shadow", a glyph bitmap to be used as background.
 	 *
@@ -75,8 +78,8 @@ struct font_freetype_methods {
 	 * @param background color for rest of the bitmap (typically set to transparent)
 	 * @returns 0 if depth is invalid, 1 otherwise
 	 */
-	int (*get_shadow) (struct font_freetype_glyph * glyph,
-			   unsigned char *data, int stride, struct color *fg, struct color *tr);
+	int (*get_shadow)(struct font_freetype_glyph *glyph,
+					  unsigned char *data, int stride, QColor *fg, QColor *tr);
 	/**
 	 * @brief Get a glyph bitmap.
 	 *
@@ -92,17 +95,19 @@ struct font_freetype_methods {
 	 * @param transparent color for background pixels
 	 * @returns 0 if depth is invalid, 1 otherwise
 	 */
-	int (*get_glyph) (struct font_freetype_glyph * glyph,
-			   unsigned char *data, int stride,
-			   struct color * fg, struct color * bg, struct color *tr);
+	int (*get_glyph)(struct font_freetype_glyph *glyph,
+					 unsigned char *data, int stride,
+					 QColor *fg, QColor *bg, QColor *tr);
 };
 
-struct font_freetype_glyph {
+struct font_freetype_glyph
+{
 	int x, y, w, h, dx, dy;
 	unsigned char *pixmap;
 };
 
-struct font_freetype_text {
+struct font_freetype_text
+{
 	int glyph_count;
 	struct font_freetype_glyph *glyph[0];
 };

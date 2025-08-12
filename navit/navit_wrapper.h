@@ -35,6 +35,7 @@ typedef struct _GList GList;
 extern "C"
 {
 #endif
+
     typedef void *NavitHandle;
     typedef void *GraphicsHandle;
     typedef void *GraphicsGCHandle;
@@ -83,8 +84,6 @@ extern "C"
     void navit_set_center_screen(NavitHandle navit, struct point *p, int set_timeout);
     int navit_set_attr(NavitHandle navit, struct attr *attr);
     int navit_get_attr(NavitHandle navit, enum attr_type type, struct attr *attr, struct attr_iter *iter);
-    struct layout *navit_get_layout_by_name(NavitHandle navit, const char *layout_name);
-    void navit_update_current_layout(NavitHandle navit, struct layout *layout);
     int navit_add_attr(NavitHandle navit, struct attr *attr);
     int navit_remove_attr(NavitHandle navit, struct attr *attr);
     struct attr_iter *navit_attr_iter_new(void);
@@ -105,7 +104,7 @@ extern "C"
     void navit_destroy(NavitHandle navit);
 
     GraphicsGCHandle graphics_gc_new(GraphicsHandle graphics);
-    void graphics_gc_set_foreground(GraphicsGCHandle *gc, struct color *c);
+    void graphics_gc_set_foreground(GraphicsGCHandle *gc, struct NavitColor *c);
     void graphics_gc_destroy(GraphicsGCHandle *gc);
 
     GraphicsHandle graphics_overlay_new(GraphicsHandle parent, struct point *p, int w, int h, int wraparound);

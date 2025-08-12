@@ -22,7 +22,8 @@
  */
 // style with: clang-format -style=WebKit -i *
 
-extern "C" {
+extern "C"
+{
 #include "config.h"
 #include "item.h" /* needs to be first as attr.h depends on it */
 
@@ -30,7 +31,7 @@ extern "C" {
 #include "coord.h"
 #include "debug.h"
 #include "plugin.h"
-#include "vehicle.h"
+#include "vehicle_wrapper.h"
 }
 #include <glib.h>
 #include <math.h>
@@ -49,57 +50,69 @@ extern "C" {
  * @{
  */
 
-QNavitGeoReceiver::QNavitGeoReceiver(QObject* parent, struct vehicle_priv* c)
-    : QObject(parent) {
+QNavitGeoReceiver::QNavitGeoReceiver(QObject *parent, struct vehicle_priv *c)
+    : QObject(parent)
+{
     priv = c;
-    if (priv->source != NULL) {
+    if (priv->source != NULL)
+    {
         connect(priv->source, SIGNAL(positionUpdated(QGeoPositionInfo)), this, SLOT(positionUpdated(QGeoPositionInfo)));
     }
-    if (priv->satellites != NULL) {
-        connect(priv->satellites, SIGNAL(satellitesInUseUpdated(const QList<QGeoSatelliteInfo>&)), this,
-                SLOT(satellitesInUseUpdated(const QList<QGeoSatelliteInfo>&)));
-        connect(priv->satellites, SIGNAL(satellitesInViewUpdated(const QList<QGeoSatelliteInfo>&)), this,
-                SLOT(satellitesInViewUpdated(const QList<QGeoSatelliteInfo>&)));
+    if (priv->satellites != NULL)
+    {
+        connect(priv->satellites, SIGNAL(satellitesInUseUpdated(const QList<QGeoSatelliteInfo> &)), this,
+                SLOT(satellitesInUseUpdated(const QList<QGeoSatelliteInfo> &)));
+        connect(priv->satellites, SIGNAL(satellitesInViewUpdated(const QList<QGeoSatelliteInfo> &)), this,
+                SLOT(satellitesInViewUpdated(const QList<QGeoSatelliteInfo> &)));
     }
 }
-void QNavitGeoReceiver::satellitesInUseUpdated(const QList<QGeoSatelliteInfo>& sats) {
+void QNavitGeoReceiver::satellitesInUseUpdated(const QList<QGeoSatelliteInfo> &sats)
+{
     dbg(lvl_debug, "Sats in use: %d", sats.count());
     priv->sats_used = sats.count();
     callback_list_call_attr_0(priv->cbl, attr_position_sats_used);
 }
 
-void QNavitGeoReceiver::satellitesInViewUpdated(const QList<QGeoSatelliteInfo>& sats) {
+void QNavitGeoReceiver::satellitesInViewUpdated(const QList<QGeoSatelliteInfo> &sats)
+{
     dbg(lvl_debug, "Sats in view: %d", sats.count());
     priv->sats = sats.count();
     callback_list_call_attr_0(priv->cbl, attr_position_qual);
 }
 
-void QNavitGeoReceiver::positionUpdated(const QGeoPositionInfo& info) {
+void QNavitGeoReceiver::positionUpdated(const QGeoPositionInfo &info)
+{
     /* ignore stale view */
-    if (info.coordinate().isValid()) {
-        if (info.timestamp().toUTC().secsTo(QDateTime::currentDateTimeUtc()) > 20) {
+    if (info.coordinate().isValid())
+    {
+        if (info.timestamp().toUTC().secsTo(QDateTime::currentDateTimeUtc()) > 20)
+        {
             dbg(lvl_debug, "Ignoring old FIX");
             return;
         }
     }
 
-    if (info.hasAttribute(QGeoPositionInfo::HorizontalAccuracy)) {
+    if (info.hasAttribute(QGeoPositionInfo::HorizontalAccuracy))
+    {
         dbg(lvl_debug, "Horizontal acc (%f)", info.attribute(QGeoPositionInfo::HorizontalAccuracy));
         priv->radius = info.attribute(QGeoPositionInfo::HorizontalAccuracy);
         callback_list_call_attr_0(priv->cbl, attr_position_radius);
     }
-    if (info.hasAttribute(QGeoPositionInfo::GroundSpeed)) {
+    if (info.hasAttribute(QGeoPositionInfo::GroundSpeed))
+    {
         dbg(lvl_debug, "Got ground speed (%f)", info.attribute(QGeoPositionInfo::GroundSpeed));
         priv->speed = info.attribute(QGeoPositionInfo::GroundSpeed) * 3.6;
         callback_list_call_attr_0(priv->cbl, attr_position_speed);
     }
-    if (info.hasAttribute(QGeoPositionInfo::Direction)) {
+    if (info.hasAttribute(QGeoPositionInfo::Direction))
+    {
         dbg(lvl_debug, "Direction (%f)", info.attribute(QGeoPositionInfo::Direction));
         priv->direction = info.attribute(QGeoPositionInfo::Direction);
         callback_list_call_attr_0(priv->cbl, attr_position_direction);
     }
 
-    switch (info.coordinate().type()) {
+    switch (info.coordinate().type())
+    {
     case QGeoCoordinate::Coordinate3D:
         priv->fix_type = 2;
         break;
@@ -111,25 +124,31 @@ void QNavitGeoReceiver::positionUpdated(const QGeoPositionInfo& info) {
         break;
     }
 
-    if (info.coordinate().isValid()) {
+    if (info.coordinate().isValid())
+    {
         dbg(lvl_debug, "Got valid coordinate (lat %f, lon %f)", info.coordinate().latitude(), info.coordinate().longitude());
         priv->geo.lat = info.coordinate().latitude();
         priv->geo.lng = info.coordinate().longitude();
-        if (info.coordinate().type() == QGeoCoordinate::Coordinate3D) {
+        if (info.coordinate().type() == QGeoCoordinate::Coordinate3D)
+        {
             dbg(lvl_debug, "Got valid altitude (alt %f)", info.coordinate().altitude());
             priv->height = info.coordinate().altitude();
         }
         // dbg(lvl_debug, "Time %s", info.timestamp().toUTC().toString().toLatin1().data());
         priv->fix_time = info.timestamp().toUTC().toTime_t();
         callback_list_call_attr_0(priv->cbl, attr_position_coord_geo);
-        if (priv->have_coords != attr_position_valid_valid) {
+        if (priv->have_coords != attr_position_valid_valid)
+        {
             priv->have_coords = attr_position_valid_valid;
             callback_list_call_attr_0(priv->cbl, attr_position_valid);
         }
-    } else {
+    }
+    else
+    {
         dbg(lvl_debug, "Got invalid coordinate");
         callback_list_call_attr_0(priv->cbl, attr_position_coord_geo);
-        if (priv->have_coords != attr_position_valid_invalid) {
+        if (priv->have_coords != attr_position_valid_invalid)
+        {
             priv->have_coords = attr_position_valid_invalid;
             callback_list_call_attr_0(priv->cbl, attr_position_valid);
         }
@@ -142,7 +161,8 @@ void QNavitGeoReceiver::positionUpdated(const QGeoPositionInfo& info) {
  * @param priv
  * @returns nothing
  */
-static void vehicle_qt5_destroy(struct vehicle_priv* priv) {
+static void vehicle_qt5_destroy(struct vehicle_priv *priv)
+{
     dbg(lvl_debug, "enter");
     if (priv->receiver != NULL)
         delete priv->receiver;
@@ -159,11 +179,13 @@ static void vehicle_qt5_destroy(struct vehicle_priv* priv) {
  * @param attr
  * @returns true/false
  */
-static int vehicle_qt5_position_attr_get(struct vehicle_priv* priv,
-        enum attr_type type, struct attr* attr) {
-    struct attr* active = NULL;
+static int vehicle_qt5_position_attr_get(struct vehicle_priv *priv,
+                                         enum attr_type type, struct attr *attr)
+{
+    struct attr *active = NULL;
     dbg(lvl_debug, "enter %s", attr_to_name(type));
-    switch (type) {
+    switch (type)
+    {
     case attr_position_valid:
         attr->u.num = priv->have_coords;
         break;
@@ -194,22 +216,29 @@ static int vehicle_qt5_position_attr_get(struct vehicle_priv* priv,
             return 0;
         break;
     case attr_position_time_iso8601:
-        if (priv->fix_time) {
+        if (priv->fix_time)
+        {
             struct tm tm;
 #ifdef WIN32
-            if (gmtime_s(&tm, &priv->fix_time)) {
+            if (gmtime_s(&tm, &priv->fix_time))
+            {
 #else
-            if (gmtime_r(&priv->fix_time, &tm)) {
+            if (gmtime_r(&priv->fix_time, &tm))
+            {
 #endif
                 strftime(priv->fixiso8601, sizeof(priv->fixiso8601),
                          "%Y-%m-%dT%TZ", &tm);
                 attr->u.str = priv->fixiso8601;
-            } else {
+            }
+            else
+            {
                 priv->fix_time = 0;
                 return 0;
             }
             // dbg(lvl_debug,"Fix Time: %s", priv->fixiso8601);
-        } else {
+        }
+        else
+        {
             // dbg(lvl_debug,"Fix Time: 0");
             return 0;
         }
@@ -217,10 +246,12 @@ static int vehicle_qt5_position_attr_get(struct vehicle_priv* priv,
 
     case attr_active:
         active = attr_search(priv->attrs, attr_active);
-        if (active != NULL) {
+        if (active != NULL)
+        {
             attr->u.num = active->u.num;
             return 1;
-        } else
+        }
+        else
             return 0;
         break;
 
@@ -232,8 +263,10 @@ static int vehicle_qt5_position_attr_get(struct vehicle_priv* priv,
     return 1;
 }
 
-static int vehicle_qt5_set_attr(struct vehicle_priv* priv, struct attr* attr) {
-    switch (attr->type) {
+static int vehicle_qt5_set_attr(struct vehicle_priv *priv, struct attr *attr)
+{
+    switch (attr->type)
+    {
     case attr_position_speed:
         priv->speed = *attr->u.numd;
         break;
@@ -242,7 +275,8 @@ static int vehicle_qt5_set_attr(struct vehicle_priv* priv, struct attr* attr) {
         break;
     case attr_position_coord_geo:
         priv->geo = *attr->u.coord_geo;
-        if (priv->have_coords != attr_position_valid_valid) {
+        if (priv->have_coords != attr_position_valid_valid)
+        {
             priv->have_coords = attr_position_valid_valid;
             callback_list_call_attr_0(priv->cbl, attr_position_valid);
         }
@@ -268,10 +302,11 @@ struct vehicle_methods vehicle_null_methods = {
  * @param attrs
  * @returns vehicle_priv
  */
-static struct vehicle_priv* vehicle_qt5_new_qt5(struct vehicle_methods* meth,
-        struct callback_list* cbl,
-        struct attr** attrs) {
-    struct vehicle_priv* ret;
+static struct vehicle_priv *vehicle_qt5_new_qt5(struct vehicle_methods *meth,
+                                                struct callback_list *cbl,
+                                                struct attr **attrs)
+{
+    struct vehicle_priv *ret;
 
     dbg(lvl_debug, "enter");
     ret = g_new0(struct vehicle_priv, 1);
@@ -280,12 +315,16 @@ static struct vehicle_priv* vehicle_qt5_new_qt5(struct vehicle_methods* meth,
     ret->attrs = attrs;
     ret->source = QGeoPositionInfoSource::createDefaultSource(NULL);
     ret->satellites = QGeoSatelliteInfoSource::createDefaultSource(NULL);
-    if (ret->source == NULL) {
+    if (ret->source == NULL)
+    {
         dbg(lvl_error, "Got NO QGeoPositionInfoSource");
-    } else {
+    }
+    else
+    {
         dbg(lvl_debug, "Using %s", ret->source->sourceName().toLatin1().data());
         ret->receiver = new QNavitGeoReceiver(NULL, ret);
-        if (ret->satellites != NULL) {
+        if (ret->satellites != NULL)
+        {
             ret->satellites->setUpdateInterval(1000);
             ret->satellites->startUpdates();
         }
@@ -301,7 +340,8 @@ static struct vehicle_priv* vehicle_qt5_new_qt5(struct vehicle_methods* meth,
  *
  * @returns nothing
  */
-void plugin_init(void) {
+void plugin_init(void)
+{
     dbg(lvl_debug, "enter");
     plugin_register_category_vehicle("qt5", vehicle_qt5_new_qt5);
 }

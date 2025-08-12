@@ -8,7 +8,7 @@
 #include "qml_map.h"
 #include "qml_poi.h"
 #include "qml_bookmark.h"
-#include "qml_vehicle.h"
+#include "qml_vehicle_wrapper.h"
 
 #include "coord.h"
 #include "item.h"
@@ -21,9 +21,9 @@ class Backend : public QObject
     Q_PROPERTY(QQmlListProperty<QObject> bookmarks READ getBookmarks NOTIFY bookmarksChanged)
     Q_PROPERTY(QQmlListProperty<QObject> maps READ getMaps NOTIFY mapsChanged)
     Q_PROPERTY(QQmlListProperty<QObject> vehicles READ getVehicles NOTIFY vehiclesChanged)
-    Q_PROPERTY(PoiObject * activePoi READ activePoi NOTIFY activePoiChanged)
-    Q_PROPERTY(BookmarkObject * currentBookmark READ currentBookmark NOTIFY currentBookmarkChanged)
-    Q_PROPERTY(VehicleObject * currentVehicle READ currentVehicle NOTIFY currentVehicleChanged)
+    Q_PROPERTY(PoiObject *activePoi READ activePoi NOTIFY activePoiChanged)
+    Q_PROPERTY(BookmarkObject *currentBookmark READ currentBookmark NOTIFY currentBookmarkChanged)
+    Q_PROPERTY(VehicleObject *currentVehicle READ currentVehicle NOTIFY currentVehicleChanged)
     Q_PROPERTY(QQmlListProperty<QObject> searchresults READ getSearchResults NOTIFY searchResultsChanged)
     // Search properties
     Q_PROPERTY(QString currentCountry READ currentCountry NOTIFY currentCountryChanged)
@@ -34,21 +34,21 @@ class Backend : public QObject
 public:
     explicit Backend(QObject *parent = 0);
 
-    void showMenu(struct point* p);
-    void set_navit(struct navit* nav);
-    void set_engine(QQmlApplicationEngine* engine);
+    void showMenu(struct point *p);
+    void set_navit(struct navit *nav);
+    void set_engine(QQmlApplicationEngine *engine);
 
-    QList < PoiObject * > pois;
+    QList<PoiObject *> pois;
     QQmlListProperty<QObject> getPois();
-    QList < BookmarkObject * > bookmarks;
+    QList<BookmarkObject *> bookmarks;
     QQmlListProperty<QObject> getBookmarks();
-    QList < MapObject * > maps;
+    QList<MapObject *> maps;
     QQmlListProperty<QObject> getMaps();
-    QList < MapObject * > vehicles;
+    QList<MapObject *> vehicles;
     QQmlListProperty<QObject> getVehicles();
-    PoiObject * activePoi();
-    BookmarkObject * currentBookmark();
-    VehicleObject * currentVehicle();
+    PoiObject *activePoi();
+    BookmarkObject *currentBookmark();
+    VehicleObject *currentVehicle();
     QQmlListProperty<QObject> getSearchResults();
     QString currentCountry();
     QString currentCountryIso2();
@@ -77,7 +77,7 @@ public slots:
     void get_bookmarks();
     void get_vehicles();
     QString get_icon_path();
-    QString get_country_icon(char * country_iso_code);
+    QString get_country_icon(char *country_iso_code);
     void setActivePoi(int index);
     void setCurrentBookmark(int index);
     void setCurrentVehicle(int index);
@@ -94,20 +94,20 @@ private:
     struct coord_geo g;
     struct pcoord c;
     int filter_pois(struct item *item);
-    QQmlApplicationEngine* engine;
+    QQmlApplicationEngine *engine;
     QList<QObject *> _pois;
     QList<QObject *> _bookmarks;
     QList<QObject *> _maps;
     QList<QObject *> _vehicles;
-    PoiObject * m_activePoi;
-    BookmarkObject * m_currentBookmark;
-    VehicleObject * m_currentVehicle;
+    PoiObject *m_activePoi;
+    BookmarkObject *m_currentBookmark;
+    VehicleObject *m_currentVehicle;
     QList<QObject *> _search_results;
     void set_default_country();
-    const char * _country_iso2;
-    const char * _current_country;
-    const char * _current_town;
-    const char * _current_street;
+    const char *_country_iso2;
+    const char *_current_country;
+    const char *_current_town;
+    const char *_current_street;
     struct search_param *search;
     enum attr_type _search_context;
 };

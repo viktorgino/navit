@@ -63,6 +63,13 @@ extern "C"
  */
 #define ALLOCA_COORD_LIMIT 16384
 
+constexpr QColor COLOR_WHITE_ = QColor(0xff, 0xff, 0xff, 0xff);
+constexpr QColor COLOR_BLACK_ = QColor(0x00, 0x00, 0x00, 0xff);
+constexpr QColor COLOR_BACKGROUND_ = QColor(0xFF, 0xEF, 0xB7, 0xFF);
+constexpr QColor COLOR_TRANSPARENT = QColor(0x00, 0x00, 0x00, 0xff);
+
+constexpr uint8_t UNDERGROUND_ALPHA_ = 0xFF;
+
 // ##############################################################################################################
 // # Description:
 // # Comment:
@@ -78,8 +85,9 @@ extern "C"
  * @see GraphicsContext
  */
 
-static void circle_to_points(const struct point *center, int diameter, int scale, int start, int len, struct point *res,
-                             int *pos, int dir);
+static void
+circle_to_points(const struct point *center, int diameter, int scale, int start, int len, struct point *res,
+                 int *pos, int dir);
 
 int Graphics::dpi_scale(int p)
 {
@@ -127,13 +135,13 @@ int Graphics::set_attr_do(struct attr *attr)
     switch (attr->type)
     {
     case attr_gamma:
-        m_gamma = attr->u.num;
+        qDebug() << "Warning trying to set gamma";
         break;
     case attr_brightness:
-        m_brightness = attr->u.num;
+        qDebug() << "Warning trying to set brightness";
         break;
     case attr_contrast:
-        m_contrast = attr->u.num;
+        qDebug() << "Warning trying to set contrast";
         break;
     case attr_font_size:
         m_font_size = attr->u.num;
@@ -141,7 +149,6 @@ int Graphics::set_attr_do(struct attr *attr)
     default:
         return 0;
     }
-    m_colormgmt = (m_gamma != 65536 || m_brightness != 0 || m_contrast != 65536);
     gc_init();
     return 1;
 }
@@ -244,9 +251,6 @@ Graphics::Graphics(NavitInterface &navit, GraphicsFunctions &graphicsFunctions,
     m_dpi_factor = 1;
     // TODO: Add configurable DPI scaling
 
-    m_brightness = 0;
-    m_contrast = 65536;
-    m_gamma = 65536;
     m_font_size = 20;
     m_image_cache_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
     // TODO: Add resize callback
@@ -315,24 +319,24 @@ Graphics::Graphics(
 Graphics::~Graphics()
 {
     /* If it's not an overlay, free the image cache. */
-    if (!m_parent.has_value())
-    {
-        struct graphics_image *img;
-        GList *ll, *l;
-
-        /* We can't specify context (pointer to struct graphics) for g_hash_table_new to have it passed to free function
-           so we have to free img->priv manually, the rest would be freed by g_hash_table_destroy. GHashTableIter isn't used because it
-           broke n800 build at r5107.
-        */
-        for (ll = l = g_hash_to_list(m_image_cache_hash); l; l = g_list_next(l))
-        {
-            img = (graphics_image *)layout->data;
-            if (img)
-                m_graphicsInterface.image_free(img->priv);
-        }
-        g_list_free(ll);
-        g_hash_table_destroy(m_image_cache_hash);
-    }
+    // TODO: do we need to destroy layouts?
+    // if (!m_parent.has_value())
+    // {
+    //     struct graphics_image *img;
+    //     GList *ll, *l;
+    // /* We can't specify context (pointer to struct graphics) for g_hash_table_new to have it passed to free function
+    //    so we have to free img->priv manually, the rest would be freed by g_hash_table_destroy. GHashTableIter isn't used because it
+    //    broke n800 build at r5107.
+    // */
+    // for (ll = l = g_hash_to_list(m_image_cache_hash); l; l = g_list_next(l))
+    // {
+    //     img = (graphics_image *)layout->data;
+    //     if (img)
+    //         m_graphicsInterface.image_free(img->priv);
+    // }
+    // g_list_free(ll);
+    // g_hash_table_destroy(m_image_cache_hash);
+    // }
 
     // m_gcBackground->destroy();
     // m_gcMiddground->destroy();
@@ -415,9 +419,9 @@ void Graphics::overlay_resize(struct point *p, int w, int h, int wraparound)
 
 void Graphics::gc_init()
 {
-    struct color background = {COLOR_BACKGROUND_};
-    struct color black = {COLOR_BLACK_};
-    struct color white = {COLOR_WHITE_};
+    QColor background = {COLOR_BACKGROUND_};
+    QColor black = {COLOR_BLACK_};
+    QColor white = {COLOR_WHITE_};
 
     m_gcBackground.set_background(&background);
     m_gcBackground.set_foreground(&background);
@@ -470,7 +474,7 @@ void Graphics::remove_callback(struct callback *cb)
 struct graphics_font *Graphics::font_new(int size, int flags)
 {
 
-    return named_font_new(m_default_font, size, flags);
+    return named_font_new(m_default_font.toLocal8Bit().data(), size, flags);
 }
 
 struct graphics_font *Graphics::named_font_new(char *font, int size, int flags)
@@ -507,45 +511,6 @@ void Graphics::font_destroy_all()
         m_graphicsInterface.font_destroy(m_font[i]->priv);
         g_free(m_font[i]);
         m_font[i] = NULL;
-    }
-}
-
-void Graphics::convert_color(struct color *in, struct color *out)
-{
-    *out = *in;
-    if (m_colormgmt == 0)
-    {
-        return;
-    }
-    if (m_brightness)
-    {
-        out->r += m_brightness;
-        out->g += m_brightness;
-        out->b += m_brightness;
-    }
-    if (m_contrast != 65536)
-    {
-        out->r = out->r * m_contrast / 65536;
-        out->g = out->g * m_contrast / 65536;
-        out->b = out->b * m_contrast / 65536;
-    }
-    if (out->r < 0)
-        out->r = 0;
-    if (out->r > 65535)
-        out->r = 65535;
-    if (out->g < 0)
-        out->g = 0;
-    if (out->g > 65535)
-        out->g = 65535;
-    if (out->b < 0)
-        out->b = 0;
-    if (out->b > 65535)
-        out->b = 65535;
-    if (m_gamma != 65536)
-    {
-        out->r = pow(out->r / 65535.0, m_gamma / 65536.0) * 65535.0;
-        out->g = pow(out->g / 65535.0, m_gamma / 65536.0) * 65535.0;
-        out->b = pow(out->b / 65535.0, m_gamma / 65536.0) * 65535.0;
     }
 }
 
@@ -1111,7 +1076,7 @@ void Graphics::background_gc(GraphicsContext *gc)
 
 void Graphics::set_layout(Layout *layout)
 {
-    if (l)
+    if (layout)
     {
         m_gcBackground.set_background(&layout->getColor());
         m_gcBackground.set_foreground(&layout->getColor());
@@ -2570,14 +2535,15 @@ void Graphics::displayitem_free_holes(struct displayitem_poly_holes *holes)
 void Graphics::displayitem_draw_polygon(struct display_context *dc, struct point *pa, int count, struct displayitem_poly_holes *holes)
 {
 
+    LayoutPolygon *contextPolygon = static_cast<LayoutPolygon *>(dc->element);
     /* Set texture if any, and supported by graphics */
-    if (dc->element->u.polygon.src != NULL)
+    if (!contextPolygon->getSrc().isEmpty())
     {
         char *path;
         struct graphics_image *texture;
-        path = texture_path(dc->element->u.polygon.src);
-        texture = image_new_scaled_rotated(path, dc->element->u.polygon.width, dc->element->u.polygon.height,
-                                           dc->element->u.polygon.rotation);
+        path = texture_path(contextPolygon->getSrc().toLocal8Bit().data());
+        texture = image_new_scaled_rotated(path, contextPolygon->getW(), contextPolygon->getH(),
+                                           contextPolygon->getRotation());
         g_free(path);
         if (texture != NULL)
             dc->gc->set_texture(texture);
@@ -2589,62 +2555,61 @@ void Graphics::displayitem_draw_polygon(struct display_context *dc, struct point
         draw_polygon_clipped(dc->gc, pa, count);
 }
 
-void Graphics::displayitem_draw_polyline(struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count, int *width)
+void Graphics::displayitem_draw_polyline(struct display_context *dc, LayoutPolyline *element, struct point *pa, int count, int *width)
 {
     int i;
     dc->gc->set_linewidth(1);
-    if (element->u.polyline.width > 0 && element->u.polyline.dash_num > 0)
-        dc->gc->set_dashes(element->u.polyline.width, element->u.polyline.offset, element->u.polyline.dash_table,
-                           element->u.polyline.dash_num);
+    if (element->getWidth() > 0 && element->getDash().size() > 0)
+        dc->gc->set_dashes(element->getWidth(), element->getOffset(), element->getDash());
     for (i = 0; i < count; i++)
     {
         if (width[i] < 2)
             width[i] = 2;
     }
-    draw_polyline_clipped(dc->gc, pa, count, width, element->u.polyline.width > 1);
+    draw_polyline_clipped(dc->gc, pa, count, width, element->getWidth() > 1);
 }
 
-void Graphics::displayitem_draw_circle(struct displayitem *di, struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count)
+void Graphics::displayitem_draw_circle(struct displayitem *di, struct display_context *dc, LayoutCircle *element, struct point *pa, int count)
 {
     if (count)
     {
-        if (element->u.circle.width > 1)
-            dc->gc->set_linewidth(element->u.polyline.width);
-        draw_circle(dc->gc, pa, element->u.circle.radius);
-        if (di->label && element->text_size)
+        if (element->getWidth() > 1)
+            dc->gc->set_linewidth(element->getWidth());
+        draw_circle(dc->gc, pa, element->getRadius());
+        if (di->label && element->getTextSize())
         {
-            struct graphics_font *font = get_font(element->text_size);
+            struct graphics_font *font = get_font(element->getTextSize());
             GraphicsContext *gc_background = dc->gc_background;
-            if (!gc_background && element->u.circle.background_color.a)
+            if (!gc_background && element->getBackgroundColor().isValid())
             {
                 gc_background = new GraphicsContext(m_contextInterface, this);
-                gc_background->set_foreground(&element->u.circle.background_color);
+                gc_background->set_foreground(&element->getBackgroundColor());
                 dc->gc_background = gc_background;
             }
             if (font)
             {
                 struct point p;
                 /* Set p to the center of the circle */
-                p.x = pa[0].x + (element->u.circle.radius / 2);
-                p.y = pa[0].y + (element->u.circle.radius / 2);
-                multiline_label_draw(dc->gc, gc_background, font, p, di->label, element->text_size + 1);
+                p.x = pa[0].x + (element->getRadius() / 2);
+                p.y = pa[0].y + (element->getRadius() / 2);
+                multiline_label_draw(dc->gc, gc_background, font, p, di->label, element->getTextSize() + 1);
             }
             else
-                dbg(lvl_error, "Failed to get font with size %d", element->text_size);
+                dbg(lvl_error, "Failed to get font with size %d", element->getTextSize());
         }
     }
 }
 
-void Graphics::displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count, struct displayitem_poly_holes *holes)
+void Graphics::displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutText *element, struct point *pa, int count, struct displayitem_poly_holes *holes)
 {
     if (count && di->label)
     {
-        struct graphics_font *font = get_font(element->text_size);
+        struct graphics_font *font = get_font(element->getTextSize());
         GraphicsContext *gc_background = dc->gc_background;
-        if (!gc_background && element->u.text.background_color.a)
+        if (!gc_background && element->getBackgroundColor().isValid())
         {
             gc_background = new GraphicsContext(m_contextInterface, this);
-            gc_background->set_foreground(&element->u.text.background_color);
+            gc_background->set_foreground(&element->getBackgroundColor());
             dc->gc_background = gc_background;
         }
         if (font)
@@ -2658,7 +2623,7 @@ void Graphics::displayitem_draw_text(struct displayitem *di, struct display_cont
             }
         }
         else
-            dbg(lvl_error, "Failed to get font with size %d", element->text_size);
+            dbg(lvl_error, "Failed to get font with size %d", element->getTextSize());
     }
 }
 
@@ -2743,7 +2708,7 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
     int *width;
     int limit = 0;
     struct point *pa;
-    LayoutItemGraphElement *element = dc->e;
+    LayoutItemGraphElement *element = dc->element;
     int draw_underground = 0;
     long pa_buf_size = sizeof(struct point) * dc->maxlen;
 
@@ -2778,17 +2743,17 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
         {
             GraphicsContext *gc = new GraphicsContext(m_contextInterface, this);
             dc->gc = gc;
-            dc->gc->set_foreground(&element->color);
+            dc->gc->set_foreground(&element->getColor());
         }
 
         /* If the element id flagged AF_UNDERGROUND, we apply predefined transparenc to it if
          * it's not the text. */
-        if ((di->flags & AF_UNDERGROUND) && (dc->element->type != element::element_text))
+        if ((di->flags & AF_UNDERGROUND) && (dc->element->getType() != LayoutElementType::LayoutElementText))
         {
             if (!draw_underground)
             {
-                struct color fg_color = element->color;
-                fg_color.a = (l != NULL) ? layout->underground_alpha : UNDERGROUND_ALPHA_;
+                QColor fg_color = element->getColor();
+                fg_color.setAlpha(layout ? layout->getUndergroundAlpha() : UNDERGROUND_ALPHA_);
                 dc->gc->set_foreground(&fg_color);
                 draw_underground = 1;
             }
@@ -2797,11 +2762,14 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
         {
             if (draw_underground)
             {
-                dc->gc->set_foreground(&element->color);
+                dc->gc->set_foreground(&element->getColor());
                 draw_underground = 0;
             }
         }
-        if (item_type_is_area(dc->type) && (dc->element->type == element::element_polyline || dc->element->type == element::element_text))
+        if (
+            item_type_is_area(dc->type) &&
+            (dc->element->getType() == LayoutElementType::LayoutElementPolyline ||
+             dc->element->getType() == LayoutElementType::LayoutElementText))
             limit = 0;
 
         displayitem_transform_holes(dc->trans, dc->pro, di->holes, &t_holes, mindist);
@@ -2810,43 +2778,63 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
             count = limit_count(di->c, count);
         if (dc->type == type_poly_water_tiled)
             mindist = 0;
-        if (dc->element->type == element::element_polyline)
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, element->u.polyline.width,
-                                        width);
-        else if (dc->element->type == element::element_arrows)
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, element->u.arrows.width,
-                                        width);
-        else if (dc->element->type == element::element_spikes)
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, element->u.spikes.width,
-                                        width);
-        else
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
+
         switch (element->getType())
         {
         case LayoutElementType::LayoutElementPolygon:
+        {
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
             displayitem_draw_polygon(dc, pa, count, &t_holes);
             break;
+        }
         case LayoutElementType::LayoutElementPolyline:
-            displayitem_draw_polyline(dc, e, pa, count, width);
+        {
+            LayoutPolyline *polyline = static_cast<LayoutPolyline *>(element);
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, polyline->getWidth(),
+                                        width);
+            displayitem_draw_polyline(dc, static_cast<LayoutPolyline *>(element), pa, count, width);
             break;
+        }
         case LayoutElementType::LayoutElementCircle:
-            displayitem_draw_circle(di, dc, e, pa, count);
+        {
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
+            displayitem_draw_circle(di, dc, static_cast<LayoutCircle *>(element), pa, count);
             break;
+        }
         case LayoutElementType::LayoutElementText:
-            displayitem_draw_text(di, dc, e, pa, count, &t_holes);
+        {
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
+            displayitem_draw_text(di, dc, static_cast<LayoutText *>(element), pa, count, &t_holes);
             break;
+        }
         case LayoutElementType::LayoutElementIcon:
-            displayitem_draw_icon(di, dc, e, pa, count, layout);
+        {
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
+            displayitem_draw_icon(di, dc, static_cast<LayoutIcon *>(element), pa, count, layout);
             break;
+        }
         case LayoutElementType::LayoutElementImage:
+        {
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
             displayitem_draw_image(di, dc, pa, count);
             break;
+        }
         case LayoutElementType::LayoutElementArrows:
-            display_draw_arrows(dc, pa, count, width, element->oneway);
+        {
+            LayoutArrows *arrows = static_cast<LayoutArrows *>(element);
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, arrows->getWidth(),
+                                        width);
+            display_draw_arrows(dc, pa, count, width, arrows->getOneway());
             break;
+        }
         case LayoutElementType::LayoutElementSpikes:
-            display_draw_spikes(dc, pa, count, width, element->u.spikes.distance);
+        {
+            LayoutSpikes *spikes = static_cast<LayoutSpikes *>(element);
+            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, spikes->getWidth(),
+                                        width);
+            display_draw_spikes(dc, pa, count, width, spikes->getDistance());
             break;
+        }
         case LayoutElementType::LayoutElementPoint:
             qWarning() << "Can't draw point";
         }
@@ -2862,9 +2850,8 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
     }
 }
 
-void Graphics::draw_itemgra(struct itemgra *itm, struct transformation *t, char *label)
+void Graphics::draw_itemgra(LayoutItemGraph *itemGraph, struct transformation *t, char *label)
 {
-    GList *es;
     struct display_context dc;
     int max_coord = 32;
     char *buffer;
@@ -2879,7 +2866,6 @@ void Graphics::draw_itemgra(struct itemgra *itm, struct transformation *t, char 
     }
     di = (struct displayitem *)buffer;
 
-    es = itm->elements;
     di->item.type = type_none;
     di->item.id_hi = 0;
     di->item.id_lo = 0;
@@ -2896,18 +2882,17 @@ void Graphics::draw_itemgra(struct itemgra *itm, struct transformation *t, char 
     dc.trans = t;
     dc.type = type_none;
     dc.maxlen = max_coord;
-    while (es)
+    for (LayoutItemGraphElement *element : itemGraph->getElements())
     {
-        LayoutItemGraphElement *element = (LayoutItemGraphElement *)es->data;
-        if (element->coord_count)
+        if (element->getCoords().size() > 0)
         {
-            if (element->coord_count > max_coord)
+            if (element->getCoords().size() > max_coord)
             {
-                dbg(lvl_error, "maximum number of coords reached: %d > %d", element->coord_count, max_coord);
+                qWarning() << "maximum number of coords reached: " << element->getCoords().size() << ">" << max_coord;
                 di->count = max_coord;
             }
             else
-                di->count = element->coord_count;
+                di->count = element->getCoords().size();
             memcpy(di->c, element->coord, di->count * sizeof(struct coord));
         }
         else
@@ -2920,7 +2905,6 @@ void Graphics::draw_itemgra(struct itemgra *itm, struct transformation *t, char 
         di->next = NULL;
         displayitem_draw(di, NULL, &dc);
         display_context_free(&dc);
-        es = g_list_next(es);
     }
     if (max_coord >= ALLOCA_COORD_LIMIT)
     {
@@ -3009,11 +2993,8 @@ GraphicsContext::~GraphicsContext()
  * @param c color to set
  * @author Martin Schaller (04/2008)
  */
-void GraphicsContext::set_foreground(struct color *c)
+void GraphicsContext::set_foreground(QColor *c)
 {
-    struct color cn;
-    m_graphics->convert_color(c, &cn);
-    c = &cn;
     m_contextInterface.set_foreground(c);
 }
 
@@ -3023,11 +3004,8 @@ void GraphicsContext::set_foreground(struct color *c)
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void GraphicsContext::set_background(struct color *c)
+void GraphicsContext::set_background(QColor *c)
 {
-    struct color cn;
-    m_graphics->convert_color(c, &cn);
-    c = &cn;
     m_contextInterface.set_background(c);
 }
 
@@ -3060,16 +3038,14 @@ void GraphicsContext::set_linewidth(int width)
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void GraphicsContext::set_dashes(int width, int offset, unsigned char dash_list[], int n)
+void GraphicsContext::set_dashes(int width, int offset, QVector<int> &dashes)
 {
-    int a;
-    unsigned char *dash_list_scaled = (unsigned char *)g_alloca(sizeof(unsigned char) * n);
-    for (a = 0; a < n; a++)
+    QVector<int> scaled_dashes;
+    for (int i = 0; i < dashes.size(); i++)
     {
-        dash_list_scaled[a] = m_graphics->dpi_scale(dash_list[a]);
+        scaled_dashes.append(m_graphics->dpi_scale(dashes[i]));
     }
-    m_contextInterface.set_dashes(m_graphics->dpi_scale(width), m_graphics->dpi_scale(offset),
-                                  dash_list_scaled, n);
+    m_contextInterface.set_dashes(m_graphics->dpi_scale(width), m_graphics->dpi_scale(offset), scaled_dashes);
 }
 
 NavitGraphicsContextInterface &GraphicsContext::get_context_interface()

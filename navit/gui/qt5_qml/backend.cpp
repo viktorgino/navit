@@ -6,7 +6,7 @@
 #include "xmlconfig.h" // for NAVIT_OBJECT
 #include "map.h"
 #include "transform.h"
-#include "vehicle.h"
+#include "vehicle_wrapper.h"
 #include "bookmarks.h"
 #include "backend.h"
 

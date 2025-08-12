@@ -27,7 +27,6 @@ extern "C"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 
 #include "callback.h"
-#include "color.h"
 #include "debug.h"
 #include "event.h"
 
@@ -451,9 +450,9 @@ void GraphicsQt5::draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsCont
 #if HAVE_FREETYPE
     struct font_freetype_text *t;
     struct font_freetype_glyph *g, **gp;
-    struct color transparent = {0x0000, 0x0000, 0x0000, 0x0000};
-    struct color fgc;
-    struct color bgc;
+    QColor transparent = {0x0000, 0x0000, 0x0000, 0x0000};
+    QColor fgc;
+    QColor bgc;
     QColor temp;
 
     int i, x, y;
@@ -870,14 +869,14 @@ void GraphicsContextQt5::set_dashes(int w, int offset, unsigned char *dash_list,
     m_pen.setDashPattern(dashes);
 }
 
-void GraphicsContextQt5::set_foreground(struct color *c)
+void GraphicsContextQt5::set_foreground(QColor *c)
 {
     QColor col(c->r >> 8, c->g >> 8, c->b >> 8, c->a >> 8);
     m_pen.setColor(col);
     m_brush.setColor(col);
 }
 
-void GraphicsContextQt5::set_background(struct color *c)
+void GraphicsContextQt5::set_background(QColor *c)
 {
     QColor col(c->r >> 8, c->g >> 8, c->b >> 8, c->a >> 8);
     m_bg_pen.setColor(col);

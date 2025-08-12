@@ -40,7 +40,7 @@
 #include "route.h"
 #include "speech.h"
 #include "track.h"
-#include "vehicle.h"
+#include "vehicle_wrapper.h"
 #include "point.h"
 // #include "graphics.h"
 #include "log.h"

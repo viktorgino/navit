@@ -98,7 +98,8 @@
         "qjsondocument": "c",
         "qmetaproperty": "c",
         "qcolor": "c",
-        "qlist": "cpp"
+        "qlist": "cpp",
+        "qvector": "cpp"
     },
     "C_Cpp.loggingLevel": "Error"
 }

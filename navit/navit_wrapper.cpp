@@ -183,14 +183,6 @@ int navit_get_attr(NavitHandle navit, enum attr_type type, struct attr *attr, st
 {
     return ((Navit *)navit)->get_attr(type, attr, iter);
 }
-struct layout *navit_get_layout_by_name(NavitHandle navit, const char *layout_name)
-{
-    return ((Navit *)navit)->get_layout_by_name(layout_name);
-}
-void navit_update_current_layout(NavitHandle navit, struct layout *layout)
-{
-    return ((Navit *)navit)->update_current_layout(layout);
-}
 int navit_add_attr(NavitHandle navit, struct attr *attr)
 {
     return ((Navit *)navit)->add_attr(attr);
@@ -271,7 +263,7 @@ GraphicsGCHandle graphics_gc_new(GraphicsHandle graphics)
 
     return (GraphicsGCHandle) new GraphicsContext(*graphics_functions.new_graphics_context(), (Graphics *)graphics);
 }
-void graphics_gc_set_foreground(GraphicsGCHandle *gc, struct color *c) {}
+void graphics_gc_set_foreground(GraphicsGCHandle *gc, struct NavitColor *c) {}
 void graphics_gc_destroy(GraphicsGCHandle *gc)
 {
     delete gc;

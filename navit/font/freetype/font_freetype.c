@@ -41,7 +41,6 @@
 // #include "graphics.h"
 #include "debug.h"
 #include "plugin.h"
-#include "color.h"
 #include "atom.h"
 #include "font_freetype.h"
 
@@ -535,7 +534,7 @@ static struct font_freetype_font *font_freetype_font_new(struct graphics_priv *g
 
 /** Implementation of font_freetype_methods.get_shadow. */
 static int font_freetype_glyph_get_shadow(struct font_freetype_glyph *g, unsigned char *data, int stride,
-                                          struct color *foreground, struct color *background)
+                                          QColor *foreground, QColor *background)
 {
     int x, y, w = g->w, h = g->h;
     unsigned int bg, fg;
@@ -599,7 +598,7 @@ static int font_freetype_glyph_get_shadow(struct font_freetype_glyph *g, unsigne
 
 /** Implementation of font_freetype_methods.get_glyph. */
 static int font_freetype_glyph_get_glyph(struct font_freetype_glyph *g, unsigned char *data, int stride,
-                                         struct color *fg, struct color *bg, struct color *transparent)
+                                         QColor *fg, QColor *bg, QColor *transparent)
 {
     int x, y, w = g->w, h = g->h;
     unsigned int tr;

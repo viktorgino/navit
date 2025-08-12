@@ -11,7 +11,6 @@ extern "C"
 #include "item.h" /* needs to be first, as attr.h depends on it */
 
 #include "callback.h"
-#include "color.h"
 #include "debug.h"
 #include "event.h"
 

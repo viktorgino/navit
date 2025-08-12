@@ -30,6 +30,7 @@
 #include <cassert>
 
 #include <QObject>
+#include <QDebug>
 
 #include "NavitInterfaces.h"
 #include "config_loader_layout.h"
@@ -45,7 +46,6 @@ extern "C"
 struct attr;
 struct point;
 struct container;
-struct color;
 struct graphics_font;
 struct graphics_image;
 struct transformation;
@@ -107,13 +107,6 @@ struct padding
     int bottom;
 };
 
-struct displayitem_poly_holes
-{
-    int count;
-    int *ccount;
-    struct coord **coords;
-};
-
 struct graphics_font_methods
 {
     void (*font_destroy)(struct graphics_font_priv *font);
@@ -172,7 +165,6 @@ enum item_type;
 struct attr;
 struct attr_iter;
 struct callback;
-struct color;
 struct displaylist;
 struct displaylist_handle;
 struct graphics_font;
@@ -192,11 +184,11 @@ class GraphicsContext
 public:
     GraphicsContext(NavitGraphicsContextInterface &contextInterface, Graphics *graphics);
     ~GraphicsContext();
-    void set_foreground(struct color *c);
-    void set_background(struct color *c);
+    void set_foreground(QColor *c);
+    void set_background(QColor *c);
     void set_texture(struct graphics_image *img);
     void set_linewidth(int width);
-    void set_dashes(int width, int offset, unsigned char dash_list[], int n);
+    void set_dashes(int width, int offset, QVector<int> &dashes);
 
     NavitGraphicsContextInterface &get_context_interface();
 
@@ -262,7 +254,7 @@ public:
     void draw_text_std(int text_size, char *text, struct point *p);
     static QString icon_path(QString icon);
     char *texture_path(const char *texture);
-    void draw_itemgra(struct itemgra *itm, struct transformation *t, char *label);
+    void draw_itemgra(LayoutItemGraph *itemGraph, struct transformation *t, char *label);
 
     void display_draw_arrow(struct point *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc, int filled);
 
@@ -280,7 +272,6 @@ public:
     void dpi_patch(struct callback_list *l, enum attr_type type, int pcount, void **p);
     int dpi_scale(int p);
     struct point dpi_scale_point(struct point *p);
-    void convert_color(struct color *in, struct color *out);
     void label_line(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, struct point *p, int count, char *label);
     void display_add(struct hash_entry *entry, struct item *item, int count, struct coord *c, char **label, int label_count);
     static void static_dpi_patch(struct callback_list *l, enum attr_type type, int pcount, void **p, void *context);
@@ -312,8 +303,6 @@ private:
     graphics_font **m_font;
 
     point_rect m_r;
-    int m_gamma, m_brightness, m_contrast;
-    int m_colormgmt;
     int m_font_size;
     int m_disabled;
     /*
@@ -338,9 +327,9 @@ private:
     void displayitem_free_holes(struct displayitem_poly_holes *holes);
     void displayitem_draw_polygon(struct display_context *dc, struct point *pa, int count, struct displayitem_poly_holes *holes);
     void draw_polygon_with_holes(GraphicsContext *gc, struct point *pin, int count_in, int hole_count, int *ccount, struct point **holes);
-    void displayitem_draw_polyline(struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count, int *width);
-    void displayitem_draw_circle(struct displayitem *di, struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count);
-    void displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutItemGraphElement *element, struct point *pa, int count, struct displayitem_poly_holes *holes);
+    void displayitem_draw_polyline(struct display_context *dc, LayoutPolyline *element, struct point *pa, int count, int *width);
+    void displayitem_draw_circle(struct displayitem *di, struct display_context *dc, LayoutCircle *element, struct point *pa, int count);
+    void displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutText *element, struct point *pa, int count, struct displayitem_poly_holes *holes);
     void displayitem_draw_icon(struct displayitem *di, struct display_context *dc, LayoutIcon *element, struct point *pa, int count, Layout *layout);
     void display_draw_arrows(struct display_context *dc, struct point *pnt, int count, int *width, int filled);
     void display_draw_spike(struct point *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc);

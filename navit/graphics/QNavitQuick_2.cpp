@@ -26,7 +26,6 @@
 #include "navit.h"
 
 #include "callback.h"
-#include "color.h"
 #include "debug.h"
 #include "event.h"
 #include "transform.h"

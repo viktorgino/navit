@@ -8,7 +8,7 @@ extern "C"
 {
 #include "debug.h"
 #include "plugin.h"
-#include "vehicle.h"
+#include "vehicle_wrapper.h"
 #include "track.h"
 #include "route.h"
 #include "navigation.h"

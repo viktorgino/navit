@@ -22,7 +22,7 @@ struct attr_iter
 class NavitInterface
 {
 public:
-    virtual int set_vehicleprofile_name(const std::string &name) = 0;
+    virtual int set_vehicleprofile_name(const QString &name) = 0;
     virtual struct vehicleprofile *get_vehicleprofile() = 0;
     virtual int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter) = 0;
     virtual struct mapset *get_mapset() = 0;
@@ -39,7 +39,7 @@ public:
     virtual int get_height() = 0;
     virtual struct transformation *get_trans() = 0;
     virtual void draw() = 0;
-    virtual int set_layout_by_name(const char *name) = 0;
+    virtual int set_layout_by_name(const QString &name) = 0;
     virtual void set_position(struct pcoord *c) = 0;
     virtual int get_destination_count() = 0;
     virtual int get_destinations(struct pcoord *pc, int count) = 0;
@@ -64,8 +64,8 @@ public:
 class NavitGraphicsContextInterface
 {
 public:
-    virtual void set_foreground(struct color *c) = 0;
-    virtual void set_background(struct color *c) = 0;
+    virtual void set_foreground(QColor *c) = 0;
+    virtual void set_background(QColor *c) = 0;
     virtual void set_texture(struct graphics_image *img) = 0;
     virtual void set_linewidth(int width) = 0;
     virtual void set_dashes(int width, int offset, unsigned char dash_list[], int n) = 0;
@@ -110,4 +110,20 @@ struct GraphicsFunctions
     NavitGraphicsContextInterface *(*new_graphics_context)();
 };
 
+struct NavitVehicleAttrs
+{
+    double config_speed;
+    double height;
+    int interval;
+    struct coord_geo geo;
+};
+
+class NavitVehicleInterface
+{
+public:
+    NavitVehicleInterface() = default;
+    void destroy(struct vehicle_priv *priv);
+    int position_attr_get(struct vehicle_priv *priv, enum attr_type type, struct attr *attr);
+    int set_attr(struct vehicle_priv *priv, struct attr *attr);
+};
 #endif // NAVIT_GRAPHICS_INTERFACE_H

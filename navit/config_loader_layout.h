@@ -63,7 +63,7 @@ private:
 class LayoutItemGraphElement : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString color MEMBER m_color)
+    Q_PROPERTY(QColor color MEMBER m_color)
     Q_PROPERTY(int oneway MEMBER m_oneway)
     Q_PROPERTY(int text_size MEMBER m_text_size)
     Q_PROPERTY(QVector<LayoutCoord *> coords MEMBER m_coords)
@@ -75,7 +75,7 @@ public:
     {
         return m_type;
     }
-    QString &getColor()
+    QColor &getColor()
     {
         return m_color;
     }
@@ -94,7 +94,7 @@ public:
 
 private:
     LayoutElementType m_type;
-    QString m_color;
+    QColor m_color;
     int m_oneway;
     int m_text_size;
     QVector<LayoutCoord *> m_coords;
@@ -190,7 +190,7 @@ class LayoutCircle : public LayoutItemGraphElement
     Q_OBJECT
     Q_PROPERTY(int radius MEMBER m_radius REQUIRED)
     Q_PROPERTY(int width MEMBER m_width)
-    Q_PROPERTY(QString background_color MEMBER m_background_color)
+    Q_PROPERTY(QColor background_color MEMBER m_background_color)
 
 public:
     using LayoutItemGraphElement::LayoutItemGraphElement;
@@ -202,7 +202,7 @@ public:
     {
         return m_width;
     }
-    QString &getBackgroundColor()
+    QColor &getBackgroundColor()
     {
         return m_background_color;
     }
@@ -210,23 +210,23 @@ public:
 private:
     int m_radius;
     int m_width;
-    QString m_background_color;
+    QColor m_background_color;
 };
 
 class LayoutText : public LayoutItemGraphElement
 {
     Q_OBJECT
-    Q_PROPERTY(QString background_color MEMBER m_background_color)
+    Q_PROPERTY(QColor background_color MEMBER m_background_color)
 
 public:
     using LayoutItemGraphElement::LayoutItemGraphElement;
-    QString &getBackgroundColor()
+    QColor &getBackgroundColor()
     {
         return m_background_color;
     }
 
 private:
-    QString m_background_color;
+    QColor m_background_color;
 };
 
 class LayoutPolyline : public LayoutItemGraphElement
@@ -364,6 +364,7 @@ class LayoutCursor : public QObject
     Q_PROPERTY(int w MEMBER m_w REQUIRED)
     Q_PROPERTY(int h MEMBER m_h REQUIRED)
     Q_PROPERTY(QVector<LayoutItemGraph *> itemgra MEMBER m_itemgra)
+    Q_PROPERTY(QString name MEMBER m_name)
 
 public:
     int &getW()
@@ -378,11 +379,16 @@ public:
     {
         return m_itemgra;
     }
+    QString &getName()
+    {
+        return m_name;
+    }
 
 private:
     int m_w;
     int m_h;
     QVector<LayoutItemGraph *> m_itemgra;
+    QString m_name;
 };
 
 class LayoutLayer : public QObject
@@ -441,13 +447,13 @@ class Layout : public QObject
     Q_OBJECT
     Q_PROPERTY(QString name MEMBER m_name REQUIRED)
     Q_PROPERTY(int active MEMBER m_active)
-    Q_PROPERTY(QString color MEMBER m_color)
+    Q_PROPERTY(QColor color MEMBER m_color)
     Q_PROPERTY(QString font MEMBER m_font)
     Q_PROPERTY(QString daylayout MEMBER m_daylayout)
     Q_PROPERTY(QString nightlayout MEMBER m_nightlayout)
     Q_PROPERTY(int icon_w MEMBER m_icon_w)
     Q_PROPERTY(int icon_h MEMBER m_icon_h)
-    Q_PROPERTY(QString underground_alpha MEMBER m_underground_alpha)
+    Q_PROPERTY(int underground_alpha MEMBER m_underground_alpha)
     Q_PROPERTY(QVector<LayoutCursor *> cursors MEMBER m_cursors)
     Q_PROPERTY(QVector<LayoutLayer *> layers MEMBER m_layers)
 
@@ -460,7 +466,7 @@ public:
     {
         return m_active;
     }
-    QString &getColor()
+    QColor &getColor()
     {
         return m_color;
     }
@@ -484,7 +490,7 @@ public:
     {
         return m_icon_h;
     }
-    QString &getUndergroundAlpha()
+    int &getUndergroundAlpha()
     {
         return m_underground_alpha;
     }
@@ -500,13 +506,13 @@ public:
 private:
     QString m_name;
     int m_active = 1;
-    QString m_color;
+    QColor m_color;
     QString m_font;
     QString m_daylayout;
     QString m_nightlayout;
     int m_icon_w;
     int m_icon_h;
-    QString m_underground_alpha;
+    int m_underground_alpha;
     QVector<LayoutCursor *> m_cursors;
     QVector<LayoutLayer *> m_layers;
 };

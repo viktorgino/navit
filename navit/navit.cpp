@@ -55,7 +55,7 @@ extern "C"
 #include "navigation.h"
 #include "speech.h"
 #include "track.h"
-#include "vehicle.h"
+#include "vehicle_wrapper.h"
 #include "log.h"
 #include "event.h"
 #include "file.h"
@@ -155,6 +155,10 @@ Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
     m_bookmarks = bookmarks_new(&m_self, NULL, m_trans);
 
     m_prevTs = 0;
+
+    Layout *modern_layout = new Layout();
+    ConfigLoader::loadLayout("navit_layout_car_modern.json", *modern_layout);
+    add_layout(modern_layout);
 
     // for (; *attrs; attrs++)
     // {
@@ -1725,6 +1729,17 @@ void Navit::set_center_coord_screen(struct coord *c, struct point *p, int set_ti
         set_timeout();
 }
 
+LayoutCursor *Navit::get_layout_cursor(const QString &name)
+{
+    for (LayoutCursor *cursor : m_layout_current->getCursors())
+    {
+        if (cursor->getName() == name)
+        {
+            return cursor;
+        }
+    }
+    return nullptr;
+}
 /**
  * Links all vehicles to a cursor depending on the current profile.
  *
@@ -1735,7 +1750,7 @@ void Navit::set_cursors()
 {
     struct attr name;
     struct navit_vehicle *nv;
-    struct cursor *c;
+    LayoutCursor *cursor = nullptr;
     GList *v;
 
     v = g_list_first(m_vehicles); // GList of navit_vehicles
@@ -1745,16 +1760,15 @@ void Navit::set_cursors()
         if (vehicle_get_attr(nv->vehicle, attr_cursorname, &name, NULL))
         {
             if (!strcmp(name.u.str, "none"))
-                c = NULL;
+                cursor = nullptr;
             else
-                c = layout_get_cursor(m_layout_current, name.u.str);
+                cursor = get_layout_cursor(name.u.str);
         }
         else
         {
-            char default_str[] = "default";
-            c = layout_get_cursor(m_layout_current, default_str);
+            cursor = get_layout_cursor("");
         }
-        vehicle_set_cursor(nv->vehicle, c, 0);
+        vehicle_set_cursor(nv->vehicle, cursor, 0);
         v = g_list_next(v);
     }
     return;
@@ -1932,7 +1946,6 @@ int Navit::set_attr_do(struct attr *attr, int init)
     long zoom;
     GList *l;
     struct navit_vehicle *nv;
-    struct layout *lay;
     struct attr active;
     active.type = attr_active;
     active.u.num = 0;
@@ -1979,36 +1992,10 @@ int Navit::set_attr_do(struct attr *attr, int init)
         attr_updated = 1;
         break;
     case attr_layout:
-        if (!attr->u.layout)
-            return 0;
-        dbg(lvl_debug, "setting attr_layout to %s", attr->u.layout->name);
-        if (m_layout_current != attr->u.layout)
-        {
-            update_current_layout(attr->u.layout);
-            m_graphics.font_destroy_all();
-            set_cursors();
-            if (m_ready == 3)
-                draw();
-            attr_updated = 1;
-        }
+        qWarning() << "Trying to set layout";
         break;
     case attr_layout_name:
-        if (!attr->u.str)
-            return 0;
-        dbg(lvl_debug, "setting attr_layout_name to %s", attr->u.str);
-        l = m_layouts;
-        while (l)
-        {
-            lay = (struct layout *)l->data;
-            if (!strcmp(lay->name, attr->u.str))
-            {
-                struct attr attr;
-                attr.type = attr_layout;
-                attr.u.layout = lay;
-                return set_attr_do(&attr, init);
-            }
-            l = g_list_next(l);
-        }
+        qWarning() << "Trying to set layout by name!";
         return 0;
     case attr_map_border:
         if (m_config.border != attr->u.num)
@@ -2260,57 +2247,10 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
     case attr_gui:
         break;
     case attr_layer:
-    {
-        // ret = attr_generic_get_attr(m_navit_object.attrs, NULL, type, attr, iter ? (struct attr_iter *)&iter->iter : NULL);
-        // attr->u.layer;
-        // ((attr_iter *)iter->iter)->;
-        QListIterator<layer *> layersIterator(m_layers);
-        if (!layersIterator.hasNext())
-        {
-            return 0;
-        }
-        if (!iter->iter)
-        {
-            attr->u.layer = layersIterator.next();
-            if (layersIterator.hasNext())
-            {
-                iter->iter = attr->u.layer;
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        else if (layersIterator.findNext((layer *)iter->iter))
-        {
-            attr->u.layer = layersIterator.next();
-        }
-        else
-        {
-            qWarning() << "No next layer even though we got an iterator";
-            return 0;
-        }
-    }
-    break;
+        qWarning() << "Trying to get layers";
+        break;
     case attr_layout:
-        if (iter)
-        {
-            if (iter->u.list)
-            {
-                iter->u.list = g_list_next(iter->u.list);
-            }
-            else
-            {
-                iter->u.list = m_layouts;
-            }
-            if (!iter->u.list)
-                return 0;
-            attr->u.layout = (struct layout *)iter->u.list->data;
-        }
-        else
-        {
-            attr->u.layout = m_layout_current;
-        }
+        qWarning() << "Trying to get layouts";
         break;
     case attr_map:
         if (iter && m_mapsets)
@@ -2465,23 +2405,20 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
  *
  * @return The first layout match (if any), or NULL if there was no match
  */
-struct layout *Navit::get_layout_by_name(const char *layout_name)
+Layout *Navit::get_layout_by_name(const QString &name)
 {
-    struct attr_iter *iter;
-    struct attr layout_attr;
-    struct layout *result = NULL;
+    Layout *result = nullptr;
 
-    if (!layout_name)
-        return NULL;
-    iter = attr_iter_new();
-    while (get_attr(attr_layout, &layout_attr, iter))
+    if (!name.isEmpty())
+        return nullptr;
+
+    for (Layout *layout : m_layouts)
     {
-        if (strcmp(layout_attr.u.layout->name, layout_name) == 0)
+        if (layout->getName() == name)
         {
-            result = layout_attr.u.layout;
+            result = layout;
         }
     }
-    attr_iter_destroy(iter);
     return result;
 }
 
@@ -2493,9 +2430,9 @@ struct layout *Navit::get_layout_by_name(const char *layout_name)
  *
  * @note If argument @p layout is NULL and the default layout name in the config file does not exist or has not been provided in the config file, the default layout is unchanged
  */
-void Navit::update_current_layout(struct layout *layout)
+void Navit::update_current_layout(Layout *layout)
 {
-    struct layout *default_layout = NULL;
+    Layout *default_layout = NULL;
 
     if (layout)
     {
@@ -2505,7 +2442,7 @@ void Navit::update_current_layout(struct layout *layout)
     {
         if (!m_config.default_layout.isEmpty())
         { /* If a default layout name was provided */
-            default_layout = get_layout_by_name(m_config.default_layout.toLocal8Bit().data());
+            default_layout = get_layout_by_name(m_config.default_layout);
             if (default_layout)
             {
                 dbg(lvl_debug, "Found the config-specified default layout '%s'", m_config.default_layout.toLocal8Bit().data());
@@ -2537,12 +2474,13 @@ int Navit::add_log(struct log *log)
     return 0;
 }
 
-int Navit::add_layout(struct layout *layout)
+int Navit::add_layout(Layout *layout)
 {
-    struct attr active;
     int is_default = 0;
     int is_active = 0;
-    m_layouts = g_list_append(m_layouts, layout);
+    layout->setParent(this);
+
+    m_layouts.append(layout);
     /** check if we want to immediately activate this layout.
      * Unfortunately we have concurring conditions about when to activate
      * a layout:
@@ -2552,26 +2490,19 @@ int Navit::add_layout(struct layout *layout)
      * lets set the last parsed layout active, which either matches default_layout_name or
      * bears the "active" tag, or is the first layout ever parsed.
      */
-    if ((layout->name != NULL) && (!m_config.default_layout.isEmpty()))
+    if ((!layout->getName().isEmpty()) && (!m_config.default_layout.isEmpty()))
     {
-        if (m_config.default_layout.compare(layout->name) == 0)
+        if (layout->getName() == m_config.default_layout)
             is_default = 1;
     }
-    layout_get_attr(layout, attr_active, &active, NULL);
-    if (active.u.num)
-        is_active = 1;
-    dbg(lvl_debug, "add layout '%s' is_default %d, is_active %d", layout->name, is_default, is_active);
+
+    is_active = layout->getActive();
+    qDebug("add layout '%s' is_default %d, is_active %d", layout->getName().toLocal8Bit().data(), is_default, is_active);
     if (is_default || is_active || !m_layout_current)
     {
         m_layout_current = layout;
         return 1;
     }
-    return 0;
-}
-
-int Navit::add_layer(layer *layer)
-{
-    m_layers.append(layer);
     return 0;
 }
 
@@ -2589,16 +2520,16 @@ int Navit::add_attr(struct attr *attr)
     case attr_gui:
         break;
     case attr_layout:
-        add_layout(attr->u.layout);
+        qWarning() << "Can't add layout";
         break;
     case attr_route:
-        qWarning() << "Can't change route";
+        qWarning() << "Can't add route";
         break;
     case attr_mapset:
         m_mapsets = g_list_append(m_mapsets, attr->u.mapset);
         break;
     case attr_navigation:
-        qWarning() << "Can't change navigation";
+        qWarning() << "Can't add navigation";
         break;
     case attr_recent_dest:
         m_config.recentdest_count = attr->u.num;
@@ -2607,10 +2538,10 @@ int Navit::add_attr(struct attr *attr)
         m_speech = attr->u.speech;
         break;
     case attr_trackingo:
-        qWarning() << "Can't change tracking";
+        qWarning() << "Can't add tracking";
         break;
     case attr_vehicle:
-        qWarning() << "Can't change vehicle";
+        qWarning() << "Can't add vehicle";
         break;
     case attr_vehicleprofile:
         m_vehicleprofiles = g_list_append(m_vehicleprofiles, attr->u.vehicleprofile);
@@ -2622,7 +2553,7 @@ int Navit::add_attr(struct attr *attr)
         m_config.autozoom_max = attr->u.num;
         break;
     case attr_layer:
-        add_layer(attr->u.layer);
+        qWarning() << "Can't add layer";
         break;
     case attr_script:
     case attr_traffic:
@@ -2889,7 +2820,7 @@ int Navit::set_vehicleprofile(struct vehicleprofile *vp)
     return 1;
 }
 
-int Navit::set_vehicleprofile_name(const std::string &name)
+int Navit::set_vehicleprofile_name(const QString &name)
 {
     struct attr attr;
     GList *l;
@@ -2915,7 +2846,7 @@ void Navit::set_vehicle(struct navit_vehicle *nv)
     m_vehicle = nv;
     if (nv && vehicle_get_attr(nv->vehicle, attr_profilename, &attr, NULL))
     {
-        if (set_vehicleprofile_name(std::string(attr.u.str)))
+        if (set_vehicleprofile_name(QString(attr.u.str)))
             return;
     }
     if (!m_vehicleprofile)
@@ -3024,25 +2955,18 @@ struct navigation *Navit::get_navigation()
 
 void Navit::layout_switch()
 {
-
     int currTs = 0;
-    struct attr iso8601_attr, geo_attr, valid_attr, layout_attr;
+    struct attr iso8601_attr, geo_attr, valid_attr;
     double trise, tset;
-    struct layout *l;
     int year, month, day;
     int after_sunrise = FALSE;
     int after_sunset = FALSE;
     int tunnel = tracking_get_current_tunnel(m_pluginLoader.getTracking());
 
-    if (get_attr(attr_layout, &layout_attr, NULL) != 1)
-    {
-        return; // No layout - nothing to switch
-    }
     if (!m_vehicle)
         return;
-    l = layout_attr.u.layout;
 
-    if (l->dayname || l->nightname)
+    if ((!m_layout_current->getDaylayout().isEmpty()) || (!m_layout_current->getNightlayout().isEmpty()))
     {
         // Ok, we know that we have profile to switch
 
@@ -3063,30 +2987,25 @@ void Navit::layout_switch()
             {
                 // store the current layout name
                 if (m_layout_before_tunnel != "")
-                    m_layout_before_tunnel = m_layout_current->name;
+                    m_layout_before_tunnel = m_layout_current->getName();
 
                 // We are in a tunnel and if we have a nightlayout -> switch to nightlayout
-                if (l->nightname)
-                {
-                    set_layout_by_name(l->nightname);
-                    dbg(lvl_debug, "tunnel -> nightlayout");
-                }
+
+                set_layout_by_name(m_layout_current->getNightlayout());
+                dbg(lvl_debug, "tunnel -> nightlayout");
                 return;
             }
             else
             {
-                if (l->dayname)
+                if (m_layout_current->getDaylayout() != m_layout_before_tunnel)
                 {
-                    if (l->dayname != m_layout_before_tunnel)
-                    {
-                        // restore previous layout
-                        set_layout_by_name(l->dayname);
-                        dbg(lvl_debug, "tunnel end -> daylayout");
-                    }
-
-                    // We were in nightlayout before the tunnel, keep it
-                    m_layout_before_tunnel = "";
+                    // restore previous layout
+                    set_layout_by_name(m_layout_current->getDaylayout());
+                    dbg(lvl_debug, "tunnel end -> daylayout");
                 }
+
+                // We were in nightlayout before the tunnel, keep it
+                m_layout_before_tunnel = "";
             }
         }
 
@@ -3122,8 +3041,6 @@ void Navit::layout_switch()
 
         dbg(lvl_debug, "trise: %02u:%02u", HOURS(trise), MINUTES(trise));
         dbg(lvl_debug, "tset: %02u:%02u", HOURS(tset), MINUTES(tset));
-        dbg(lvl_debug, "dayname = %s, name =%s ", l->dayname, l->name);
-        dbg(lvl_debug, "nightname = %s, name = %s ", l->nightname, l->name);
 
         // We want any times to be in [0;1439].
         if (trise < 0)
@@ -3163,21 +3080,21 @@ void Navit::layout_switch()
             }
         }
 
-        if (after_sunrise && !after_sunset && l->dayname)
+        if (after_sunrise && !after_sunset && (!m_layout_current->getDaylayout().isEmpty()))
         {
-            set_layout_by_name(l->dayname);
+            set_layout_by_name(m_layout_current->getDaylayout());
             dbg(lvl_debug, "layout set to day");
         }
-        else if (after_sunset && l->nightname)
+        else if (after_sunset && (!m_layout_current->getNightlayout().isEmpty()))
         {
-            set_layout_by_name(l->nightname);
+            set_layout_by_name(m_layout_current->getNightlayout());
             dbg(lvl_debug, "layout set to night");
         }
         m_prevTs = currTs;
     }
 }
 
-int Navit::set_vehicle_by_name(const char *name)
+int Navit::set_vehicle_by_name(const QString &name)
 {
     struct vehicle *v;
     struct attr_iter *iter;
@@ -3191,7 +3108,7 @@ int Navit::set_vehicle_by_name(const char *name)
         vehicle_get_attr(v, attr_name, &name_attr, NULL);
         if (name_attr.type == attr_name)
         {
-            if (!strcmp(name, name_attr.u.str))
+            if (!strcmp(name.toLocal8Bit().data(), name_attr.u.str))
             {
                 set_attr(&vehicle_attr);
                 attr_iter_destroy(iter);
@@ -3203,40 +3120,27 @@ int Navit::set_vehicle_by_name(const char *name)
     return 0;
 }
 
-int Navit::set_layout_by_name(const char *name)
+int Navit::set_layout_by_name(const QString &name)
 {
-    struct layout *l;
-    struct attr_iter iter;
-    struct attr layout_attr;
-
-    iter.u.list = 0x00;
-
-    if (get_attr(attr_layout, &layout_attr, &iter) != 1)
+    if (name.isEmpty())
     {
-        return 0; // No layouts - nothing to do
+        qWarning() << "Empty layout name!";
+        return -1;
     }
-    if (iter.u.list == NULL)
+    for (Layout *layout : m_layouts)
     {
-        return 0;
-    }
-
-    iter.u.list = g_list_first(iter.u.list);
-
-    while (iter.u.list)
-    {
-        l = (struct layout *)iter.u.list->data;
-        if (!strcmp(name, l->name))
+        if (layout->getName() == name)
         {
-            layout_attr.u.layout = l;
-            layout_attr.type = attr_layout;
-            set_attr(&layout_attr);
-            iter.u.list = g_list_first(iter.u.list);
-            return 1;
+            if (m_layout_current != layout)
+            {
+                update_current_layout(layout);
+                m_graphics.font_destroy_all();
+                set_cursors();
+                if (m_ready == 3)
+                    draw();
+            }
         }
-        iter.u.list = g_list_next(iter.u.list);
     }
-
-    iter.u.list = g_list_first(iter.u.list);
     return 0;
 }
 
