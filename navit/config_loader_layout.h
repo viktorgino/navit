@@ -5,6 +5,8 @@
 #include <QColor>
 
 #include "item_type_def.h"
+#include "coord.h"
+#include "point.h"
 
 enum LayoutElementType
 {
@@ -25,6 +27,25 @@ class LayoutCoord : public QObject
     Q_PROPERTY(int y MEMBER m_y REQUIRED)
 
 public:
+    explicit LayoutCoord(QObject *parent = nullptr) : QObject(parent) {}
+    LayoutCoord(int x, int y, QObject *parent = nullptr) : QObject(parent), m_x(x), m_y(y) {}
+    LayoutCoord(point *p, QObject *parent = nullptr) : QObject(parent), m_x(p->x), m_y(p->y) {}
+    LayoutCoord(coord *c, QObject *parent = nullptr) : QObject(parent), m_x(c->x), m_y(c->y) {}
+    void set(point *p)
+    {
+        m_x = p->x;
+        m_y = p->y;
+    }
+    void set(coord *c)
+    {
+        m_x = c->x;
+        m_y = c->y;
+    }
+    void set(int x, int y)
+    {
+        m_x = x;
+        m_y = y;
+    }
     int &getX()
     {
         return m_x;
@@ -331,6 +352,8 @@ class LayoutItemGraph : public QObject
     Q_PROPERTY(QVector<item_type> item_types MEMBER m_item_types)
     Q_PROPERTY(LayoutRange *order READ getOrder)
     Q_PROPERTY(LayoutRange *speed_range READ getSpeedRange)
+    Q_PROPERTY(LayoutRange *angle_range READ getAngleRange)
+    Q_PROPERTY(LayoutRange *sequence_range READ getSequenceRange)
     Q_PROPERTY(QVector<LayoutItemGraphElement *> elements MEMBER m_elements)
 
 public:
@@ -346,6 +369,14 @@ public:
     {
         return &m_speed_range;
     }
+    LayoutRange *getAngleRange()
+    {
+        return &m_angle_range;
+    }
+    LayoutRange *getSequenceRange()
+    {
+        return &m_sequence_range;
+    }
     QVector<LayoutItemGraphElement *> getElements()
     {
         return m_elements;
@@ -355,6 +386,8 @@ private:
     QVector<item_type> m_item_types;
     LayoutRange m_order;
     LayoutRange m_speed_range;
+    LayoutRange m_angle_range;
+    LayoutRange m_sequence_range;
     QVector<LayoutItemGraphElement *> m_elements;
 };
 
@@ -365,6 +398,8 @@ class LayoutCursor : public QObject
     Q_PROPERTY(int h MEMBER m_h REQUIRED)
     Q_PROPERTY(QVector<LayoutItemGraph *> itemgra MEMBER m_itemgra)
     Q_PROPERTY(QString name MEMBER m_name)
+    Q_PROPERTY(int interval MEMBER m_interval)
+    Q_PROPERTY(LayoutRange *sequence_range READ getSequenceRange)
 
 public:
     int &getW()
@@ -383,12 +418,22 @@ public:
     {
         return m_name;
     }
+    int &getInterval()
+    {
+        return m_interval;
+    }
+    LayoutRange *getSequenceRange()
+    {
+        return &m_sequence_range;
+    }
 
 private:
     int m_w;
     int m_h;
     QVector<LayoutItemGraph *> m_itemgra;
     QString m_name;
+    int m_interval;
+    LayoutRange m_sequence_range;
 };
 
 class LayoutLayer : public QObject

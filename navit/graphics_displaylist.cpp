@@ -844,7 +844,7 @@ int GraphicsDisplayList::displayitem_within_dist(struct displayitem *di, struct 
         pa = (struct point *)g_malloc(pa_buf_size);
     }
 
-    count = transform_point_buf(m_display_context.trans, m_display_context.pro, di->c, pa, pa_buf_size, di->count, 0, 0, NULL);
+    count = transform_point_buf(m_display_context.trans, m_display_context.pro, di->coords, pa, pa_buf_size, 0, 0, NULL);
 
     if (di->item.type < type_line)
     {

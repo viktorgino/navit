@@ -57,6 +57,7 @@ extern "C"
 #include "event.h"
 #include "util.h"
 }
+#include "transform_2.h"
 
 /**
  * @brief maximum amount of coordinates to allocate on stack using g_alloca
@@ -95,11 +96,18 @@ int Graphics::dpi_scale(int p)
     result = p * m_dpi_factor;
     return result;
 }
-struct point Graphics::dpi_scale_point(struct point *p)
+struct point Graphics::dpi_scale_point(LayoutCoord *point)
 {
     struct point result = {-1, -1};
-    result.x = dpi_scale(p->x);
-    result.y = dpi_scale(p->y);
+    result.x = dpi_scale(point->getX());
+    result.y = dpi_scale(point->getY());
+    return result;
+}
+struct point Graphics::dpi_scale_point(point *point)
+{
+    struct point result = {-1, -1};
+    result.x = dpi_scale(point->x);
+    result.y = dpi_scale(point->y);
     return result;
 }
 int Graphics::dpi_unscale(int p)
@@ -813,19 +821,19 @@ void Graphics::draw_mode(enum draw_mode_num mode, bool call_callback)
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void Graphics::draw_lines(GraphicsContext *gc, struct point *p, int count)
+void Graphics::draw_lines(GraphicsContext *gc, QVector<LayoutCoord *> &p)
 {
     struct point *p_scaled;
     int a;
-    if (count < ALLOCA_COORD_LIMIT)
-        p_scaled = (point *)g_alloca(sizeof(struct point) * count);
+    if (p.size() < ALLOCA_COORD_LIMIT)
+        p_scaled = (point *)g_alloca(sizeof(struct point) * p.size());
     else
-        p_scaled = (point *)g_malloc(sizeof(struct point) * count);
+        p_scaled = (point *)g_malloc(sizeof(struct point) * p.size());
 
-    for (a = 0; a < count; a++)
-        p_scaled[a] = dpi_scale_point(&(p[a]));
-    m_graphicsInterface.draw_lines(&gc->get_context_interface(), p_scaled, count);
-    if (count >= ALLOCA_COORD_LIMIT)
+    for (a = 0; a < p.size(); a++)
+        p_scaled[a] = dpi_scale_point(p[a]);
+    m_graphicsInterface.draw_lines(&gc->get_context_interface(), p_scaled, p.size());
+    if (p.size() >= ALLOCA_COORD_LIMIT)
         g_free(p_scaled);
 }
 
@@ -860,7 +868,7 @@ void Graphics::draw_circle(GraphicsContext *gc, struct point *p, int r)
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void Graphics::draw_rectangle(GraphicsContext *gc, struct point *p, int w, int h)
+void Graphics::draw_rectangle(GraphicsContext *gc, point *p, int w, int h)
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
@@ -875,20 +883,20 @@ void Graphics::draw_rectangle(GraphicsContext *gc, struct point *p, int w, int h
  * @param[in] pin An array of points forming the polygon
  * @param count_in The number of elements inside @p pin
  */
-void Graphics::draw_polygon(GraphicsContext *gc, struct point *pin, int count_in)
+void Graphics::draw_polygon(GraphicsContext *gc, QVector<LayoutCoord *> &pin)
 {
     struct point *pin_scaled;
     int a;
-    if (count_in < ALLOCA_COORD_LIMIT)
-        pin_scaled = (point *)g_alloca(sizeof(struct point) * count_in);
+    if (pin.size() < ALLOCA_COORD_LIMIT)
+        pin_scaled = (point *)g_alloca(sizeof(struct point) * pin.size());
     else
-        pin_scaled = (point *)g_malloc(sizeof(struct point) * count_in);
+        pin_scaled = (point *)g_malloc(sizeof(struct point) * pin.size());
 
-    for (a = 0; a < count_in; a++)
-        pin_scaled[a] = dpi_scale_point(&(pin[a]));
-    m_graphicsInterface.draw_polygon(&gc->get_context_interface(), pin_scaled, count_in);
-    if (count_in >= ALLOCA_COORD_LIMIT)
-        g_free(pin_scaled);
+    for (a = 0; a < pin.size(); a++)
+        pin_scaled[a] = dpi_scale_point(pin[a]);
+    m_graphicsInterface.draw_polygon(&gc->get_context_interface(), pin_scaled, pin.size());
+
+    qDeleteAll(pin_scaled);
 }
 
 /**
@@ -949,29 +957,32 @@ void Graphics::draw_polygon_with_holes(GraphicsContext *gc, struct point *pin, i
 void Graphics::draw_rectangle_rounded(GraphicsContext *gc, struct point *plu, int w, int h,
                                       int r, int fill)
 {
-    struct point *p;
-    struct point pi0 = {plu->x + r, plu->y + r};
-    struct point pi1 = {plu->x + w - r, plu->y + r};
-    struct point pi2 = {plu->x + w - r, plu->y + h - r};
-    struct point pi3 = {plu->x + r, plu->y + h - r};
-    int i = 0;
-    if ((r * 4 + 32) < ALLOCA_COORD_LIMIT)
-        p = (point *)g_alloca(sizeof(struct point) * (r * 4 + 32));
-    else
-        p = (point *)g_malloc(sizeof(struct point) * (r * 4 + 32));
+    // TODO: maybe fix, but not used
+    // QVector<LayoutCoord *> p;
+    // struct point pi0 = {plu->x + r, plu->y + r};
+    // struct point pi1 = {plu->x + w - r, plu->y + r};
+    // struct point pi2 = {plu->x + w - r, plu->y + h - r};
+    // struct point pi3 = {plu->x + r, plu->y + h - r};
+    // int i = 0;
+    // for (int x = 0; i < r * 4 + 32; i++)
+    // {
+    //     p.append(new LayoutCoord());
+    // }
 
-    circle_to_points(&pi2, r * 2, 0, -1, 258, p, &i, 1);
-    circle_to_points(&pi1, r * 2, 0, 255, 258, p, &i, 1);
-    circle_to_points(&pi0, r * 2, 0, 511, 258, p, &i, 1);
-    circle_to_points(&pi3, r * 2, 0, 767, 258, p, &i, 1);
-    p[i] = p[0];
-    i++;
-    if (fill)
-        draw_polygon(gc, p, i);
-    else
-        draw_lines(gc, p, i);
-    if ((r * 4 + 32) >= ALLOCA_COORD_LIMIT)
-        g_free(p);
+    // circle_to_points(&pi2, r * 2, 0, -1, 258, p, i, 1);
+    // circle_to_points(&pi1, r * 2, 0, 255, 258, p, i, 1);
+    // circle_to_points(&pi0, r * 2, 0, 511, 258, p, i, 1);
+    // circle_to_points(&pi3, r * 2, 0, 767, 258, p, i, 1);
+    // p[i] = p[0];
+    // i++;
+    // QVector<LayoutCoord *> res = QVector<LayoutCoord *>(p.begin(), p.begin() + i);
+    // if (fill)
+    //     draw_polygon(gc, res);
+    // else
+    //     draw_lines(gc, res);
+
+    // qDeleteAll(p);
+    // qDeleteAll(res);
 }
 
 /**
@@ -1183,7 +1194,7 @@ int Graphics::hide_native_keyboard(struct graphics_keyboard *kbd)
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void Graphics::label_line(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, struct point *p, int count, char *label)
+void Graphics::label_line(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, QVector<LayoutCoord *> points, char *label)
 {
     int i, x, y, tl, tlm, th, thm, tlsq, l;
     float lsq;
@@ -1198,24 +1209,24 @@ void Graphics::label_line(GraphicsContext *fg, GraphicsContext *bg, struct graph
     tlm = tl * 32;
     thm = th * 36;
     tlsq = tlm * tlm;
-    for (i = 0; i < count - 1; i++)
+    for (i = 0; i < points.size() - 1; i++)
     {
-        dx = p[i + 1].x - p[i].x;
+        dx = points[i + 1]->getX() - points[i]->getX();
         dx *= 32;
-        dy = p[i + 1].y - p[i].y;
+        dy = points[i + 1]->getY() - points[i]->getY();
         dy *= 32;
         lsq = dx * dx + dy * dy;
         if (lsq > tlsq)
         {
             l = (int)sqrtf(lsq);
-            x = p[i].x;
-            y = p[i].y;
+            x = points[i]->getX();
+            y = points[i]->getY();
             if (dx < 0)
             {
                 dx = -dx;
                 dy = -dy;
-                x = p[i + 1].x;
-                y = p[i + 1].y;
+                x = points[i + 1]->getX();
+                y = points[i + 1]->getY();
             }
             x += (l - tlm) * dx / l / 64;
             y += (l - tlm) * dy / l / 64;
@@ -1231,24 +1242,25 @@ void Graphics::label_line(GraphicsContext *fg, GraphicsContext *bg, struct graph
 
 void Graphics::display_draw_arrow(struct point *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc, int filled)
 {
-    struct point pnt[4];
+    // qVector struct point pnt[4];
+    QVector<LayoutCoord *> pnt;
     /* half the width in every direction */
     width /= 2;
-    pnt[0] = pnt[1] = pnt[2] = *p;
-    pnt[0].x += -dx * width + dy * width;
-    pnt[0].y += -dy * width - dx * width;
-    pnt[2].x += -dx * width - dy * width;
-    pnt[2].y += -dy * width + dx * width;
+    pnt.append(new LayoutCoord(-dx * width + dy * width, -dy * width - dx * width));
+    pnt.append(new LayoutCoord(p));
+    pnt.append(new LayoutCoord(-dx * width - dy * width, -dy * width + dx * width));
+
     if (filled)
     {
         /* close the loop */
-        pnt[3] = pnt[0];
-        draw_polygon(dc->gc, pnt, 4);
+        pnt.append(pnt[0]);
+        draw_polygon(dc->gc, pnt);
     }
     else
     {
-        draw_lines(dc->gc, pnt, 3);
+        draw_lines(dc->gc, pnt);
     }
+    qDeleteAll(pnt);
 }
 
 /**
@@ -1338,12 +1350,12 @@ void Graphics::display_draw_arrows(struct display_context *dc, struct point *pnt
 
 void Graphics::display_draw_spike(struct point *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc)
 {
-    struct point pnt[2];
+    QVector<LayoutCoord *> pnt;
     navit_float l = navit_sqrt(dx * dx + dy * dy);
-    pnt[0] = pnt[1] = *p;
-    pnt[1].x += (-dy / l) * width;
-    pnt[1].y += (dx / l) * width;
-    draw_lines(dc->gc, pnt, 2);
+    pnt.append(new LayoutCoord(p));
+    pnt.append(new LayoutCoord((-dy / l) * width, (dx / l) * width));
+    draw_lines(dc->gc, pnt);
+    qDeleteAll(pnt);
 }
 
 /**
@@ -1504,7 +1516,7 @@ struct circle
  * @param[out] pos Index of the last point filled inside array @p res
  * @param dir Direction of the circle (valid values are 1 (counter-clockwise) or -1 (clockwise), other values may lead to unknown result)
  */
-static void circle_to_points(const struct point *center, int diameter, int scale, int start, int len, struct point *res,
+static void circle_to_points(const struct point *center, int diameter, int scale, int start, int len, QVector<LayoutCoord *> &res,
                              int *pos, int dir)
 {
     struct circle *c;
@@ -1538,8 +1550,7 @@ static void circle_to_points(const struct point *center, int diameter, int scale
             {
                 if (1 < *pos || 0 < dir)
                 {
-                    res[*pos].x = center->x + ((c[i].x * diameter + 128) >> 8);
-                    res[*pos].y = center->y + ((c[i].y * diameter + 128) >> 8);
+                    res[*pos]->set(center->x + ((c[i].x * diameter + 128) >> 8), center->y + ((c[i].y * diameter + 128) >> 8));
                     (*pos) += dir;
                 }
                 i += step;
@@ -1564,8 +1575,7 @@ static void circle_to_points(const struct point *center, int diameter, int scale
             {
                 if (1 < *pos || 0 < dir)
                 {
-                    res[*pos].x = center->x + ((c[i].x * diameter + 128) >> 8);
-                    res[*pos].y = center->y + ((c[i].y * diameter + 128) >> 8);
+                    res[*pos]->set(center->x + ((c[i].x * diameter + 128) >> 8), center->y + ((c[i].y * diameter + 128) >> 8));
                     (*pos) += dir;
                 }
                 i -= step;
@@ -1774,13 +1784,13 @@ static void draw_init_ctx(struct draw_polyline_context *ctx, int maxpoints)
     ctx->npos = maxpoints / 2 - 1;
 }
 
-void Graphics::draw_polyline_as_polygon(GraphicsContext *gc, struct point *pnt, int count, int *width)
+void Graphics::draw_polyline_as_polygon(GraphicsContext *gc, QVector<LayoutCoord *> &pnt, QVector<int> &widths)
 {
     int maxpoints = 200;
     struct draw_polyline_context ctx;
     int i = 0;
     int max_circle_points = 20;
-    if (count < 2)
+    if (pnt.size() < 2)
         return;
     ctx.shape.l = 0;
     ctx.shape.wi = 0;
@@ -1920,26 +1930,15 @@ static int clip_line(struct wpoint *p1, struct wpoint *p2, struct point_rect *cl
  * @param[in] width An array of width matching the line starting from the corresponding @p pa (if all equal, all lines will have the same width)
  * @param poly A boolean indicating whether the polyline should be closed to form a polygon (only the contour of this polygon will be drawn)
  */
-void Graphics::draw_polyline_clipped(GraphicsContext *gc, struct point *pa, int count, int *width, int poly)
+void Graphics::draw_polyline_clipped(GraphicsContext *gc, QVector<LayoutCoord *> &pa, QVector<int> &widths, int poly)
 {
-    struct point *points_to_draw;
-    int *w;
+    QVector<LayoutCoord *> points_to_draw;
+    QVector<int> _widths;
     struct wpoint segment_start, segment_end;
-    int i, points_to_draw_cnt = 0;
+
     int clip_result;
     int r_width, r_height;
     struct point_rect r = m_r;
-
-    if (count < ALLOCA_COORD_LIMIT)
-    {
-        points_to_draw = (point *)g_alloca(sizeof(struct point) * (count + 1));
-        w = (int *)g_alloca(sizeof(int) * (count + 1));
-    }
-    else
-    {
-        points_to_draw = (point *)g_malloc(sizeof(struct point) * (count + 1));
-        w = (int *)g_malloc(sizeof(int) * (count + 1));
-    }
 
     r_width = r.rl.x - r.lu.x;
     r_height = r.rl.y - r.lu.y;
@@ -1956,16 +1955,16 @@ void Graphics::draw_polyline_clipped(GraphicsContext *gc, struct point *pa, int 
     r.rl.y += r_height / 3;
     // Iterate over line segments, push them into points_to_draw
     // until we reach a completely invisible segment...
-    for (i = 0; i < count; i++)
+    for (int i = 0; i < pa.size(); i++)
     {
         if (i)
         {
-            segment_start.x = pa[i - 1].x;
-            segment_start.y = pa[i - 1].y;
-            segment_start.w = width[(i - 1)];
-            segment_end.x = pa[i].x;
-            segment_end.y = pa[i].y;
-            segment_end.w = width[i];
+            segment_start.x = pa[i - 1]->getX();
+            segment_start.y = pa[i - 1]->getX();
+            segment_start.w = widths[(i - 1)];
+            segment_end.x = pa[i]->getX();
+            segment_end.y = pa[i]->getY();
+            segment_end.w = widths[i];
             dbg(lvl_debug, "Segment: [%d, %d] - [%d, %d]...", segment_start.x, segment_start.y, segment_end.x, segment_end.y);
             clip_result = clip_line(&segment_start, &segment_end, &r);
             if (clip_result != CLIPRES_INVISIBLE)
@@ -1973,79 +1972,79 @@ void Graphics::draw_polyline_clipped(GraphicsContext *gc, struct point *pa, int 
                 dbg(lvl_debug, "....clipped to [%d, %d] - [%d, %d]", segment_start.x, segment_start.y, segment_end.x, segment_end.y);
                 if ((i == 1) || (clip_result & CLIPRES_START_CLIPPED))
                 {
-                    points_to_draw[points_to_draw_cnt].x = segment_start.x;
-                    points_to_draw[points_to_draw_cnt].y = segment_start.y;
-                    w[points_to_draw_cnt] = segment_start.w;
-                    points_to_draw_cnt++;
+                    points_to_draw.append(new LayoutCoord(segment_start.x, segment_start.y));
+                    _widths.append(segment_start.w);
                 }
-                points_to_draw[points_to_draw_cnt].x = segment_end.x;
-                points_to_draw[points_to_draw_cnt].y = segment_end.y;
-                w[points_to_draw_cnt] = segment_end.w;
-                points_to_draw_cnt++;
+                points_to_draw.append(new LayoutCoord(segment_end.x, segment_end.y));
+                _widths.append(segment_end.w);
             }
-            if ((i == count - 1) || (clip_result & CLIPRES_END_CLIPPED))
+            if ((i == pa.size() - 1) || (clip_result & CLIPRES_END_CLIPPED))
             {
                 // ... then draw the resulting polyline
-                if (points_to_draw_cnt > 1)
+                if (points_to_draw.size() > 1)
                 {
                     if (poly)
                     {
-                        draw_polyline_as_polygon(gc, points_to_draw, points_to_draw_cnt, w);
+                        draw_polyline_as_polygon(gc, points_to_draw, _widths);
                     }
                     else
-                        draw_lines(gc, points_to_draw, points_to_draw_cnt);
-                    points_to_draw_cnt = 0;
+                    {
+                        draw_lines(gc, points_to_draw);
+                    }
+                    qDeleteAll(points_to_draw);
+                    points_to_draw.clear();
+                    _widths.clear();
                 }
             }
         }
     }
-    if (count >= ALLOCA_COORD_LIMIT)
-    {
-        g_free(points_to_draw);
-        g_free(w);
-    }
+
+    qDeleteAll(points_to_draw);
 }
 
-static int is_inside(struct point *p, struct point_rect *r, int edge)
+static int is_inside(LayoutCoord *p, struct point_rect *r, int edge)
 {
     switch (edge)
     {
     case 0:
-        return p->x >= r->lu.x;
+        return p->getX() >= r->lu.x;
     case 1:
-        return p->x <= r->rl.x;
+        return p->getX() <= r->rl.x;
     case 2:
-        return p->y >= r->lu.y;
+        return p->getY() >= r->lu.y;
     case 3:
-        return p->y <= r->rl.y;
+        return p->getY() <= r->rl.y;
     default:
         return 0;
     }
 }
 
-static void poly_intersection(struct point *p1, struct point *p2, struct point_rect *r, int edge, struct point *ret)
+static void poly_intersection(LayoutCoord *p1, LayoutCoord *p2, struct point_rect *r, int edge, LayoutCoord *ret)
 {
-    int dx = p2->x - p1->x;
-    int dy = p2->y - p1->y;
+    int dx = p2->getX() - p1->getX();
+    int dy = p2->getY() - p1->getY();
+    int x;
+    int y;
     switch (edge)
     {
     case 0:
-        ret->y = p1->y + ((float)r->lu.x - p1->x) * dy / dx;
-        ret->x = r->lu.x;
+        y = p1->getY() + ((float)r->lu.x - p1->getX()) * dy / dx;
+        x = r->lu.x;
         break;
     case 1:
-        ret->y = p1->y + ((float)r->rl.x - p1->x) * dy / dx;
-        ret->x = r->rl.x;
+        y = p1->getY() + ((float)r->rl.x - p1->getX()) * dy / dx;
+        x = r->rl.x;
         break;
     case 2:
-        ret->x = p1->x + ((float)r->lu.y - p1->y) * dx / dy;
-        ret->y = r->lu.y;
+        x = p1->getX() + ((float)r->lu.y - p1->getY()) * dx / dy;
+        y = r->lu.y;
         break;
     case 3:
-        ret->x = p1->x + ((float)r->rl.y - p1->y) * dx / dy;
-        ret->y = r->rl.y;
+        x = p1->getX() + ((float)r->rl.y - p1->getY()) * dx / dy;
+        y = r->rl.y;
         break;
     }
+    ret->set(x, y);
 }
 
 /**
@@ -2059,18 +2058,21 @@ static void poly_intersection(struct point *p1, struct point *p2, struct point_r
  * @param[out] out preallocated buffer of at least count_in *8 +1 points size
  * @param[out] count_out size of out number of points, number of points used in out at return
  */
-void Graphics::clip_polygon(struct point_rect *r, struct point *in, int count_in, struct point *out, int *count_out)
+void Graphics::clip_polygon(struct point_rect *r, QVector<LayoutCoord *> &in, QVector<LayoutCoord *> &out)
 {
     /* get a temp buffer to store points after one direction clipping.
      * since we are clipping 4 directions, result is always in out at the end*/
-    struct point *temp;
-    struct point *pout;
-    struct point *pin;
     int edge;
     int count;
+    int count_out;
+
+    QVector<LayoutCoord *> _temp;
+    QVector<LayoutCoord *> *temp;
+    QVector<LayoutCoord *> *pout;
+    QVector<LayoutCoord *> *pin;
 
     /* sanity check */
-    if ((r == NULL) || (in == NULL) || (out == NULL) || (count_out == NULL) || (*count_out < count_in * 8 + 1))
+    if (r == NULL)
     {
         return;
     }
@@ -2079,32 +2081,24 @@ void Graphics::clip_polygon(struct point_rect *r, struct point *in, int count_in
      * 1. the output buffer
      * 2. temp
      */
-    if (count_in < ALLOCA_COORD_LIMIT)
-    {
-        temp = (point *)g_alloca(sizeof(struct point) * (count_in < ALLOCA_COORD_LIMIT ? count_in * 8 + 1 : 0));
-    }
-    else
-    {
-        /* too big. Allocate a buffer (slower) */
-        temp = (point *)g_new(struct point, count_in * 8 + 1);
-    }
+    temp = &_temp;
     /* use temp as first buffer. So we get the final result in out*/
     pout = temp;
     /* start with input polygon */
-    pin = in;
+    pin = &in;
     /* start with number of points of source polygon*/
-    count = count_in;
+    count = in.size();
 
     /* clip all four directions of a rectangle */
     for (edge = 0; edge < 4; edge++)
     {
         int i;
         /* p is first element in current buffer */
-        struct point *p = pin;
+        LayoutCoord *p = pin->first();
         /* s is lasst element in current buffer */
-        struct point *s = pin + count - 1;
+        LayoutCoord *s = pin->last();
         /* nothing written yet */
-        *count_out = 0;
+        count_out = 0;
 
         /* iterate all points in current buffer */
         for (i = 0; i < count; i++)
@@ -2113,22 +2107,22 @@ void Graphics::clip_polygon(struct point_rect *r, struct point *in, int count_in
             {
                 if (!is_inside(s, r, edge))
                 {
-                    struct point pi;
+                    LayoutCoord *pi = new LayoutCoord();
                     /* current segment crosses border from outside to inside. Add crossing point with border first */
-                    poly_intersection(s, p, r, edge, &pi);
-                    pout[(*count_out)++] = pi;
+                    poly_intersection(s, p, r, edge, pi);
+                    pout->append(pi);
                 }
                 /* add point if inside */
-                pout[(*count_out)++] = *p;
+                pout->append(p);
             }
             else
             {
                 if (is_inside(s, r, edge))
                 {
-                    struct point pi;
+                    LayoutCoord *pi = new LayoutCoord();
                     /*current segment crosses border from inside to outside. Add crossing point with border */
-                    poly_intersection(p, s, r, edge, &pi);
-                    pout[(*count_out)++] = pi;
+                    poly_intersection(p, s, r, edge, pi);
+                    pout->append(pi);
                 }
                 /* skip point if outside */
             }
@@ -2137,17 +2131,17 @@ void Graphics::clip_polygon(struct point_rect *r, struct point *in, int count_in
             p++;
         }
         /* use result of last clipping for next */
-        count = *count_out;
+        count = count_out;
 
         /* switch buffer */
         if (pout == temp)
         {
-            pout = out;
+            pout = &out;
             pin = temp;
         }
         else
         {
-            pin = out;
+            pin = &out;
             pout = temp;
         }
     }
@@ -2155,7 +2149,7 @@ void Graphics::clip_polygon(struct point_rect *r, struct point *in, int count_in
     /* have clipped poly in out. And number of points now in *count_out */
 
     /* if we had to allocate the buffer, we need to free it */
-    if (count_in >= ALLOCA_COORD_LIMIT)
+    if (in.size() >= ALLOCA_COORD_LIMIT)
     {
         g_free(temp);
     }
@@ -2170,32 +2164,15 @@ void Graphics::clip_polygon(struct point_rect *r, struct point *in, int count_in
  * @param[in] pin An array of points forming the polygon
  * @param count_in The number of elements inside @p pin
  */
-void Graphics::draw_polygon_clipped(GraphicsContext *gc, struct point *pin, int count_in)
+void Graphics::draw_polygon_clipped(GraphicsContext *gc, QVector<LayoutCoord *> &pin)
 {
     struct point_rect r = m_r;
-    struct point *clipped;
-    int count_out = count_in * 8 + 1;
+    QVector<LayoutCoord *> clipped;
 
-    /* prepare buffer */
-    if (count_in < ALLOCA_COORD_LIMIT)
-    {
-        /* use on stack buffer */
-        clipped = (point *)g_alloca(sizeof(struct point) * (count_in < ALLOCA_COORD_LIMIT ? count_in * 8 + 1 : 0));
-    }
-    else
-    {
-        /* too big. allocate buffer (slower) */
-        clipped = (point *)g_new(struct point, count_in * 8 + 1);
-    }
+    clip_polygon(&r, pin, clipped);
+    draw_polygon(gc, clipped);
 
-    clip_polygon(&r, pin, count_in, clipped, &count_out);
-    draw_polygon(gc, clipped, count_out);
-
-    /* if we had to allocate buffer, free it */
-    if (count_in >= ALLOCA_COORD_LIMIT)
-    {
-        g_free(clipped);
-    }
+    qDeleteAll(clipped);
 }
 
 /**
@@ -2210,7 +2187,7 @@ void Graphics::draw_polygon_clipped(GraphicsContext *gc, struct point *pin, int 
  *        points per hole
  * @param holes array of point arrays for the hole polygons
  */
-void Graphics::draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point *pin, int count_in, int hole_count, int *ccount, struct point **holes)
+void Graphics::draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point *pin, int count_in, DisplayitemPolyHoles &holes)
 {
     int i;
     struct point_rect r = m_r;
@@ -2224,11 +2201,12 @@ void Graphics::draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point
     int need_free;
     /* get total node count for polygon plus all holes */
     total_count_in = count_in;
-    for (i = 0; i < hole_count; i++)
+
+    for (QVector<LayoutCoord *> hole : holes)
     {
-        total_count_in += ccount[i];
+        total_count_in += hole.size();
     }
-    count_out = total_count_in * 8 + 1 + hole_count;
+    count_out = total_count_in * 8 + 1 + holes.size();
 
     /* prepare buffer for outer and all holes!*/
     if (count_out < ALLOCA_COORD_LIMIT)
@@ -2248,15 +2226,15 @@ void Graphics::draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point
     count_used = 0;
 
     /* prepare arrays for new holes */
-    if (hole_count < ALLOCA_COORD_LIMIT)
+    if (holes.size() < ALLOCA_COORD_LIMIT)
     {
-        found_ccount = (int *)g_alloca(sizeof(int) * hole_count);
-        found_holes = (point **)g_alloca(sizeof(struct point *) * hole_count);
+        found_ccount = (int *)g_alloca(sizeof(int) * holes.size());
+        found_holes = (point **)g_alloca(sizeof(struct point *) * holes.size());
     }
     else
     {
-        found_ccount = (int *)g_malloc(sizeof(int) * hole_count);
-        found_holes = (point **)g_malloc(sizeof(struct point *) * hole_count);
+        found_ccount = (int *)g_malloc(sizeof(int) * holes.size());
+        found_holes = (point **)g_malloc(sizeof(struct point *) * holes.size());
     }
     found_hole_count = 0;
 
@@ -2264,11 +2242,11 @@ void Graphics::draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point
     clip_polygon(&r, pin, count_in, clipped, &count_out);
     count_used += count_out;
     /* clip the holes */
-    for (i = 0; i < hole_count; i++)
+    for (QVector<LayoutCoord *> hole : holes)
     {
         struct point *buffer = clipped + count_used;
         int count = total_count_in * 8 + 1 + hole_count - count_used;
-        clip_polygon(&r, holes[i], ccount[i], buffer, &count);
+        clip_polygon(&r, hole, buffer, &count);
         count_used += count;
         if (count > 0)
         {
@@ -2280,7 +2258,7 @@ void Graphics::draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point
     }
     /* call drawing function */
     draw_polygon_with_holes(gc, clipped, count_out, found_hole_count, found_ccount, found_holes);
-    if (hole_count >= ALLOCA_COORD_LIMIT)
+    if (holes.size() >= ALLOCA_COORD_LIMIT)
     {
         g_free(found_ccount);
         g_free(found_holes);
@@ -2396,12 +2374,12 @@ char *Graphics::texture_path(const char *texture)
     return ret;
 }
 
-int Graphics::limit_count(struct coord *c, int count)
+int Graphics::limit_count(QVector<LayoutCoord *> &coords, int count)
 {
     int i;
     for (i = 1; i < count; i++)
     {
-        if (c[i].x == c[0].x && c[i].y == c[0].y)
+        if (coords[i]->getX() == coords[0]->getX() && coords[i]->getY() == coords[0]->getY())
             return i + 1;
     }
     return count;
@@ -2476,38 +2454,14 @@ void Graphics::multiline_label_draw(GraphicsContext *fg, GraphicsContext *bg, st
  * @param out structure to place result in. Remember to deallocate!
  * @param mindist minimal distance between points
  */
-void Graphics::displayitem_transform_holes(struct transformation *trans, enum projection pro, struct displayitem_poly_holes *in, struct displayitem_poly_holes *out, int mindist)
+void Graphics::displayitem_transform_holes(struct transformation *trans, enum projection pro, DisplayitemPolyHoles &in, DisplayitemPolyHoles &out, int mindist)
 {
-    if (out == NULL)
-        return;
-    out->count = 0;
-    out->ccount = NULL;
-    out->coords = NULL;
-    if ((in != NULL) && (in->count > 0))
+    for (QVector<LayoutCoord *> hole : in)
     {
-        int a, transform_res;
-        /* alloc space for hole conversion. To be freed with displayitem_free_holes later*/
-        out->count = in->count;
-        out->ccount = (int *)g_malloc0(sizeof(*(out->ccount)) * in->count);
-        out->coords = (coord **)g_malloc0(sizeof(*(out->coords)) * in->count);
-        for (a = 0; a < in->count; a++)
-        {
-            int buf_size = sizeof(*(out->coords[a])) * in->ccount[a];
-            in->ccount[a] = limit_count(in->coords[a], in->ccount[a]);
-            out->coords[a] = (coord *)g_malloc0(buf_size);
-            transform_res = transform_point_buf(trans, pro, in->coords[a], (struct point *)(out->coords[a]), buf_size, in->ccount[a],
-                                                mindist, 0, NULL);
-            /* if we did not have enough buf space for transfrom_point_buf, we try again with double the buffer size,
-               until we succeed. */
-            while (transform_res == TRANSFORM_ERR_BUF_SPACE)
-            {
-                buf_size *= 2;
-                out->coords[a] = (coord *)g_realloc(out->coords[a], buf_size);
-                transform_res = transform_point_buf(trans, pro, in->coords[a], (struct point *)(out->coords[a]), buf_size,
-                                                    in->ccount[a], mindist, 0, NULL);
-            }
-            out->ccount[a] = transform_res;
-        }
+        QVector<LayoutCoord *> transformedHole;
+        transform_point_buf(trans, pro, hole, transformedHole, mindist, 0, NULL);
+
+        out.append(transformedHole);
     }
 }
 
@@ -2516,23 +2470,17 @@ void Graphics::displayitem_transform_holes(struct transformation *trans, enum pr
  *
  * @param holes structure to deallocate
  */
-void Graphics::displayitem_free_holes(struct displayitem_poly_holes *holes)
+void Graphics::displayitem_free_holes(DisplayitemPolyHoles &holes)
 {
-    if (holes == NULL)
-        return;
-    if (holes->count > 0)
+    for (QVector<LayoutCoord *> hole : holes)
     {
-        int a;
-        for (a = 0; a < holes->count; a++)
-        {
-            g_free(holes->coords[a]);
-        }
-        g_free(holes->ccount);
-        g_free(holes->coords);
+        qDeleteAll(hole);
+        hole.clear();
     }
+    holes.clear();
 }
 
-void Graphics::displayitem_draw_polygon(struct display_context *dc, struct point *pa, int count, struct displayitem_poly_holes *holes)
+void Graphics::displayitem_draw_polygon(struct display_context *dc, struct point *pa, int count, DisplayitemPolyHoles &holes)
 {
 
     LayoutPolygon *contextPolygon = static_cast<LayoutPolygon *>(dc->element);
@@ -2548,9 +2496,8 @@ void Graphics::displayitem_draw_polygon(struct display_context *dc, struct point
         if (texture != NULL)
             dc->gc->set_texture(texture);
     }
-    if ((holes != NULL) && (holes->count > 0))
-        draw_polygon_with_holes_clipped(dc->gc, pa, count, holes->count, holes->ccount,
-                                        (struct point **)holes->coords);
+    if (holes.size() > 0)
+        draw_polygon_with_holes_clipped(dc->gc, pa, count, holes);
     else
         draw_polygon_clipped(dc->gc, pa, count);
 }
@@ -2600,9 +2547,9 @@ void Graphics::displayitem_draw_circle(struct displayitem *di, struct display_co
     }
 }
 
-void Graphics::displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutText *element, struct point *pa, int count, struct displayitem_poly_holes *holes)
+void Graphics::displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutText *element, QVector<LayoutCoord *> &coords, DisplayitemPolyHoles &holes)
 {
-    if (count && di->label)
+    if (coords.size() > 0)
     {
         struct graphics_font *font = get_font(element->getTextSize());
         GraphicsContext *gc_background = dc->gc_background;
@@ -2615,11 +2562,11 @@ void Graphics::displayitem_draw_text(struct displayitem *di, struct display_cont
         if (font)
         {
             int a;
-            label_line(dc->gc, gc_background, font, pa, count, di->label);
-            if (holes != NULL)
+            label_line(dc->gc, gc_background, font, coords, di->label);
+
+            for (QVector<LayoutCoord *> hole : holes)
             {
-                for (a = 0; a < holes->count; a++)
-                    label_line(dc->gc, gc_background, font, (struct point *)holes->coords[a], holes->ccount[a], di->label);
+                label_line(dc->gc, gc_background, font, hole, di->label);
             }
         }
         else
@@ -2726,8 +2673,8 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
     while (di)
     {
         int count = di->count, mindist = dc->mindist;
-        struct displayitem_poly_holes t_holes;
-        t_holes.count = 0;
+        DisplayitemPolyHoles t_holes;
+        QVector<LayoutCoord *> t_coords;
 
         di->z_order = ++(m_current_z_order);
 
@@ -2772,10 +2719,12 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
              dc->element->getType() == LayoutElementType::LayoutElementText))
             limit = 0;
 
-        displayitem_transform_holes(dc->trans, dc->pro, di->holes, &t_holes, mindist);
+        displayitem_transform_holes(dc->trans, dc->pro, di->holes, t_holes, mindist);
 
         if (limit)
-            count = limit_count(di->c, count);
+            count = limit_count(di->coords, count);
+
+        di->coords = QVector<LayoutCoord *>(di->coords.begin(), di->coords.begin() + count);
         if (dc->type == type_poly_water_tiled)
             mindist = 0;
 
@@ -2783,46 +2732,46 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
         {
         case LayoutElementType::LayoutElementPolygon:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
-            displayitem_draw_polygon(dc, pa, count, &t_holes);
+            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
+            displayitem_draw_polygon(dc, pa, count, t_holes);
             break;
         }
         case LayoutElementType::LayoutElementPolyline:
         {
             LayoutPolyline *polyline = static_cast<LayoutPolyline *>(element);
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, polyline->getWidth(),
+            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, polyline->getWidth(),
                                         width);
             displayitem_draw_polyline(dc, static_cast<LayoutPolyline *>(element), pa, count, width);
             break;
         }
         case LayoutElementType::LayoutElementCircle:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
+            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
             displayitem_draw_circle(di, dc, static_cast<LayoutCircle *>(element), pa, count);
             break;
         }
         case LayoutElementType::LayoutElementText:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
-            displayitem_draw_text(di, dc, static_cast<LayoutText *>(element), pa, count, &t_holes);
+            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
+            displayitem_draw_text(di, dc, static_cast<LayoutText *>(element), pa, count, t_holes);
             break;
         }
         case LayoutElementType::LayoutElementIcon:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
+            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
             displayitem_draw_icon(di, dc, static_cast<LayoutIcon *>(element), pa, count, layout);
             break;
         }
         case LayoutElementType::LayoutElementImage:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, 0, NULL);
+            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
             displayitem_draw_image(di, dc, pa, count);
             break;
         }
         case LayoutElementType::LayoutElementArrows:
         {
             LayoutArrows *arrows = static_cast<LayoutArrows *>(element);
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, arrows->getWidth(),
+            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, arrows->getWidth(),
                                         width);
             display_draw_arrows(dc, pa, count, width, arrows->getOneway());
             break;
@@ -2830,7 +2779,7 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
         case LayoutElementType::LayoutElementSpikes:
         {
             LayoutSpikes *spikes = static_cast<LayoutSpikes *>(element);
-            count = transform_point_buf(dc->trans, dc->pro, di->c, pa, pa_buf_size, count, mindist, spikes->getWidth(),
+            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, spikes->getWidth(),
                                         width);
             display_draw_spikes(dc, pa, count, width, spikes->getDistance());
             break;
@@ -2839,7 +2788,8 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
             qWarning() << "Can't draw point";
         }
         /* free space allocated for holes */
-        displayitem_free_holes(&t_holes);
+        displayitem_free_holes(t_holes);
+        qDeleteAll(t_coords);
 
         di = di->next;
     }
@@ -2854,6 +2804,7 @@ void Graphics::draw_itemgra(LayoutItemGraph *itemGraph, struct transformation *t
 {
     struct display_context dc;
     int max_coord = 32;
+    int count = 0;
     char *buffer;
     struct displayitem *di;
     if (max_coord < ALLOCA_COORD_LIMIT)
@@ -2872,7 +2823,7 @@ void Graphics::draw_itemgra(LayoutItemGraph *itemGraph, struct transformation *t
     di->item.map = NULL;
     di->z_order = 0;
     di->label = label;
-    di->holes = NULL;
+    di->holes.clear();
     dc.gra = this;
     dc.gc = NULL;
     dc.gc_background = NULL;
@@ -2884,22 +2835,23 @@ void Graphics::draw_itemgra(LayoutItemGraph *itemGraph, struct transformation *t
     dc.maxlen = max_coord;
     for (LayoutItemGraphElement *element : itemGraph->getElements())
     {
-        if (element->getCoords().size() > 0)
+        di->coords.clear();
+        QVector<LayoutCoord *> coords = element->getCoords();
+        if (coords.size() > 0)
         {
-            if (element->getCoords().size() > max_coord)
+            if (coords.size() > max_coord)
             {
-                qWarning() << "maximum number of coords reached: " << element->getCoords().size() << ">" << max_coord;
-                di->count = max_coord;
+                qWarning() << "maximum number of coords reached: " << coords.size() << ">" << max_coord;
+                count = max_coord;
             }
             else
-                di->count = element->getCoords().size();
-            memcpy(di->c, element->coord, di->count * sizeof(struct coord));
+                count = coords.size();
+            di->coords = QVector<LayoutCoord *>(coords.begin(), coords.begin() + count);
         }
         else
         {
-            di->c[0].x = 0;
-            di->c[0].y = 0;
-            di->count = 1;
+            LayoutCoord coord;
+            di->coords.append(&coord);
         }
         dc.element = element;
         di->next = NULL;

@@ -65,70 +65,26 @@ extern "C"
  *
  * @return The newly created vehicle object
  */
-struct vehicle *
-vehicle_new(struct attr *parent, struct attr **attrs)
+
+Vehicle::Vehicle(const NavitVehicleConfig *config, NavitVehicleInterface *plugin, QObject *parent) : QObject(parent), m_plugin(plugin)
 {
-    ;
-    struct attr *source;
-    struct vehicle_priv *(*vehicletype_new)(struct vehicle_methods *
-                                                meth,
-                                            struct callback_list *
-                                                cbl,
-                                            struct attr **attrs);
-    char *type, *colon;
+
+    assert(m_plugin);
+
     struct pcoord center;
-
-    dbg(lvl_debug, "enter");
-    source = attr_search(attrs, attr_source);
-    if (!source)
-    {
-        dbg(lvl_error, "incomplete vehicle definition: missing attribute 'source'");
-        return NULL;
-    }
-
-    type = g_strdup(source->u.str);
-    colon = strchr(type, ':');
-    if (colon)
-        *colon = '\0';
-    dbg(lvl_debug, "source='%s' type='%s'", source->u.str, type);
-
-    vehicletype_new = plugin_get_category(plugin_category_vehicle, type);
-    if (!vehicletype_new)
-    {
-        dbg(lvl_error, "invalid source '%s': unknown type '%s'", source->u.str, type);
-        g_free(type);
-        return NULL;
-    }
-    g_free(type);
-    this_ = g_new0(struct vehicle, 1);
-    m_func = &vehicle_func;
-    navit_object_ref((struct navit_object *)this_);
-    m_cbl = callback_list_new();
-    m_priv = vehicletype_new(&m_meth, m_cbl, attrs);
-    if (!m_priv)
-    {
-        dbg(lvl_error, "vehicletype_new failed");
-        callback_list_destroy(m_cbl);
-        g_free(this_);
-        return NULL;
-    }
-    m_attrs = attr_list_dup(attrs);
 
     center.pro = projection_screen;
     center.x = 0;
     center.y = 0;
     m_trans = transform_new(&center, 16, 0);
-    Vehicle::set_default_name(this_);
+    m_name = config->name;
 
     dbg(lvl_debug, "leave");
     m_log_to_cb = g_hash_table_new(NULL, NULL);
-    return this_;
 }
-
 /**
  * @brief Destroys a vehicle
  *
- * @param this_ The vehicle to destroy
  */
 void Vehicle::destroy()
 {
@@ -139,14 +95,8 @@ void Vehicle::destroy()
         event_remove_timeout(m_animate_timer);
     }
     transform_destroy(m_trans);
-    m_meth.destroy(m_priv);
+    m_plugin->destroy();
     callback_list_destroy(m_cbl);
-    attr_list_free(m_attrs);
-    if (m_bg)
-        graphics_gc_destroy(m_bg);
-    if (m_gra)
-        graphics_free(m_gra);
-    g_free(this_);
 }
 
 /**
@@ -171,7 +121,6 @@ void Vehicle::attr_iter_destroy(struct attr_iter *iter)
 /**
  * Generic get function
  *
- * @param this_ Pointer to a vehicle structure
  * @param type The attribute type to look for
  * @param attr Pointer to a {@code struct attr} to store the attribute
  * @param iter A vehicle attr_iter. This is only used for generic attributes; for attributes specific to the vehicle object it is ignored.
@@ -185,20 +134,19 @@ int Vehicle::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *
         attr->u.str = m_gpx_desc;
         return 1;
     }
-    if (m_meth.position_attr_get)
-    {
-        ret = m_meth.position_attr_get(m_priv, type, attr);
-        if (ret)
-            return ret;
-    }
-    return attr_generic_get_attr(m_attrs, NULL, type, attr, iter);
+    ret = m_plugin->position_attr_get(type, attr);
+    if (ret)
+        return ret;
+
+    // return attr_generic_get_attr(m_attrs, NULL, type, attr, iter);
+    qDebug() << "Trying to get generic vehicle attr";
+    return 0;
 }
 
 /**
  * Generic set function
  *
- * @param this_ A vehicle
- * @param attr The attribute to set
+ * * @param attr The attribute to set
  * @return False on success, true on failure
  */
 int Vehicle::set_attr(struct attr *attr)
@@ -209,22 +157,22 @@ int Vehicle::set_attr(struct attr *attr)
         g_free(m_gpx_desc);
         m_gpx_desc = g_strdup(attr->u.str);
     }
-    else if (m_meth.set_attr)
-        ret = m_meth.set_attr(m_priv, attr);
+    ret = m_plugin->set_attr(attr);
     /* attr_profilename probably is never used by vehicle itself but it's used to control the
       routing engine. So any vehicle should allow to set and read it. */
     if (attr->type == attr_profilename)
         ret = 1;
     if (ret == 1 && attr->type != attr_navit && attr->type != attr_pdl_gps_update)
-        m_attrs = attr_generic_set_attr(m_attrs, attr);
+    {
+        qDebug() << "Trying to get generic vehicle attribute: " << attr_to_name(attr->type);
+    }
     return ret != 0;
 }
 
 /**
  * Generic add function
  *
- * @param this_ A vehicle
- * @param attr The attribute to add
+ * * @param attr The attribute to add
  *
  * @return true if the attribute was added, false if not.
  */
@@ -237,18 +185,18 @@ int Vehicle::add_attr(struct attr *attr)
         callback_list_add(m_cbl, attr->u.callback);
         break;
     case attr_log:
-        ret = Vehicle::add_log(this_, attr->u.log);
+        ret = Vehicle::add_log(attr->u.log);
         break;
     // currently supporting oldstyle cursor config.
     case attr_cursor:
         m_cursor_fixed = 1;
-        Vehicle::set_cursor(this_, attr->u.cursor, 1);
+        qDebug() << "Trying to set cursor as attr";
         break;
     default:
         break;
     }
     if (ret)
-        m_attrs = attr_generic_add_attr(m_attrs, attr);
+        qDebug() << "Trying to add generic vehicle attribute" << attr_to_name(attr->type);
     return ret;
 }
 
@@ -256,8 +204,7 @@ int Vehicle::add_attr(struct attr *attr)
  * @brief Generic remove function.
  *
  * Used to remove a callback from the vehicle.
- * @param this_ A vehicle
- * @param attr
+ * * @param attr
  */
 int Vehicle::remove_attr(struct attr *attr)
 {
@@ -268,30 +215,31 @@ int Vehicle::remove_attr(struct attr *attr)
         callback_list_remove(m_cbl, attr->u.callback);
         break;
     case attr_log:
-        cb = g_hash_table_lookup(m_log_to_cb, attr->u.log);
+        cb = (callback *)g_hash_table_lookup(m_log_to_cb, attr->u.log);
         if (!cb)
             return 0;
         g_hash_table_remove(m_log_to_cb, attr->u.log);
         callback_list_remove(m_cbl, cb);
         break;
     default:
-        m_attrs = attr_generic_remove_attr(m_attrs, attr);
+        qDebug() << "Trying to remove generic vehicle attribute" << attr_to_name(attr->type);
         return 0;
     }
     return 1;
 }
 
+void draw_do_callback(Vehicle *vehicle)
+{
+    vehicle->draw_do();
+}
 /**
  * Sets the cursor of a vehicle.
  *
- * @param this_ A vehicle
- * @param cursor A cursor
+ * * @param cursor A cursor
  * @author Ralph Sennhauser (10/2009)
  */
-void Vehicle::set_cursor(struct cursor *cursor, int overwrite)
+void Vehicle::set_cursor(LayoutCursor *cursor, int overwrite)
 {
-    dbg(lvl_debug, "enter this_=%p cursot=%p overwrit=%d, m_cursor_fixed=%d, m_gra=%p", this_, cursor, overwrite,
-        m_cursor_fixed, m_gra);
     if (m_cursor_fixed && !overwrite)
         return;
     if (m_animate_callback)
@@ -301,10 +249,10 @@ void Vehicle::set_cursor(struct cursor *cursor, int overwrite)
         callback_destroy(m_animate_callback);
         m_animate_callback = NULL; // dangling pointer! prevent double freeing.
     }
-    if (cursor && cursor->interval)
+    if (cursor && cursor->getInterval() > 0)
     {
-        m_animate_callback = callback_new_2(callback_cast(Vehicle::draw_do), this_, 0);
-        m_animate_timer = event_add_timeout(cursor->interval, 1, m_animate_callback);
+        m_animate_callback = callback_new_1(callback_cast(draw_do_callback), this);
+        m_animate_timer = event_add_timeout(cursor->getInterval(), 1, m_animate_callback);
     }
     /* we changed the cursor, so the overlay (if existing) may need a resize */
     m_need_resize = 1;
@@ -316,9 +264,9 @@ void Vehicle::set_cursor(struct cursor *cursor, int overwrite)
     if (m_gra)
     {
         if (m_cursor)
-            graphics_overlay_disable(m_gra, 0);
+            m_gra->overlay_disable(0);
         else
-            graphics_overlay_disable(m_gra, 1);
+            m_gra->overlay_disable(1);
     }
     /* vehicle_draw will care for the graphics */
 }
@@ -326,18 +274,16 @@ void Vehicle::set_cursor(struct cursor *cursor, int overwrite)
 /**
  * Draws a vehicle on top of a graphics.
  *
- * @param this_ The vehicle
  * @param gra The graphics
  * @param pnt Screen coordinates of the vehicle.
  * @param angle The angle relative to the map.
  * @param speed The speed of the vehicle.
  */
-void Vehicle::draw(GraphicsHandle gra, struct point *pnt, int angle, int speed)
+void Vehicle::draw(Graphics *gra, struct point *pnt, int angle, int speed)
 {
     struct point sc;
     if (angle < 0)
         angle += 360;
-    dbg(lvl_debug, "enter this=%p gra=%p pnt=%p dir=%d speed=%d", this_, gra, pnt, angle, speed);
     dbg(lvl_debug, "point %d,%d", pnt->x, pnt->y);
     m_cursor_pnt = *pnt;
     m_angle = angle;
@@ -351,7 +297,7 @@ void Vehicle::draw(GraphicsHandle gra, struct point *pnt, int angle, int speed)
         navit_float radius;
 
         /* get the radius of the out circle. Pythagoras greets */
-        radius = navit_sqrt((m_cursor->w * m_cursor->w) + (m_cursor->h * m_cursor->h));
+        radius = navit_sqrt((m_cursor->getW() * m_cursor->getW()) + (m_cursor->getH() * m_cursor->getH()));
         /* since we rotate the rectangle around the center to indicate direction, the overlay needs to be at least the
          * radius of the out circle big. The +1 compensates the rounding error.
          */
@@ -374,54 +320,47 @@ void Vehicle::draw(GraphicsHandle gra, struct point *pnt, int angle, int speed)
     {
         QColor c;
         m_need_resize = 0;
-        m_gra = graphics_overlay_new(gra, &m_cursor_pnt, m_real_w, m_real_h, 0);
+
+        m_gra = new Graphics(gra->get_navit_interface(), *gra, &m_cursor_pnt, m_real_w, m_real_h, 0);
         if (m_gra)
         {
-            graphics_init(m_gra);
-            m_bg = graphics_gc_new(m_gra);
-            c.r = 0;
-            c.g = 0;
-            c.b = 0;
-            c.a = 0;
-            graphics_gc_set_foreground(m_bg, &c);
-            graphics_background_gc(m_gra, m_bg);
+            m_gra->init();
+            GraphicsFunctions &graphics_functions = ((Graphics *)m_gra)->get_graphics_functions();
+
+            m_bg = new GraphicsContext(*graphics_functions.new_graphics_context(), (Graphics *)m_gra);
+
+            c.setAlpha(0);
+
+            m_bg->set_foreground(&c);
+            m_gra->background_gc(m_bg);
         }
     }
     else if (m_need_resize)
     {
         /* seems the cursor was changed. Need to resize */
         m_need_resize = 0;
-        graphics_overlay_resize(m_gra, &m_cursor_pnt, m_real_w, m_real_h, 0);
+        m_gra->overlay_resize(&m_cursor_pnt, m_real_w, m_real_h, 0);
     }
 
-    Vehicle::draw_do(this_);
+    draw_do();
 }
 
-int Vehicle::get_cursor_data(struct vehicle *this, struct point *pnt, int *angle, int *speed)
+int Vehicle::get_cursor_data(struct point *pnt, int *angle, int *speed)
 {
-    *pnt = this->cursor_pnt;
-    *angle = this->angle;
-    *speed = this->speed;
+    *pnt = m_cursor_pnt;
+    *angle = m_angle;
+    *speed = m_speed;
     return 1;
 }
 
 void Vehicle::set_default_name(const QString &name)
 {
-    struct attr default_name;
-    if (!attr_search(m_attrs, attr_name))
-    {
-        default_name.type = attr_name;
-        // Safe cast: attr_generic_set_attr does not modify its parameter.
-        default_name.u.str = (char *)_("Unnamed vehicle");
-        m_attrs = attr_generic_set_attr(m_attrs, &default_name);
-        dbg(lvl_error, "Incomplete vehicle definition: missing attribute 'name'. Default name set.");
-    }
+    m_name = name;
 }
 
 void Vehicle::draw_do()
 {
     struct point p;
-    struct cursor *cursor = m_cursor;
     int speed = m_speed;
     int angle = m_angle;
     int sequence = m_sequence;
@@ -429,10 +368,9 @@ void Vehicle::draw_do()
     char *label = NULL;
     int match = 0;
 
-    if (!m_cursor || !m_cursor->attrs || !m_gra)
+    if (!m_cursor || !m_gra)
         return;
 
-    attr = m_attrs;
     while (attr && *attr)
     {
         if ((*attr)->type == attr_name)
@@ -440,53 +378,53 @@ void Vehicle::draw_do()
         attr++;
     }
     transform_set_yaw(m_trans, -m_angle);
-    graphics_draw_mode(m_gra, draw_mode_begin);
+    m_gra->draw_mode(draw_mode_begin);
     p.x = 0;
     p.y = 0;
     /* clear old content by overwriting with an rectangle */
-    graphics_draw_rectangle(m_gra, m_bg, &p, m_real_w, m_real_h);
-    attr = cursor->attrs;
-    while (*attr)
+    m_gra->draw_rectangle(m_bg, &p, m_real_w, m_real_h);
+    for (LayoutItemGraph *itemGraph : m_cursor->getItemgra())
     {
-        if ((*attr)->type == attr_itemgra)
+        LayoutRange *speed_range = itemGraph->getSpeedRange();
+        LayoutRange *angle_range = itemGraph->getSpeedRange();
+        LayoutRange *sequence_range = itemGraph->getSpeedRange();
+        if (speed >= speed_range->getMin() && speed <= speed_range->getMax() &&
+            angle >= angle_range->getMin() && angle <= angle_range->getMax() &&
+            sequence >= sequence_range->getMin() && sequence <= sequence_range->getMax())
         {
-            struct itemgra *itm = (*attr)->u.itemgra;
-            dbg(lvl_debug, "speed %d-%d %d", itm->speed_range.min, itm->speed_range.max, speed);
-            if (speed >= itm->speed_range.min && speed <= itm->speed_range.max &&
-                angle >= itm->angle_range.min && angle <= itm->angle_range.max &&
-                sequence >= itm->sequence_range.min && sequence <= itm->sequence_range.max)
-            {
-                graphics_draw_itemgra(m_gra, itm, m_trans, label);
-            }
-            if (sequence < itm->sequence_range.max)
-                match = 1;
+            m_gra->draw_itemgra(itemGraph, m_trans, label);
         }
-        ++attr;
     }
-    graphics_draw_drag(m_gra, &m_cursor_pnt);
-    graphics_draw_mode(m_gra, draw_mode_end);
+
+    m_gra->draw_drag(&m_cursor_pnt);
+    m_gra->draw_mode(draw_mode_end);
     if (m_animate_callback)
     {
         ++m_sequence;
-        if (cursor->sequence_range && cursor->sequence_range->max < m_sequence)
-            m_sequence = cursor->sequence_range->min;
-        if (!match && !cursor->sequence_range)
+        LayoutRange *range = m_cursor->getSequenceRange();
+        if (range->getMin() != range->getMax())
+        {
+            if (range->getMax() < m_sequence)
+                m_sequence = range->getMin();
+        }
+        else if (!match)
+        {
             m_sequence = 0;
+        }
     }
 }
 
 /**
  * @brief Writes to an NMEA log.
  *
- * @param this_ The vehicle supplying data
  * @param log The log to write to
  */
 void Vehicle::log_nmea(struct log *log)
 {
     // struct attr pos_attr;
-    // if (!m_meth.position_attr_get)
+    // if (!m_plugin->position_attr_get)
     //     return;
-    // if (!m_meth.position_attr_get(m_priv, attr_position_nmea, &pos_attr))
+    // if (!m_plugin->position_attr_get( attr_position_nmea, &pos_attr))
     //     return;
     // log_write(log, pos_attr.u.str, strlen(pos_attr.u.str), 0);
 }
@@ -541,7 +479,6 @@ void Vehicle::log_gpx_add_tag(char *tag, char **logstr)
 /**
  * @brief Writes a trackpoint to a GPX log.
  *
- * @param this_ The vehicle supplying data
  * @param log The log to write to
  */
 void Vehicle::log_gpx(struct log *log)
@@ -551,23 +488,23 @@ void Vehicle::log_gpx(struct log *log)
     // char *logstr;
     // char *extensions = "\t<extensions>\n";
 
-    // if (!m_meth.position_attr_get)
+    // if (!m_plugin->position_attr_get)
     //     return;
     // if (log_get_attr(log, attr_attr_types, &attr, NULL))
     //     attr_types = attr.u.attr_types;
     // else
     //     attr_types = NULL;
-    // if (m_meth.position_attr_get(m_priv, attr_position_fix_type, &fix_attr))
+    // if (m_plugin->position_attr_get( attr_position_fix_type, &fix_attr))
     // {
     //     if (fix_attr.u.num == 0)
     //         return;
     // }
-    // if (!m_meth.position_attr_get(m_priv, attr_position_coord_geo, &attr))
+    // if (!m_plugin->position_attr_get( attr_position_coord_geo, &attr))
     //     return;
     // logstr = g_strdup_printf("<trkpt lat=\"%f\" lon=\"%f\">\n", attr.u.coord_geo->lat, attr.u.coord_geo->lng);
     // if (attr_types && attr_types_contains_default(attr_types, attr_position_time_iso8601, 0))
     // {
-    //     if (m_meth.position_attr_get(m_priv, attr_position_time_iso8601, &attr))
+    //     if (m_plugin->position_attr_get( attr_position_time_iso8601, &attr))
     //     {
     //         logstr = g_strconcat_printf(logstr, "\t<time>%s</time>\n", attr.u.str);
     //     }
@@ -584,7 +521,7 @@ void Vehicle::log_gpx(struct log *log)
     //     g_free(m_gpx_desc);
     //     m_gpx_desc = NULL;
     // }
-    // if (attr_types_contains_default(attr_types, attr_position_height, 0) && m_meth.position_attr_get(m_priv, attr_position_height, &attr))
+    // if (attr_types_contains_default(attr_types, attr_position_height, 0) && m_plugin->position_attr_get( attr_position_height, &attr))
     //     logstr = g_strconcat_printf(logstr, "\t<ele>%.6f</ele>\n", *attr.u.numd);
     // // <magvar> magnetic variation in degrees; we might use position_magnetic_direction and position_direction to figure it out
     // // <geoidheight> Height (in meters) of geoid (mean sea level) above WGS84 earth ellipsoid. As defined in NMEA GGA message (field 11, which vehicle_wince.c ignores)
@@ -595,21 +532,21 @@ void Vehicle::log_gpx(struct log *log)
     // // <sym> Text of GPS symbol name
     // // <type> Type (classification)
     // // <fix> Type of GPS fix {'none'|'2d'|'3d'|'dgps'|'pps'}, leave out if unknown. Similar to position_fix_type but more detailed.
-    // if (attr_types_contains_default(attr_types, attr_position_sats_used, 0) && m_meth.position_attr_get(m_priv, attr_position_sats_used, &attr))
+    // if (attr_types_contains_default(attr_types, attr_position_sats_used, 0) && m_plugin->position_attr_get( attr_position_sats_used, &attr))
     //     logstr = g_strconcat_printf(logstr, "\t<sat>%d</sat>\n", attr.u.num);
-    // if (attr_types_contains_default(attr_types, attr_position_hdop, 0) && m_meth.position_attr_get(m_priv, attr_position_hdop, &attr))
+    // if (attr_types_contains_default(attr_types, attr_position_hdop, 0) && m_plugin->position_attr_get( attr_position_hdop, &attr))
     //     logstr = g_strconcat_printf(logstr, "\t<hdop>%.6f</hdop>\n", *attr.u.numd);
     // // <vdop>, <pdop> Vertical and position dilution of precision, no corresponding attribute
-    // if (attr_types_contains_default(attr_types, attr_position_direction, 0) && m_meth.position_attr_get(m_priv, attr_position_direction, &attr))
+    // if (attr_types_contains_default(attr_types, attr_position_direction, 0) && m_plugin->position_attr_get( attr_position_direction, &attr))
     //     logstr = g_strconcat_printf(logstr, "\t<course>%.1f</course>\n", *attr.u.numd);
-    // if (attr_types_contains_default(attr_types, attr_position_speed, 0) && m_meth.position_attr_get(m_priv, attr_position_speed, &attr))
+    // if (attr_types_contains_default(attr_types, attr_position_speed, 0) && m_plugin->position_attr_get( attr_position_speed, &attr))
     //     logstr = g_strconcat_printf(logstr, "\t<speed>%.2f</speed>\n", (*attr.u.numd / 3.6));
     // if (attr_types_contains_default(attr_types, attr_profilename, 0) && (attrp = attr_search(m_attrs, attr_profilename)))
     // {
     //     logstr = g_strconcat_printf(logstr, "%s\t\t<navit:profilename>%s</navit:profilename>\n", extensions, attrp->u.str);
     //     extensions = "";
     // }
-    // if (attr_types_contains_default(attr_types, attr_position_radius, 0) && m_meth.position_attr_get(m_priv, attr_position_radius, &attr))
+    // if (attr_types_contains_default(attr_types, attr_position_radius, 0) && m_plugin->position_attr_get( attr_position_radius, &attr))
     // {
     //     logstr = g_strconcat_printf(logstr, "%s\t\t<navit:radius>%.2f</navit:radius>\n", extensions, *attr.u.numd);
     //     extensions = "";
@@ -627,21 +564,20 @@ void Vehicle::log_gpx(struct log *log)
 /**
  * @brief Writes to a text log.
  *
- * @param this_ The vehicle supplying data
  * @param log The log to write to
  */
 void Vehicle::log_textfile(struct log *log)
 {
     // struct attr pos_attr, fix_attr;
     // char *logstr;
-    // if (!m_meth.position_attr_get)
+    // if (!m_plugin->position_attr_get)
     //     return;
-    // if (m_meth.position_attr_get(m_priv, attr_position_fix_type, &fix_attr))
+    // if (m_plugin->position_attr_get( attr_position_fix_type, &fix_attr))
     // {
     //     if (fix_attr.u.num == 0)
     //         return;
     // }
-    // if (!m_meth.position_attr_get(m_priv, attr_position_coord_geo, &pos_attr))
+    // if (!m_plugin->position_attr_get( attr_position_coord_geo, &pos_attr))
     //     return;
     // logstr = g_strdup_printf("%f %f type=trackpoint\n", pos_attr.u.coord_geo->lng, pos_attr.u.coord_geo->lat);
     // callback_list_call_attr_1(m_cbl, attr_log_textfile, &logstr);
@@ -651,7 +587,6 @@ void Vehicle::log_textfile(struct log *log)
 /**
  * @brief Writes to a binary log.
  *
- * @param this_ The vehicle supplying data
  * @param log The log to write to
  */
 void Vehicle::log_binfile(struct log *log)
@@ -663,14 +598,14 @@ void Vehicle::log_binfile(struct log *log)
     // struct coord c;
     // enum log_flags flags;
 
-    // if (!m_meth.position_attr_get)
+    // if (!m_plugin->position_attr_get)
     //     return;
-    // if (m_meth.position_attr_get(m_priv, attr_position_fix_type, &fix_attr))
+    // if (m_plugin->position_attr_get( attr_position_fix_type, &fix_attr))
     // {
     //     if (fix_attr.u.num == 0)
     //         return;
     // }
-    // if (!m_meth.position_attr_get(m_priv, attr_position_coord_geo, &pos_attr))
+    // if (!m_plugin->position_attr_get( attr_position_coord_geo, &pos_attr))
     //     return;
     // transform_from_geo(projection_mg, pos_attr.u.coord_geo, &c);
     // if (!c.x || !c.y)
@@ -718,7 +653,6 @@ void Vehicle::log_binfile(struct log *log)
 /**
  * @brief Registers a new log to receive data.
  *
- * @param this_ The vehicle supplying data
  * @param log The log to write to
  *
  * @return False if the log is of an unknown type, true otherwise (including when {@code attr_type} is missing).
@@ -732,7 +666,7 @@ int Vehicle::add_log(struct log *log)
 
     // if (!strcmp(type_attr.u.str, "nmea"))
     // {
-    //     cb = callback_new_attr_2(callback_cast(Vehicle::log_nmea), attr_position_coord_geo, this_, log);
+    //     cb = callback_new_attr_2(callback_cast(Vehicle::log_nmea), attr_position_coord_geo,  log);
     // }
     // else if (!strcmp(type_attr.u.str, "gpx"))
     // {
@@ -747,21 +681,21 @@ int Vehicle::add_log(struct log *log)
     //     char *trailer = "</trkseg>\n</trk>\n</gpx>\n";
     //     log_set_header(log, header, strlen(header));
     //     log_set_trailer(log, trailer, strlen(trailer));
-    //     cb = callback_new_attr_2(callback_cast(Vehicle::log_gpx), attr_position_coord_geo, this_, log);
+    //     cb = callback_new_attr_2(callback_cast(Vehicle::log_gpx), attr_position_coord_geo,  log);
     // }
     // else if (!strcmp(type_attr.u.str, "textfile"))
     // {
     //     char *header = "type=track\n";
     //     log_set_header(log, header, strlen(header));
-    //     cb = callback_new_attr_2(callback_cast(Vehicle::log_textfile), attr_position_coord_geo, this_, log);
+    //     cb = callback_new_attr_2(callback_cast(Vehicle::log_textfile), attr_position_coord_geo,  log);
     // }
     // else if (!strcmp(type_attr.u.str, "binfile"))
     // {
-    //     cb = callback_new_attr_2(callback_cast(Vehicle::log_binfile), attr_position_coord_geo, this_, log);
+    //     cb = callback_new_attr_2(callback_cast(Vehicle::log_binfile), attr_position_coord_geo,  log);
     // }
     // else
     //     return 0;
     // g_hash_table_insert(m_log_to_cb, log, cb);
     // callback_list_add(m_cbl, cb);
-    // return 1;
+    return 1;
 }

@@ -43,6 +43,8 @@ extern "C"
 #include <glib.h>
 }
 
+typedef QVector<QVector<LayoutCoord *>> DisplayitemPolyHoles;
+
 struct attr;
 struct point;
 struct container;
@@ -152,11 +154,11 @@ struct displayitem
     struct displayitem *next;
     struct item item;
     char *label;
-    struct displayitem_poly_holes *holes;
+    DisplayitemPolyHoles holes;
     int z_order;
     int flags;
     int count;
-    struct coord c[0];
+    QVector<LayoutCoord *> coords;
 };
 
 /* prototypes */
@@ -238,12 +240,12 @@ public:
     struct graphics_image *image_new(char *path);
     void image_free(struct graphics_image *img);
     void draw_mode(enum draw_mode_num mode, bool call_callback = false);
-    void draw_lines(GraphicsContext *gc, struct point *p, int count);
+    void draw_lines(GraphicsContext *gc, QVector<LayoutCoord *> &p);
     void draw_circle(GraphicsContext *gc, struct point *p, int r);
-    void draw_rectangle(GraphicsContext *gc, struct point *p, int w, int h);
+    void draw_rectangle(GraphicsContext *gc, point *p, int w, int h);
     void draw_rectangle_rounded(GraphicsContext *gc, struct point *plu, int w, int h, int r, int fill);
     void draw_text(GraphicsContext *gc1, GraphicsContext *gc2, struct graphics_font *font, char *text, struct point *p, int dx, int dy);
-    void draw_polygon(GraphicsContext *gc, struct point *pin, int count_in);
+    void draw_polygon(GraphicsContext *gc, QVector<LayoutCoord *> &pin);
     void get_text_bbox(struct graphics_font *font, char *text, int dx, int dy, struct point *ret, int estimate);
     void overlay_disable(int disable);
     int is_disabled();
@@ -266,13 +268,14 @@ public:
 
     int show_native_keyboard(struct graphics_keyboard *kbd);
     int hide_native_keyboard(struct graphics_keyboard *kbd);
-    void draw_polygon_clipped(GraphicsContext *gc, struct point *pin, int count_in);
-    void draw_polyline_clipped(GraphicsContext *gc, struct point *pa, int count, int *width, int poly);
+    void draw_polygon_clipped(GraphicsContext *gc, QVector<LayoutCoord *> &in);
+    void draw_polyline_clipped(GraphicsContext *gc, QVector<LayoutCoord *> &pa, QVector<int> &widths, int poly);
     navit_float get_dpi();
     void dpi_patch(struct callback_list *l, enum attr_type type, int pcount, void **p);
     int dpi_scale(int p);
-    struct point dpi_scale_point(struct point *p);
-    void label_line(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, struct point *p, int count, char *label);
+    struct point dpi_scale_point(LayoutCoord *point);
+    struct point dpi_scale_point(point *point);
+    void label_line(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, QVector<LayoutCoord *> points, char *label);
     void display_add(struct hash_entry *entry, struct item *item, int count, struct coord *c, char **label, int label_count);
     static void static_dpi_patch(struct callback_list *l, enum attr_type type, int pcount, void **p, void *context);
 
@@ -318,18 +321,18 @@ private:
     int set_attr_do(struct attr *attr);
     void image_new_helper(graphics_image *image, char *path, char *name, int width, int height, int rotate);
     struct graphics_font *get_font(int size);
-    void draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point *pin, int count_in, int hole_count, int *ccount, struct point **holes);
-    void clip_polygon(struct point_rect *r, struct point *in, int count_in, struct point *out, int *count_out);
-    void draw_polyline_as_polygon(GraphicsContext *gc, struct point *pnt, int count, int *width);
-    int limit_count(struct coord *c, int count);
+    void draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point *pin, int count_in, DisplayitemPolyHoles &holes);
+    void clip_polygon(struct point_rect *r, QVector<LayoutCoord *> &in, QVector<LayoutCoord *> &out);
+    void draw_polyline_as_polygon(GraphicsContext *gc, QVector<LayoutCoord *> &pnt, QVector<int> &widths);
+    int limit_count(QVector<LayoutCoord *> &coords, int count);
     void multiline_label_draw(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, struct point pref, const char *label, int line_spacing);
-    void displayitem_transform_holes(struct transformation *trans, enum projection pro, struct displayitem_poly_holes *in, struct displayitem_poly_holes *out, int mindist);
-    void displayitem_free_holes(struct displayitem_poly_holes *holes);
-    void displayitem_draw_polygon(struct display_context *dc, struct point *pa, int count, struct displayitem_poly_holes *holes);
+    void displayitem_transform_holes(struct transformation *trans, enum projection pro, DisplayitemPolyHoles &in, DisplayitemPolyHoles &out, int mindist);
+    void displayitem_free_holes(DisplayitemPolyHoles &holes);
+    void displayitem_draw_polygon(struct display_context *dc, struct point *pa, int count, DisplayitemPolyHoles &holes);
     void draw_polygon_with_holes(GraphicsContext *gc, struct point *pin, int count_in, int hole_count, int *ccount, struct point **holes);
     void displayitem_draw_polyline(struct display_context *dc, LayoutPolyline *element, struct point *pa, int count, int *width);
     void displayitem_draw_circle(struct displayitem *di, struct display_context *dc, LayoutCircle *element, struct point *pa, int count);
-    void displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutText *element, struct point *pa, int count, struct displayitem_poly_holes *holes);
+    void displayitem_draw_text(struct displayitem *di, struct display_context *dc, LayoutText *element, QVector<LayoutCoord *> &coords, DisplayitemPolyHoles &holes);
     void displayitem_draw_icon(struct displayitem *di, struct display_context *dc, LayoutIcon *element, struct point *pa, int count, Layout *layout);
     void display_draw_arrows(struct display_context *dc, struct point *pnt, int count, int *width, int filled);
     void display_draw_spike(struct point *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc);

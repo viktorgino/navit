@@ -32,55 +32,81 @@ void PluginLoader::loadPlugins(QList<NavitPluginConfig *> &plugins)
     }
 }
 
-void PluginLoader::loadVehicles(QList<NavitVehicleConfig *> &vehicles)
+void PluginLoader::loadQtPlugins(const NavitPluginConfig *plugin)
+{
+    struct file_wordexp *we;
+    int i, count;
+    char **array;
+
+    if (plugin->path.isEmpty())
+    {
+        dbg(lvl_error, "Invalid path_pattern");
+        return;
+    }
+
+    dbg(lvl_debug, "path=\"%s\", active=%d, lazy=%d, ondemand=%d", plugin->path.toLocal8Bit().data(), plugin->active, plugin->lazy, plugin->ondemand);
+
+    we = file_wordexp_new(plugin->path.toLocal8Bit().data());
+    count = file_wordexp_get_count(we);
+    array = file_wordexp_get_array(we);
+    dbg(lvl_info, "expanded to %d words", count);
+    if (count != 1 || file_exists(array[0]))
+    {
+        for (i = 0; i < count; i++)
+        {
+            QString path = array[i];
+            QString name = path.split("/").last();
+            name = name.replace(".so", "");
+            name = name.replace(".dll", "");
+
+            QString category = name.split("_")[0];
+            if (category.startsWith("lib"))
+            {
+                category = category.replace(0, 3, "");
+            }
+            name = name.split("_")[1];
+            if (category == "vehicle")
+            {
+                m_vehiclePlugins[name] = QString(array[i]);
+            }
+        }
+    }
+    file_wordexp_destroy(we);
+}
+
+QObject *PluginLoader::loadPlugin(QString path)
+{
+    QPluginLoader pluginLoader(path);
+    QObject *plugin = pluginLoader.instance();
+    assert(plugin);
+    plugin->setParent(this);
+    return plugin;
+}
+
+void PluginLoader::loadVehicles(QList<NavitVehicleConfig *> &configs)
 {
     bool vehicleFound = false;
 
-    struct attr **vehicleAttrs = NULL;
-
-    struct attr *navit = g_new0(struct attr, 1);
-    struct attr *profilename = g_new0(struct attr, 1);
-    struct attr *source = g_new0(struct attr, 1);
-    struct attr *name = g_new0(struct attr, 1);
-    struct attr *follow = g_new0(struct attr, 1);
-    struct attr *active = g_new0(struct attr, 1);
-
-    navit->type = attr_navit;
-    profilename->type = attr_profilename;
-    source->type = attr_source;
-    name->type = attr_name;
-    follow->type = attr_follow;
-    active->type = attr_active;
-
-    navit->u.navit = m_navit;
-
-    for (const NavitVehicleConfig *vehicle : vehicles)
+    for (const NavitVehicleConfig *config : configs)
     {
-        if (vehicle->active)
+        assert(config);
+        if (config->active)
         {
-            vehicleFound = true;
-            profilename->u.str = vehicle->profilename.toLocal8Bit().data();
-            source->u.str = vehicle->source.toLocal8Bit().data();
-            name->u.str = vehicle->name.toLocal8Bit().data();
-            follow->u.num = vehicle->follow;
-            active->u.num = vehicle->active;
+            if (m_vehiclePlugins.contains(config->name))
+            {
+                vehicleFound = true;
+                NavitVehicleInterface *plugin = qobject_cast<NavitVehicleInterface *>(loadPlugin(m_vehiclePlugins[config->name]));
+                assert(plugin);
+                m_vehicle = new Vehicle(config, plugin, this);
+            }
+            break;
         }
     }
 
     if (!vehicleFound)
     {
         qWarning() << "No active vehicle found!";
-        return;
     }
-
-    vehicleAttrs = attr_generic_set_attr(vehicleAttrs, navit);
-    vehicleAttrs = attr_generic_set_attr(vehicleAttrs, profilename);
-    vehicleAttrs = attr_generic_set_attr(vehicleAttrs, source);
-    vehicleAttrs = attr_generic_set_attr(vehicleAttrs, name);
-    vehicleAttrs = attr_generic_set_attr(vehicleAttrs, follow);
-    vehicleAttrs = attr_generic_set_attr(vehicleAttrs, active);
-
-    m_vehicle = vehicle_new(NULL, vehicleAttrs);
 }
 
 void PluginLoader::loadTracking(NavitTrackingConfig &tracking)
@@ -159,6 +185,6 @@ route *PluginLoader::getRoute() { return m_route; }
 
 navigation *PluginLoader::getNavigation() { return m_navigation; }
 
-vehicle *PluginLoader::getVehicle() { return m_vehicle; }
+Vehicle *PluginLoader::getVehicle() { return m_vehicle; }
 
 mapset *PluginLoader::getMapset() { return m_mapset; }

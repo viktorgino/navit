@@ -6,21 +6,31 @@
 
 #include "NavitInterfaces.h"
 
-class VehicleDemo : public QObject, public NavitVehicleInterface
+class VehicleDemoFactory : public NavitVehicleFactory
 {
-    Q_OBJECT
-public:
-    VehicleDemo(NavitInterface &navit, NavitVehicleAttrs &attrs, callback_list *cbl, QObject *parent = 0);
 
-    // VehicleDemo::VehicleDemo(struct callback_list *cbl, struct attr **attrs);
-    void destroy();
-    void nmea_chksum(char *nmea);
-    int position_attr_get(enum attr_type type, struct attr *attr);
-    int set_attr_do(struct attr *attr);
-    int set_attr(struct attr *attr);
+    Q_PLUGIN_METADATA(IID NavitVehicleFactory_iid)
+    Q_INTERFACES(NavitVehicleInterface)
+public:
+    NavitVehicleInterface *newVehicle(NavitInterface &navit, NavitVehicleAttrs &attrs, callback_list *cbl) override;
+};
+
+class VehicleDemo : public NavitVehicleInterface
+{
+
+    Q_INTERFACES(NavitVehicleInterface)
+public:
+    explicit VehicleDemo(NavitInterface &navit, NavitVehicleAttrs &attrs, callback_list *cbl, QObject *parent = 0);
+
+    void destroy() override;
+    int position_attr_get(enum attr_type type, struct attr *attr) override;
+    int set_attr(struct attr *attr) override;
+
     void timer();
 
 private:
+    int set_attr_do(struct attr *attr);
+    void nmea_chksum(char *nmea);
     int m_interval;
     int m_position_set;
     struct callback_list *m_cbl;

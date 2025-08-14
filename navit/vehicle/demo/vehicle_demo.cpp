@@ -41,6 +41,11 @@ extern "C"
 
 #include "vehicle_demo.h"
 
+NavitVehicleInterface *VehicleDemoFactory::newVehicle(NavitInterface &navit, NavitVehicleAttrs &attrs, callback_list *cbl)
+{
+    return new VehicleDemo(navit, attrs, cbl);
+}
+
 static void timer_callback(void *data)
 {
     if (data != nullptr)
@@ -50,7 +55,8 @@ static void timer_callback(void *data)
     }
 }
 
-VehicleDemo::VehicleDemo(NavitInterface &navit, NavitVehicleAttrs &attrs, callback_list *cbl, QObject *parent) : QObject(parent)
+VehicleDemo::VehicleDemo(NavitInterface &navit, NavitVehicleAttrs &attrs, callback_list *cbl, QObject *parent)
+    : NavitVehicleInterface(parent)
 {
     dbg(lvl_debug, "enter");
     m_cbl = cbl;
@@ -195,7 +201,7 @@ int VehicleDemo::set_attr_do(struct attr *attr)
         if (m_valid != attr_position_valid_valid)
         {
             m_valid = attr_position_valid_valid;
-            callback_list_call_attr_0(m_cbl, attr_position_valid);
+            emit positionValidChanged(true);
         }
         m_position_set = 1;
         dbg(lvl_debug, "position_set %f %f", m_geo.lat, m_geo.lng);
@@ -251,7 +257,7 @@ void VehicleDemo::timer()
     {
         dbg(lvl_warning, "Routing finished setting speed to 0");
         m_speed = 0;
-        callback_list_call_attr_0(m_cbl, attr_position_coord_geo);
+        emit positionChanged(m_geo);
     }
 
     if (item && item_coord_get(item, &pos, 1))
@@ -266,7 +272,7 @@ void VehicleDemo::timer()
             {
                 dbg(lvl_warning, "Routing finished, but we're still stuck(?), setting speed to 0");
                 m_speed = 0;
-                callback_list_call_attr_0(m_cbl, attr_position_coord_geo);
+                emit positionChanged(m_geo);
             }
         }
         m_last = pos;
@@ -311,9 +317,9 @@ void VehicleDemo::timer()
                 if (m_valid != attr_position_valid_valid)
                 {
                     m_valid = attr_position_valid_valid;
-                    callback_list_call_attr_0(m_cbl, attr_position_valid);
+                    emit positionValidChanged(true);
                 }
-                callback_list_call_attr_0(m_cbl, attr_position_coord_geo);
+                emit positionChanged(m_geo);
                 break;
             }
         }
@@ -321,7 +327,7 @@ void VehicleDemo::timer()
     else
     {
         if (m_position_set)
-            callback_list_call_attr_0(m_cbl, attr_position_coord_geo);
+            emit positionChanged(m_geo);
     }
     if (mr)
         map_rect_destroy(mr);

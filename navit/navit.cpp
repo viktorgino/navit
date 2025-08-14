@@ -2653,7 +2653,7 @@ void Navit::draw_vehicle(struct navit_vehicle *nv, struct point *pnt)
  * @param this_ The navit object
  * @param nv The {@code navit_vehicle} which reported a new position
  */
-void Navit::vehicle_update_position(struct navit_vehicle *nv)
+void Navit::onVehiclePositionUpdated(const coord_geo &position)
 {
     struct attr attr_valid, attr_dir, attr_speed, attr_pos;
     struct pcoord cursor_pc;
@@ -2667,10 +2667,13 @@ void Navit::vehicle_update_position(struct navit_vehicle *nv)
     char *destination_file;
     char *description;
 
+    Vehicle *vehicle = qobject_cast<Vehicle *>(sender());
+    assert(vehicle);
+
     // profile(0, NULL);
     if (m_ready == 3)
         layout_switch();
-    if (m_vehicle == nv && m_config.tracking_flag)
+    if (m_vehicle == vehicle && m_config.tracking_flag)
         tracking = m_pluginLoader.getTracking();
     if (tracking)
     {
@@ -2872,16 +2875,6 @@ void Navit::set_vehicle(struct navit_vehicle *nv)
     }
 }
 
-static void navit_vehicle_update_position(void *data, struct navit_vehicle *nv)
-{
-    if (data == nullptr)
-    {
-        return;
-    }
-    Navit *navit = static_cast<Navit *>(data);
-    navit->vehicle_update_position(nv);
-}
-
 static void navit_vehicle_update_status(void *data, struct navit_vehicle *nv, enum attr_type type)
 {
     if (data == nullptr)
@@ -2899,27 +2892,25 @@ static void navit_vehicle_update_status(void *data, struct navit_vehicle *nv, en
  * @param v The vehicle to register
  * @return True for success
  */
-int Navit::add_vehicle(struct vehicle *v)
+int Navit::add_vehicle(Vehicle *vehicle)
 {
-    struct navit_vehicle *nv = g_new0(struct navit_vehicle, 1);
-    struct attr follow, active, animate;
-    nv->vehicle = v;
-    nv->follow = 0;
-    nv->last.x = 0;
-    nv->last.y = 0;
-    nv->animate_cursor = 0;
-    if ((vehicle_get_attr(v, attr_follow, &follow, NULL)))
-        nv->follow = follow.u.num;
-    nv->follow_curr = nv->follow;
-    m_vehicles = g_list_append(m_vehicles, nv);
-    if ((vehicle_get_attr(v, attr_active, &active, NULL)) && active.u.num)
-        set_vehicle(nv);
-    if ((vehicle_get_attr(v, attr_animate, &animate, NULL)))
-        nv->animate_cursor = animate.u.num;
-    nv->callback.type = attr_callback;
-    nv->callback.u.callback = callback_new_attr_2(callback_cast(navit_vehicle_update_position), attr_position_coord_geo,
-                                                  this, nv);
-    vehicle_add_attr(nv->vehicle, &nv->callback);
+    // struct navit_vehicle *nv = g_new0(struct navit_vehicle, 1);
+    // struct attr follow, active, animate;
+    // nv->vehicle = v;
+    // nv->follow = 0;
+    // nv->last.x = 0;
+    // nv->last.y = 0;
+    // nv->animate_cursor = 0;
+    // if ((vehicle_get_attr(v, attr_follow, &follow, NULL)))
+    //     nv->follow = follow.u.num;
+    // nv->follow_curr = nv->follow;
+    // m_vehicles = g_list_append(m_vehicles, nv);
+    // if ((vehicle_get_attr(v, attr_active, &active, NULL)) && active.u.num)
+    //     set_vehicle(nv);
+    // if ((vehicle_get_attr(v, attr_animate, &animate, NULL)))
+    //     nv->animate_cursor = animate.u.num;
+    vehicle->connect(vehicle, &Vehicle::positionChanged, this, &Navit::onVehiclePositionUpdated);
+
     nv->callback.u.callback = callback_new_attr_3(callback_cast(navit_vehicle_update_status), attr_position_fix_type, this,
                                                   nv, attr_position_fix_type);
     vehicle_add_attr(nv->vehicle, &nv->callback);

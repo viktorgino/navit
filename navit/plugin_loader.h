@@ -2,13 +2,15 @@
 #define NAVIT_PLUGIN_LOADER_H
 
 #include <QObject>
+#include <QPluginLoader>
+#include "NavitInterfaces.h"
 #include "config_loader.h"
+#include "vehicle.h"
 
 extern "C"
 {
 #include "debug.h"
 #include "plugin.h"
-#include "vehicle_wrapper.h"
 #include "track.h"
 #include "route.h"
 #include "navigation.h"
@@ -28,7 +30,7 @@ public:
     tracking *getTracking();
     route *getRoute();
     navigation *getNavigation();
-    vehicle *getVehicle();
+    Vehicle *getVehicle();
     mapset *getMapset();
 
 private:
@@ -37,15 +39,21 @@ private:
 
     QList<debug *> m_debugConfigs;
     QList<plugin *> m_plugins;
-    vehicle *m_vehicle;
+    Vehicle *m_vehicle;
     tracking *m_tracking;
     route *m_route;
     navigation *m_navigation;
     mapset *m_mapset;
 
+    QMap<QString, QString> m_vehiclePlugins;
+
+    QObject *loadPlugin(QString path);
+
+    void loadQtPlugins(const NavitPluginConfig *plugin);
+
     void loadDebug(QList<NavitDebugConfig *> &debugConfigs);
     void loadPlugins(QList<NavitPluginConfig *> &plugins);
-    void loadVehicles(QList<NavitVehicleConfig *> &vehicles);
+    void loadVehicles(QList<NavitVehicleConfig *> &configs);
     void loadTracking(NavitTrackingConfig &tracking);
     void loadRoute(NavitRouteConfig &route);
     void loadNavigation(NavitNavigationConfig &navigation);

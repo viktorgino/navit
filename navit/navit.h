@@ -149,9 +149,11 @@ public:
     void map_progress();
     void redraw_route(struct route *route, struct attr *attr);
     void vehicle_update_status(struct navit_vehicle *nv, enum attr_type type);
-    void vehicle_update_position(struct navit_vehicle *nv);
 
     static char *get_user_data_directory(int create);
+
+private slots:
+    void onVehiclePositionUpdated(struct navit_vehicle *nv);
 
 private:
     NavitConfig &m_config;
@@ -161,6 +163,8 @@ private:
     QVector<Layout *> m_layouts;
 
     QList<LayoutLayer *> m_layers;
+
+    Vehicle *m_vehicle;
 
     struct attr m_self;
 
@@ -174,7 +178,6 @@ private:
     struct window *m_win;
     GList *m_vehicles;
     GList *m_windows_items;
-    struct navit_vehicle *m_vehicle;
     struct callback_list *m_attr_cbl;
     struct callback *m_nav_speech_cb, *m_roadbook_callback, *m_route_cb;
     struct datawindow *m_roadbook_window;
@@ -208,7 +211,7 @@ private:
 
     void draw_vehicle(struct navit_vehicle *nv, point *pnt);
 
-    int add_vehicle(struct vehicle *v);
+    int add_vehicle(Vehicle *v);
     int add_layout(Layout *layout);
     int add_log(struct log *log);
 

@@ -29,13 +29,10 @@ int vehicle_remove_attr(VehicleHandle vehicle, struct attr *attr)
 {
     return ((Vehicle *)vehicle)->remove_attr(attr);
 }
-void vehicle_set_cursor(VehicleHandle vehicle, struct cursor *cursor, int overwrite)
-{
-    return ((Vehicle *)vehicle)->set_cursor(cursor, overwrite);
-}
+
 void vehicle_draw(VehicleHandle vehicle, GraphicsHandle gra, struct point *pnt, int angle, int speed)
 {
-    return ((Vehicle *)vehicle)->draw(GraphicsHandlegra, pnt, angle, speed);
+    return ((Vehicle *)vehicle)->draw(gra, pnt, angle, speed);
 }
 int vehicle_get_cursor_data(VehicleHandle vehicle, struct point *pnt, int *angle, int *speed)
 {
@@ -53,19 +50,3 @@ void vehicle_unref(VehicleHandle vehicle)
 {
     return ((Vehicle *)vehicle)->unref();
 }
-
-struct object_func vehicle_func = {
-    attr_vehicle,
-    (object_func_new)vehicle_new,
-    (object_func_get_attr)vehicle_get_attr,
-    (object_func_iter_new)vehicle_attr_iter_new,
-    (object_func_iter_destroy)vehicle_attr_iter_destroy,
-    (object_func_set_attr)vehicle_set_attr,
-    (object_func_add_attr)vehicle_add_attr,
-    (object_func_remove_attr)vehicle_remove_attr,
-    (object_func_init)NULL,
-    (object_func_destroy)vehicle_destroy,
-    (object_func_dup)NULL,
-    (object_func_ref)navit_object_ref,
-    (object_func_unref)navit_object_unref,
-};
