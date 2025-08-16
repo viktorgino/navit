@@ -28,6 +28,7 @@
 #include "graphics.h"
 #include "config_loader.h"
 #include "plugin_loader.h"
+#include "transform_2.h"
 
 extern "C"
 {
@@ -171,15 +172,13 @@ private slots:
 
 private:
     NavitConfig &m_config;
-    PluginLoader m_pluginLoader;
+    PluginLoader m_plugins;
     Graphics m_graphics;
     GraphicsDisplayList m_displaylist;
-    Vehicle *m_vehicle;
     Layout *m_layout_current; /*!< The current layout theme used to display the map */
 
     QVector<Layout *> m_layouts;
     QList<LayoutLayer *> m_layers;
-    QVector<Vehicle *> m_vehicles;
 
     struct attr m_self;
 

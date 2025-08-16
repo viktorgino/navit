@@ -117,7 +117,10 @@ void populateProperties(const QMetaObject *configMeta, QVariantMap &jsonObjectMa
         }
         if (configValue.isValid())
         {
-            // qDebug() << property.name() << property.typeName() << property.type();
+            if (property.name() == QString("plugins"))
+            {
+                qDebug() << "Found plugins";
+            }
             if (property.type() == QVariant::Type::UserType)
             {
                 // Custom types

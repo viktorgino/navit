@@ -80,7 +80,7 @@ add_custom_target(navit_config_json ALL DEPENDS COMMAND cp ${JSON_FILES} ${CMAKE
 Qt5_add_resources(NAVIT_QRC "navit.qrc")
 
 add_executable(navit_app start_real.cpp ${NAVIT_QRC})
-target_link_libraries (navit_app navit_core graphics_qt5 ${NAVIT_LIBS})
+target_link_libraries (navit_app navit_core graphics_qt5 vehicle_demo map_binfile ${NAVIT_LIBS})
 
 add_custom_command(TARGET navit_app POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:navit_app> ${CMAKE_BINARY_DIR}

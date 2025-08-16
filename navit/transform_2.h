@@ -12,5 +12,4 @@ extern "C"
 #include "transform.h"
 }
 
-void transform_point(transformation *t, projection required_projection, LayoutCoord *coord, LayoutCoord *result);
 void transform_point_buf(transformation *t, projection required_projection, QVector<LayoutCoord *> &coords, QVector<LayoutCoord *> &result, int mindist, int width, QVector<int> *width_result = nullptr);

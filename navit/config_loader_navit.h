@@ -1,7 +1,10 @@
 #pragma once
 #include <QObject>
+#include <QVector>
 #include <QMetaType>
 #include <QMetaProperty>
+
+#include "config_loader_layout.h"
 
 class NavitLogConfig : public QObject
 {
@@ -114,14 +117,14 @@ public:
 class NavitNavigationConfig : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QList<NavitAnnounceConfig *> *announce READ getAnnounce CONSTANT)
+    Q_PROPERTY(QVector<NavitAnnounceConfig *> announce MEMBER announce CONSTANT)
 public:
-    QList<NavitAnnounceConfig *> announce;
+    QVector<NavitAnnounceConfig *> announce;
 
 private:
-    QList<NavitAnnounceConfig *> *getAnnounce()
+    QVector<NavitAnnounceConfig *> getAnnounce()
     {
-        return &announce;
+        return announce;
     }
 };
 
@@ -150,13 +153,13 @@ class NavitConfig : public QObject
     Q_PROPERTY(bool tunnel_nightlayout MEMBER tunnel_nightlayout)
     Q_PROPERTY(int sunrise_degrees MEMBER sunrise_degrees)
     Q_PROPERTY(NavitLogConfig *log READ getLog CONSTANT)
-    Q_PROPERTY(QList<NavitPluginConfig *> *plugins READ getPlugins CONSTANT)
-    Q_PROPERTY(QList<NavitDebugConfig *> *debug READ getDebug CONSTANT)
-    Q_PROPERTY(QList<NavitVehicleConfig *> *vehicle READ getVehicle CONSTANT)
+    Q_PROPERTY(QVector<NavitPluginConfig *> plugins MEMBER plugins)
+    Q_PROPERTY(QVector<NavitDebugConfig *> debug MEMBER debug)
+    Q_PROPERTY(QVector<NavitVehicleConfig *> vehicle MEMBER vehicle)
     Q_PROPERTY(NavitTrackingConfig *tracking READ getTracking CONSTANT)
     Q_PROPERTY(NavitRouteConfig *route READ getRoute CONSTANT)
     Q_PROPERTY(NavitNavigationConfig *navigation READ getNavigation CONSTANT)
-    Q_PROPERTY(QList<NavitMap *> *maps READ getMaps CONSTANT)
+    Q_PROPERTY(QVector<NavitMap *> maps MEMBER maps)
 
 public:
     QString center;
@@ -169,13 +172,13 @@ public:
     bool tunnel_nightlayout = false; /* switch to nightlayout if we are in a tunnel? */
     int sunrise_degrees = -5;
     NavitLogConfig log;
-    QList<NavitPluginConfig *> plugins;
-    QList<NavitDebugConfig *> debug;
-    QList<NavitVehicleConfig *> vehicle;
+    QVector<NavitPluginConfig *> plugins;
+    QVector<NavitDebugConfig *> debug;
+    QVector<NavitVehicleConfig *> vehicle;
     NavitTrackingConfig tracking;
     NavitRouteConfig route;
     NavitNavigationConfig navigation;
-    QList<NavitMap *> maps;
+    QVector<NavitMap *> maps;
 
     int tracking_flag = 1;
     int recentdest_count = 10;
@@ -202,17 +205,17 @@ private:
     {
         return &log;
     }
-    QList<NavitPluginConfig *> *getPlugins()
+    QVector<NavitPluginConfig *> getPlugins()
     {
-        return &plugins;
+        return plugins;
     }
-    QList<NavitDebugConfig *> *getDebug()
+    QVector<NavitDebugConfig *> getDebug()
     {
-        return &debug;
+        return debug;
     }
-    QList<NavitVehicleConfig *> *getVehicle()
+    QVector<NavitVehicleConfig *> getVehicle()
     {
-        return &vehicle;
+        return vehicle;
     }
     NavitTrackingConfig *getTracking()
     {
@@ -226,18 +229,18 @@ private:
     {
         return &navigation;
     }
-    QList<NavitMap *> *getMaps()
+    QVector<NavitMap *> getMaps()
     {
-        return &maps;
+        return maps;
     }
 };
 
 Q_DECLARE_METATYPE(NavitLogConfig *)
-Q_DECLARE_METATYPE(QList<NavitPluginConfig *> *)
-Q_DECLARE_METATYPE(QList<NavitDebugConfig *> *)
-Q_DECLARE_METATYPE(QList<NavitVehicleConfig *> *)
+Q_DECLARE_METATYPE(QVector<NavitPluginConfig *>)
+Q_DECLARE_METATYPE(QVector<NavitDebugConfig *>)
+Q_DECLARE_METATYPE(QVector<NavitVehicleConfig *>)
 Q_DECLARE_METATYPE(NavitTrackingConfig *)
 Q_DECLARE_METATYPE(NavitRouteConfig *)
-Q_DECLARE_METATYPE(QList<NavitAnnounceConfig *> *)
+Q_DECLARE_METATYPE(QVector<NavitAnnounceConfig *>)
 Q_DECLARE_METATYPE(NavitNavigationConfig *)
-Q_DECLARE_METATYPE(QList<NavitMap *> *)
+Q_DECLARE_METATYPE(QVector<NavitMap *>)

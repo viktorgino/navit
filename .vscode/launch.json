@@ -18,6 +18,7 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "preLaunchTask": "CMake: build",
+            "serverLaunchTimeout": "1000",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

@@ -3,6 +3,11 @@
 
 #include <array>
 
+#include <QList>
+#include "graphics.h"
+#include "config_loader_layout.h"
+#include "transform_2.h"
+
 extern "C"
 {
 #include "coord.h"
@@ -16,11 +21,6 @@ extern "C"
 #include "mapset.h"
 #include <glib.h>
 }
-
-#include "graphics.h"
-#include <QList>
-#include "config_loader_layout.h"
-#include "transform_2.h"
 
 #define HASH_SIZE 1024
 struct hash_entry

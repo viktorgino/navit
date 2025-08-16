@@ -17,19 +17,20 @@ void PluginLoader::loadModules()
     loadMaps(m_navitConfig.maps);
 }
 
-void PluginLoader::loadDebug(QList<NavitDebugConfig *> &debugConfigs)
+void PluginLoader::loadDebug(QVector<NavitDebugConfig *> &debugConfigs)
 {
     // for (const NavitDebugConfig &debug : debugConfigs)
     // {
     // }
 }
 
-void PluginLoader::loadPlugins(QList<NavitPluginConfig *> &plugins)
+void PluginLoader::loadPlugins(QVector<NavitPluginConfig *> &plugins)
 {
     for (const NavitPluginConfig *plugin : plugins)
     {
         auto pl = plugin_new(plugin->path.toLocal8Bit().data(), plugin->active, plugin->lazy, plugin->ondemand);
         m_plugins.append(pl);
+        loadQtPlugins(plugin);
     }
 }
 
@@ -82,7 +83,7 @@ QObject *PluginLoader::loadPlugin(QString path)
     return plugin;
 }
 
-void PluginLoader::loadVehicles(QList<NavitVehicleConfig *> &configs)
+void PluginLoader::loadVehicles(QVector<NavitVehicleConfig *> &configs)
 {
     for (NavitVehicleConfig *config : configs)
     {
@@ -167,7 +168,7 @@ void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
     }
 }
 
-void PluginLoader::loadMaps(QList<NavitMap *> &maps)
+void PluginLoader::loadMaps(QVector<NavitMap *> &maps)
 {
     struct attr *attrs = g_new0(struct attr, 0);
 
@@ -198,3 +199,7 @@ navigation *PluginLoader::getNavigation() { return m_current_navigation; }
 Vehicle *PluginLoader::getVehicle() { return m_current_vehicle; }
 
 mapset *PluginLoader::getMapset() { return m_current_mapset; }
+
+QVector<Vehicle *> &PluginLoader::getVehicles() { return m_vehicles; }
+
+void PluginLoader::setVehicle(Vehicle *vehicle) { m_current_vehicle = vehicle; }

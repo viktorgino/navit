@@ -6,6 +6,28 @@
 
 #include "NavitInterfaces.h"
 
+extern "C"
+{
+#include <glib.h>
+#include <string.h>
+#include <math.h>
+#include "config.h"
+#include "debug.h"
+#include "coord.h"
+#include "item.h"
+#include "navit_wrapper.h"
+#include "map.h"
+#include "route.h"
+#include "callback.h"
+#include "transform.h"
+#include "plugin.h"
+#include "vehicle_wrapper.h"
+#include "event.h"
+#include "util.h"
+#include "track.h"
+#include "attr_def.h"
+}
+
 class VehicleDemoFactory : public NavitVehicleFactory
 {
 

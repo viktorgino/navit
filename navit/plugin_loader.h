@@ -33,6 +33,9 @@ public:
     Vehicle *getVehicle();
     mapset *getMapset();
 
+    QVector<Vehicle *> &getVehicles();
+    void setVehicle(Vehicle *vehicle);
+
 private:
     NavitConfig &m_navitConfig;
     NavitInterface *m_navit;
@@ -54,13 +57,13 @@ private:
 
     void loadQtPlugins(const NavitPluginConfig *plugin);
 
-    void loadDebug(QList<NavitDebugConfig *> &debugConfigs);
-    void loadPlugins(QList<NavitPluginConfig *> &plugins);
-    void loadVehicles(QList<NavitVehicleConfig *> &configs);
+    void loadDebug(QVector<NavitDebugConfig *> &debugConfigs);
+    void loadPlugins(QVector<NavitPluginConfig *> &plugins);
+    void loadVehicles(QVector<NavitVehicleConfig *> &configs);
     void loadTracking(NavitTrackingConfig &tracking);
     void loadRoute(NavitRouteConfig &route);
     void loadNavigation(NavitNavigationConfig &navigation);
-    void loadMaps(QList<NavitMap *> &maps);
+    void loadMaps(QVector<NavitMap *> &maps);
 };
 
 #endif

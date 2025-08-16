@@ -32,9 +32,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "graphics.h"
 #include "navit.h"
-#include "transform_2.h"
 
 extern "C"
 {
@@ -104,7 +102,7 @@ GraphicsFunctions &getGraphicsFunctions()
 
 Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
                                                           m_config(navitConfig),
-                                                          m_pluginLoader(m_config, this, this),
+                                                          m_plugins(m_config, this, this),
                                                           m_graphics(*this, getGraphicsFunctions(), this),
                                                           m_displaylist(m_graphics)
 {
@@ -119,10 +117,10 @@ Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
     m_self.type = attr_navit;
     m_self.u.navit = this;
 
-    m_pluginLoader.loadModules();
+    m_plugins.loadModules();
 
-    add_vehicle(m_pluginLoader.getVehicle());
-    add_mapset(m_pluginLoader.getMapset());
+    add_vehicle(m_plugins.getVehicle());
+    add_mapset(m_plugins.getMapset());
 
     m_attr_cbl = callback_list_new();
 
@@ -323,7 +321,7 @@ int Navit::populate_search_results_map(GList *search_results, struct coord_rect 
 
 struct tracking *Navit::get_tracking()
 {
-    return m_pluginLoader.getTracking();
+    return m_plugins.getTracking();
 }
 
 /**
@@ -418,12 +416,12 @@ void Navit::redraw_route(struct route *route, struct attr *attr)
         return;
     if (updated != route_status_path_done_new)
         return;
-    if (m_vehicle)
+    if (m_plugins.getVehicle())
     {
-        if (m_vehicle->getFollowCursor() == 1)
+        if (m_plugins.getVehicle()->getFollowCursor() == 1)
             return;
-        if (m_vehicle->getFollowCursor() <= m_vehicle->getFollow())
-            m_vehicle->setFollowCursor(m_vehicle->getFollow());
+        if (m_plugins.getVehicle()->getFollowCursor() <= m_plugins.getVehicle()->getFollow())
+            m_plugins.getVehicle()->setFollowCursor(m_plugins.getVehicle()->getFollow());
     }
     draw();
 }
@@ -615,6 +613,15 @@ void Navit::scale(long scale, struct point *p, int draw_)
         draw();
 }
 
+void transform_point(transformation *t, projection required_projection, LayoutCoord *coord, LayoutCoord *result)
+{
+    QVector<LayoutCoord *> coords;
+    QVector<LayoutCoord *> results;
+
+    coords.append(coord);
+    coords.append(result);
+    transform_point_buf(t, required_projection, coords, results, 0, 0, nullptr);
+}
 /**
  * @brief Automatically adjusts zoom level
  *
@@ -751,10 +758,10 @@ void Navit::zoom_out(int factor, struct point *p)
 void Navit::zoom_in_cursor(int factor)
 {
     struct point p;
-    if (m_vehicle && m_vehicle->getFollowCursor() <= 1 && get_cursor_pnt(&p, 0, NULL))
+    if (m_plugins.getVehicle() && m_plugins.getVehicle()->getFollowCursor() <= 1 && get_cursor_pnt(&p, 0, NULL))
     {
         zoom_in(factor, &p);
-        m_vehicle->setFollowCursor(m_vehicle->getFollow());
+        m_plugins.getVehicle()->setFollowCursor(m_plugins.getVehicle()->getFollow());
     }
     else
         zoom_in(factor, NULL);
@@ -763,10 +770,10 @@ void Navit::zoom_in_cursor(int factor)
 void Navit::zoom_out_cursor(int factor)
 {
     struct point p;
-    if (m_vehicle && m_vehicle->getFollowCursor() <= 1 && get_cursor_pnt(&p, 0, NULL))
+    if (m_plugins.getVehicle() && m_plugins.getVehicle()->getFollowCursor() <= 1 && get_cursor_pnt(&p, 0, NULL))
     {
         zoom_out(2, &p);
-        m_vehicle->setFollowCursor(m_vehicle->getFollow());
+        m_plugins.getVehicle()->setFollowCursor(m_plugins.getVehicle()->getFollow());
     }
     else
         zoom_out(2, NULL);
@@ -785,7 +792,7 @@ struct message *Navit::get_messages()
 void Navit::predraw()
 {
     transform_copy(m_trans, m_trans_cursor);
-    for (Vehicle *vehicle : m_vehicles)
+    for (Vehicle *vehicle : m_plugins.getVehicles())
     {
         draw_vehicle(vehicle, NULL);
     }
@@ -902,28 +909,28 @@ void Navit::set_destination(struct pcoord *c, const char *description, int async
     }
     g_free(destination_file);
 
-    if (m_pluginLoader.getRoute())
+    if (m_plugins.getRoute())
     {
         struct attr attr;
         int dstcount;
         struct pcoord *pc;
 
         get_attr(attr_waypoints_flag, &attr, NULL);
-        if (m_config.waypoints_flag == 0 || route_get_destination_count(m_pluginLoader.getRoute()) == 0)
+        if (m_config.waypoints_flag == 0 || route_get_destination_count(m_plugins.getRoute()) == 0)
         {
-            route_set_destination(m_pluginLoader.getRoute(), c, async);
+            route_set_destination(m_plugins.getRoute(), c, async);
         }
         else
         {
-            route_append_destination(m_pluginLoader.getRoute(), c, async);
+            route_append_destination(m_plugins.getRoute(), c, async);
         }
 
-        dstcount = route_get_destination_count(m_pluginLoader.getRoute());
+        dstcount = route_get_destination_count(m_plugins.getRoute());
         if (dstcount > 0)
         {
             destination_file = bookmarks_get_destination_file(TRUE);
             pc = g_new(struct pcoord, dstcount);
-            route_get_destinations(m_pluginLoader.getRoute(), pc, dstcount);
+            route_get_destinations(m_plugins.getRoute(), pc, dstcount);
             bookmarks_append_destinations(m_former_destination, destination_file, pc, dstcount, type_former_itinerary,
                                           description, m_config.recentdest_count);
             g_free(pc);
@@ -933,7 +940,7 @@ void Navit::set_destination(struct pcoord *c, const char *description, int async
 
     callback_list_call_attr_0(m_attr_cbl, attr_destination);
 
-    if (m_pluginLoader.getRoute() && m_ready == 3 && !(m_config.flags & 4))
+    if (m_plugins.getRoute() && m_ready == 3 && !(m_config.flags & 4))
         draw();
 }
 
@@ -982,11 +989,11 @@ void Navit::set_destinations(struct pcoord *c, int count, const char *descriptio
     }
     else
         m_destination_valid = 0;
-    if (m_pluginLoader.getRoute())
-        route_set_destinations(m_pluginLoader.getRoute(), c, count, async);
+    if (m_plugins.getRoute())
+        route_set_destinations(m_plugins.getRoute(), c, count, async);
 
     callback_list_call_attr_0(m_attr_cbl, attr_destination);
-    if (m_pluginLoader.getRoute() && m_ready == 3)
+    if (m_plugins.getRoute() && m_ready == 3)
         draw();
 }
 
@@ -1008,9 +1015,9 @@ void Navit::set_destinations(struct pcoord *c, int count, const char *descriptio
  */
 int Navit::get_destinations(struct pcoord *pc, int count)
 {
-    if (!m_pluginLoader.getRoute())
+    if (!m_plugins.getRoute())
         return 0;
-    return route_get_destinations(m_pluginLoader.getRoute(), pc, count);
+    return route_get_destinations(m_plugins.getRoute(), pc, count);
 }
 
 /**
@@ -1021,25 +1028,25 @@ int Navit::get_destinations(struct pcoord *pc, int count)
  */
 int Navit::get_destination_count()
 {
-    if (!m_pluginLoader.getRoute())
+    if (!m_plugins.getRoute())
         return 0;
-    return route_get_destination_count(m_pluginLoader.getRoute());
+    return route_get_destination_count(m_plugins.getRoute());
 }
 
 char *Navit::get_destination_description(int n)
 {
-    if (!m_pluginLoader.getRoute())
+    if (!m_plugins.getRoute())
         return NULL;
-    return route_get_destination_description(m_pluginLoader.getRoute(), n);
+    return route_get_destination_description(m_plugins.getRoute(), n);
 }
 
 void Navit::remove_nth_waypoint(int n)
 {
-    if (!m_pluginLoader.getRoute())
+    if (!m_plugins.getRoute())
         return;
-    if (route_get_destination_count(m_pluginLoader.getRoute()) > 1)
+    if (route_get_destination_count(m_plugins.getRoute()) > 1)
     {
-        route_remove_nth_waypoint(m_pluginLoader.getRoute(), n);
+        route_remove_nth_waypoint(m_plugins.getRoute(), n);
     }
     else
     {
@@ -1049,11 +1056,11 @@ void Navit::remove_nth_waypoint(int n)
 
 void Navit::remove_waypoint()
 {
-    if (!m_pluginLoader.getRoute())
+    if (!m_plugins.getRoute())
         return;
-    if (route_get_destination_count(m_pluginLoader.getRoute()) > 1)
+    if (route_get_destination_count(m_plugins.getRoute()) > 1)
     {
-        route_remove_waypoint(m_pluginLoader.getRoute());
+        route_remove_waypoint(m_plugins.getRoute());
     }
     else
     {
@@ -1071,9 +1078,9 @@ void Navit::remove_waypoint()
  */
 int Navit::check_route()
 {
-    if (m_pluginLoader.getRoute())
+    if (m_plugins.getRoute())
     {
-        return route_get_path_set(m_pluginLoader.getRoute());
+        return route_get_path_set(m_plugins.getRoute());
     }
 
     return 0;
@@ -1141,7 +1148,7 @@ void Navit::add_former_destinations_from_file()
     struct map_rect *mr;
 
     m_former_destination = read_former_destinations_from_file();
-    if (!m_pluginLoader.getRoute() || !former_destinations_active() || !m_vehicle)
+    if (!m_plugins.getRoute() || !former_destinations_active() || !m_plugins.getVehicle())
         return;
     mr = map_rect_new(m_former_destination, NULL);
     while ((item = map_rect_get_item(mr)))
@@ -1170,9 +1177,9 @@ void Navit::add_former_destinations_from_file()
             pc[i].y = c[i].y;
         }
         if (count == 1)
-            route_set_destination(m_pluginLoader.getRoute(), &pc[0], 1);
+            route_set_destination(m_plugins.getRoute(), &pc[0], 1);
         else
-            route_set_destinations(m_pluginLoader.getRoute(), pc, count, 1);
+            route_set_destinations(m_plugins.getRoute(), pc, count, 1);
         m_destination = pc[count - 1];
         m_destination_valid = 1;
         g_free(pc);
@@ -1185,9 +1192,9 @@ void Navit::textfile_debug_log(const char *fmt, ...)
     va_list ap;
     char *str1, *str2;
     va_start(ap, fmt);
-    if (m_textfile_debug_log && m_vehicle)
+    if (m_textfile_debug_log && m_plugins.getVehicle())
     {
-        coord position = get_vehicle_cursor_coords(m_vehicle);
+        coord position = get_vehicle_cursor_coords(m_plugins.getVehicle());
         str1 = g_strdup_vprintf(fmt, ap);
         str2 = g_strdup_printf("0x%x 0x%x%s%s\n", position.x, position.y, strlen(str1) ? " " : "",
                                str1);
@@ -1203,7 +1210,7 @@ void Navit::textfile_debug_log_at(struct pcoord *pc, const char *fmt, ...)
     va_list ap;
     char *str1, *str2;
     va_start(ap, fmt);
-    if (m_textfile_debug_log && m_vehicle)
+    if (m_textfile_debug_log && m_plugins.getVehicle())
     {
         str1 = g_strdup_vprintf(fmt, ap);
         str2 = g_strdup_printf("0x%x 0x%x%s%s\n", pc->x, pc->y, strlen(str1) ? " " : "", str1);
@@ -1229,7 +1236,7 @@ void Navit::say(const char *text)
 
 void Navit::speak()
 {
-    struct navigation *nav = m_pluginLoader.getNavigation();
+    struct navigation *nav = m_plugins.getNavigation();
     struct map *map = NULL;
     struct map_rect *mr = NULL;
     struct item *item;
@@ -1264,7 +1271,7 @@ void Navit::speak()
 
 void Navit::window_roadbook_update()
 {
-    struct navigation *nav = m_pluginLoader.getNavigation();
+    struct navigation *nav = m_plugins.getNavigation();
     struct map *map = NULL;
     struct map_rect *mr = NULL;
     struct item *item;
@@ -1377,7 +1384,7 @@ void Navit::window_roadbook_update()
 void Navit::window_roadbook_destroy()
 {
     dbg(lvl_debug, "enter");
-    navigation_unregister_callback(m_pluginLoader.getNavigation(), attr_navigation_long, m_roadbook_callback);
+    navigation_unregister_callback(m_plugins.getNavigation(), attr_navigation_long, m_roadbook_callback);
     callback_destroy(m_roadbook_callback);
     m_roadbook_window = NULL;
     m_roadbook_callback = NULL;
@@ -1400,7 +1407,7 @@ void Navit::window_roadbook_new()
     }
 
     m_roadbook_callback = callback_new_1(callback_cast(navit_window_roadbook_update), this);
-    navigation_register_callback(m_pluginLoader.getNavigation(), attr_navigation_long, m_roadbook_callback);
+    navigation_register_callback(m_plugins.getNavigation(), attr_navigation_long, m_roadbook_callback);
     window_roadbook_update();
 }
 
@@ -1455,16 +1462,16 @@ int Navit::init()
     //     exit(1);
     // }
 
-    if (m_speech && m_pluginLoader.getNavigation())
+    if (m_speech && m_plugins.getNavigation())
     {
         struct attr speech;
         speech.type = attr_speech;
         speech.u.speech = m_speech;
-        navigation_set_attr(m_pluginLoader.getNavigation(), &speech);
+        navigation_set_attr(m_plugins.getNavigation(), &speech);
     }
     dbg(lvl_info, "Initializing graphics");
     dbg(lvl_info, "Setting Vehicle");
-    set_vehicle(m_vehicle);
+    set_vehicle(m_plugins.getVehicle());
     dbg(lvl_info, "Adding dynamic maps to mapset %p", m_mapsets);
     if (m_mapsets)
     {
@@ -1479,16 +1486,16 @@ int Navit::init()
         }
         mapset_close(msh);
 
-        if (m_pluginLoader.getRoute())
+        if (m_plugins.getRoute())
         {
-            if ((map = route_get_map(m_pluginLoader.getRoute())))
+            if ((map = route_get_map(m_plugins.getRoute())))
             {
                 struct attr map_a;
                 map_a.type = attr_map;
                 map_a.u.map = map;
                 mapset_add_attr(ms, &map_a);
             }
-            if ((map = route_get_graph_map(m_pluginLoader.getRoute())))
+            if ((map = route_get_graph_map(m_plugins.getRoute())))
             {
                 struct attr map_a, active;
                 map_a.type = attr_map;
@@ -1498,14 +1505,14 @@ int Navit::init()
                 mapset_add_attr(ms, &map_a);
                 map_set_attr(map, &active);
             }
-            route_set_mapset(m_pluginLoader.getRoute(), ms);
-            route_set_projection(m_pluginLoader.getRoute(), transform_get_projection(m_trans));
+            route_set_mapset(m_plugins.getRoute(), ms);
+            route_set_projection(m_plugins.getRoute(), transform_get_projection(m_trans));
         }
-        if (m_pluginLoader.getTracking())
+        if (m_plugins.getTracking())
         {
-            tracking_set_mapset(m_pluginLoader.getTracking(), ms);
-            if (m_pluginLoader.getRoute())
-                tracking_set_route(m_pluginLoader.getTracking(), m_pluginLoader.getRoute());
+            tracking_set_mapset(m_plugins.getTracking(), ms);
+            if (m_plugins.getRoute())
+                tracking_set_route(m_plugins.getTracking(), m_plugins.getRoute());
         }
 
         attr_ = g_new0(attr, 1);
@@ -1515,8 +1522,8 @@ int Navit::init()
         {
             traffic = (struct traffic *)attr_->u.navit_object;
             traffic_set_mapset(traffic, ms);
-            if (m_pluginLoader.getRoute())
-                traffic_set_route(traffic, m_pluginLoader.getRoute());
+            if (m_plugins.getRoute())
+                traffic_set_route(traffic, m_plugins.getRoute());
             /* add the first map found */
             if (!map && (map = traffic_get_map(traffic)))
             {
@@ -1529,9 +1536,9 @@ int Navit::init()
         attr_iter_destroy(iter);
         g_free(attr_);
 
-        if (m_pluginLoader.getNavigation())
+        if (m_plugins.getNavigation())
         {
-            if ((map = navigation_get_map(m_pluginLoader.getNavigation())))
+            if ((map = navigation_get_map(m_plugins.getNavigation())))
             {
                 struct attr map_a, active;
                 map_a.type = attr_map;
@@ -1542,9 +1549,9 @@ int Navit::init()
                 map_set_attr(map, &active);
             }
         }
-        if (m_pluginLoader.getTracking())
+        if (m_plugins.getTracking())
         {
-            if ((map = tracking_get_map(m_pluginLoader.getTracking())))
+            if ((map = tracking_get_map(m_plugins.getTracking())))
             {
                 struct attr map_a, active;
                 map_a.type = attr_map;
@@ -1562,23 +1569,23 @@ int Navit::init()
         dbg(lvl_error, "FATAL: No mapset available. Please add a (valid) mapset to your configuration.");
         exit(1);
     }
-    if (m_pluginLoader.getRoute())
+    if (m_plugins.getRoute())
     {
         struct attr callback;
         m_route_cb = callback_new_attr_1(callback_cast(navit_redraw_route), attr_route_status, this);
         callback.type = attr_callback;
         callback.u.callback = m_route_cb;
-        route_add_attr(m_pluginLoader.getRoute(), &callback);
+        route_add_attr(m_plugins.getRoute(), &callback);
     }
-    if (m_pluginLoader.getNavigation())
+    if (m_plugins.getNavigation())
     {
         if (m_speech)
         {
             m_nav_speech_cb = callback_new_1(callback_cast(navit_speak_callback), this);
-            navigation_register_callback(m_pluginLoader.getNavigation(), attr_navigation_speech, m_nav_speech_cb);
+            navigation_register_callback(m_plugins.getNavigation(), attr_navigation_speech, m_nav_speech_cb);
         }
-        if (m_pluginLoader.getRoute())
-            navigation_set_route(m_pluginLoader.getNavigation(), m_pluginLoader.getRoute());
+        if (m_plugins.getRoute())
+            navigation_set_route(m_plugins.getNavigation(), m_plugins.getRoute());
     }
     dbg(lvl_info, "Setting Center");
     center_file = bookmarks_get_center_file(FALSE);
@@ -1640,10 +1647,10 @@ void Navit::zoom_to_route(int orientation)
     struct coord c;
     struct coord_rect r;
     int count = 0;
-    if (!m_pluginLoader.getRoute())
+    if (!m_plugins.getRoute())
         return;
     dbg(lvl_debug, "enter");
-    map = route_get_map(m_pluginLoader.getRoute());
+    map = route_get_map(m_plugins.getRoute());
     dbg(lvl_debug, "map=%p", map);
     if (map)
         mr = map_rect_new(map, NULL);
@@ -1735,7 +1742,7 @@ LayoutCursor *Navit::get_layout_cursor(const QString &name)
 void Navit::set_cursors()
 {
     LayoutCursor *cursor = nullptr;
-    for (Vehicle *vehicle : m_vehicles)
+    for (Vehicle *vehicle : m_plugins.getVehicles())
     {
 
         if (vehicle->getCursorName() == "none")
@@ -1764,7 +1771,7 @@ void Navit::set_cursors()
  */
 int Navit::get_cursor_pnt(struct point *p, int keep_orientation, int *dir)
 {
-    assert(m_vehicle);
+    assert(m_plugins.getVehicle());
 
     int width, height;
     struct padding *padding = NULL;
@@ -1788,18 +1795,18 @@ int Navit::get_cursor_pnt(struct point *p, int keep_orientation, int *dir)
         p->x = 50 * width / 100;
         p->y = (50 + offset) * height / 100;
         if (dir)
-            *dir = keep_orientation ? m_config.orientation : getDirection(m_vehicle);
+            *dir = keep_orientation ? m_config.orientation : getDirection(m_plugins.getVehicle());
     }
     else
     {
         int mdir;
-        if (m_pluginLoader.getTracking() && m_config.tracking_flag)
+        if (m_plugins.getTracking() && m_config.tracking_flag)
         {
-            mdir = tracking_get_angle(m_pluginLoader.getTracking()) - m_config.orientation;
+            mdir = tracking_get_angle(m_plugins.getTracking()) - m_config.orientation;
         }
         else
         {
-            mdir = getDirection(m_vehicle) - m_config.orientation;
+            mdir = getDirection(m_plugins.getVehicle()) - m_config.orientation;
         }
 
         p->x = (50 - offset * sin(M_PI * mdir / 180.)) * width / 100;
@@ -1844,20 +1851,20 @@ void Navit::set_center_cursor(int autozoom_, int keep_orientation)
 {
     int dir;
     struct point pn;
-    if (!m_vehicle)
+    if (!m_plugins.getVehicle())
     {
         return;
     }
-    if (!isPositionValid(m_vehicle))
+    if (!isPositionValid(m_plugins.getVehicle()))
         return;
 
-    coord cursorPosition = get_vehicle_cursor_coords(m_vehicle);
+    coord cursorPosition = get_vehicle_cursor_coords(m_plugins.getVehicle());
     get_cursor_pnt(&pn, keep_orientation, &dir);
     transform_set_yaw(m_trans, dir);
     set_center_coord_screen(&cursorPosition, &pn, 0);
     if (autozoom_)
     {
-        autozoom(&cursorPosition, getSpeed(m_vehicle));
+        autozoom(&cursorPosition, getSpeed(m_plugins.getVehicle()));
     }
 }
 
@@ -1944,7 +1951,7 @@ int Navit::set_attr_do(struct attr *attr, int init)
         m_graphics_flags = attr->u.num;
         break;
     case attr_follow:
-        m_vehicle->setFollowCursor(attr->u.num);
+        m_plugins.getVehicle()->setFollowCursor(attr->u.num);
         return 0;
     case attr_default_layout:
         if (!attr->u.str)
@@ -1976,9 +1983,9 @@ int Navit::set_attr_do(struct attr *attr, int init)
             }
             else
             {
-                if (m_vehicle)
+                if (m_plugins.getVehicle())
                 {
-                    dir = getDirection(m_vehicle);
+                    dir = getDirection(m_plugins.getVehicle());
                 }
             }
             transform_set_yaw(m_trans, dir);
@@ -2171,9 +2178,9 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         attr->u.displaylist = &m_displaylist;
         return (attr->u.displaylist != NULL);
     case attr_follow:
-        if (!m_vehicle)
+        if (!m_plugins.getVehicle())
             return 0;
-        attr->u.num = m_vehicle->getFollowCursor();
+        attr->u.num = m_plugins.getVehicle()->getFollowCursor();
         break;
     case attr_former_destination_map:
         attr->u.map = m_former_destination;
@@ -2210,7 +2217,7 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         ret = (attr->u.mapset != NULL);
         break;
     case attr_navigation:
-        attr->u.navigation = m_pluginLoader.getNavigation();
+        attr->u.navigation = m_plugins.getNavigation();
         break;
     case attr_orientation:
         attr->u.num = m_config.orientation;
@@ -2229,7 +2236,7 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         }
         break;
     case attr_route:
-        attr->u.route = m_pluginLoader.getRoute();
+        attr->u.route = m_plugins.getRoute();
         break;
     case attr_speech:
         if (m_speech)
@@ -2248,7 +2255,7 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         attr->u.num = m_config.tracking_flag;
         break;
     case attr_trackingo:
-        attr->u.tracking = m_pluginLoader.getTracking();
+        attr->u.tracking = m_plugins.getTracking();
         break;
     case attr_transformation:
         attr->u.transformation = m_trans;
@@ -2597,8 +2604,8 @@ void Navit::onVehiclePositionUpdated(const coord_geo &position)
     // profile(0, NULL);
     if (m_ready == 3)
         layout_switch();
-    if (m_vehicle == vehicle && m_config.tracking_flag)
-        tracking = m_pluginLoader.getTracking();
+    if (m_plugins.getVehicle() == vehicle && m_config.tracking_flag)
+        tracking = m_plugins.getTracking();
     if (tracking)
     {
         tracking_update(tracking, vehicle, m_vehicleprofile, pro);
@@ -2607,7 +2614,7 @@ void Navit::onVehiclePositionUpdated(const coord_geo &position)
     if (!isPositionValid(vehicle))
         return;
 
-    if (vehicle != m_vehicle)
+    if (vehicle != m_plugins.getVehicle())
     {
         if (m_ready == 3)
             draw_vehicle(vehicle, NULL);
@@ -2619,12 +2626,12 @@ void Navit::onVehiclePositionUpdated(const coord_geo &position)
     cursor_pc.x = cursorCoord.x;
     cursor_pc.y = cursorCoord.y;
     cursor_pc.pro = pro;
-    if (m_pluginLoader.getRoute())
+    if (m_plugins.getRoute())
     {
         if (tracking)
-            route_set_position_from_tracking(m_pluginLoader.getRoute(), tracking, pro);
+            route_set_position_from_tracking(m_plugins.getRoute(), tracking, pro);
         else
-            route_set_position(m_pluginLoader.getRoute(), &cursor_pc);
+            route_set_position(m_plugins.getRoute(), &cursor_pc);
     }
     // callback_list_call_attr_0(m_attr_cbl, attr_position);
     textfile_debug_log("type=trackpoint_tracked");
@@ -2647,16 +2654,16 @@ void Navit::onVehiclePositionUpdated(const coord_geo &position)
     emit positionChanged(getPosition(vehicle));
 
     /* Finally, if we reached our destination, stop navigation. */
-    if (m_pluginLoader.getRoute())
+    if (m_plugins.getRoute())
     {
-        switch (route_destination_reached(m_pluginLoader.getRoute()))
+        switch (route_destination_reached(m_plugins.getRoute()))
         {
         case 1:
-            description = route_get_destination_description(m_pluginLoader.getRoute(), 0);
-            route_remove_waypoint(m_pluginLoader.getRoute());
-            count = route_get_destination_count(m_pluginLoader.getRoute());
+            description = route_get_destination_description(m_plugins.getRoute(), 0);
+            route_remove_waypoint(m_plugins.getRoute());
+            count = route_get_destination_count(m_plugins.getRoute());
             pc = (struct pcoord *)g_alloca(sizeof(*pc) * count);
-            route_get_destinations(m_pluginLoader.getRoute(), pc, count);
+            route_get_destinations(m_plugins.getRoute(), pc, count);
             destination_file = bookmarks_get_destination_file(TRUE);
             bookmarks_append_destinations(m_former_destination, destination_file, pc, count, type_former_itinerary_part,
                                           description, m_config.recentdest_count);
@@ -2685,9 +2692,9 @@ void Navit::onVehiclePositionUpdated(const coord_geo &position)
 
 void Navit::set_position(struct pcoord *c)
 {
-    if (m_pluginLoader.getRoute())
+    if (m_plugins.getRoute())
     {
-        route_set_position(m_pluginLoader.getRoute(), c);
+        route_set_position(m_plugins.getRoute(), c);
     }
     if (m_ready == 3)
         draw();
@@ -2698,8 +2705,8 @@ int Navit::set_vehicleprofile(struct vehicleprofile *vp)
     if (m_vehicleprofile == vp)
         return 0;
     m_vehicleprofile = vp;
-    if (m_pluginLoader.getRoute())
-        route_set_profile(m_pluginLoader.getRoute(), m_vehicleprofile);
+    if (m_plugins.getRoute())
+        route_set_profile(m_plugins.getRoute(), m_vehicleprofile);
     return 1;
 }
 
@@ -2725,7 +2732,8 @@ int Navit::set_vehicleprofile_name(const QString &name)
 
 void Navit::set_vehicle(Vehicle *vehicle)
 {
-    m_vehicle = vehicle;
+    m_plugins.setVehicle(vehicle);
+
     if (vehicle != nullptr)
     {
         if (set_vehicleprofile_name(vehicle->getProfileName()))
@@ -2742,15 +2750,15 @@ void Navit::set_vehicle(Vehicle *vehicle)
             if (l)
             {
                 m_vehicleprofile = (vehicleprofile *)l->data;
-                if (m_pluginLoader.getRoute())
-                    route_set_profile(m_pluginLoader.getRoute(), m_vehicleprofile);
+                if (m_plugins.getRoute())
+                    route_set_profile(m_plugins.getRoute(), m_vehicleprofile);
             }
         }
     }
     else
     {
-        if (m_pluginLoader.getRoute())
-            route_set_profile(m_pluginLoader.getRoute(), m_vehicleprofile);
+        if (m_plugins.getRoute())
+            route_set_profile(m_plugins.getRoute(), m_vehicleprofile);
     }
 }
 
@@ -2763,7 +2771,7 @@ void Navit::set_vehicle(Vehicle *vehicle)
  */
 int Navit::add_vehicle(Vehicle *vehicle)
 {
-    m_vehicles.append(vehicle);
+    m_plugins.getVehicles().append(vehicle);
 
     vehicle->connect(vehicle, &Vehicle::positionValidChanged, this, &Navit::positionValidChanged);
     vehicle->connect(vehicle, &Vehicle::positionChanged, this, &Navit::onVehiclePositionUpdated);
@@ -2785,12 +2793,12 @@ struct transformation *Navit::get_trans()
 
 struct route *Navit::get_route()
 {
-    return m_pluginLoader.getRoute();
+    return m_plugins.getRoute();
 }
 
 struct navigation *Navit::get_navigation()
 {
-    return m_pluginLoader.getNavigation();
+    return m_plugins.getNavigation();
 }
 
 void Navit::layout_switch()
@@ -2800,9 +2808,9 @@ void Navit::layout_switch()
     int year, month, day;
     int after_sunrise = FALSE;
     int after_sunset = FALSE;
-    int tunnel = tracking_get_current_tunnel(m_pluginLoader.getTracking());
+    int tunnel = tracking_get_current_tunnel(m_plugins.getTracking());
 
-    if (!m_vehicle)
+    if (!m_plugins.getVehicle())
         return;
 
     if ((!m_layout_current->getDaylayout().isEmpty()) || (!m_layout_current->getNightlayout().isEmpty()))
@@ -2810,7 +2818,7 @@ void Navit::layout_switch()
         // Ok, we know that we have profile to switch
 
         // Check that we aren't calculating too fast
-        currTs = iso8601_to_secs(m_vehicle->getIso8601Time().toLocal8Bit().data());
+        currTs = iso8601_to_secs(m_plugins.getVehicle()->getIso8601Time().toLocal8Bit().data());
         dbg(lvl_debug, "currTs: %02u:%02u", currTs % 86400 / 3600, ((currTs % 86400) % 3600) / 60);
         dbg(lvl_debug, "prevTs: %02u:%02u", m_prevTs % 86400 / 3600, ((m_prevTs % 86400) % 3600) / 60);
 
@@ -2851,19 +2859,19 @@ void Navit::layout_switch()
             return;
         }
 
-        if (sscanf(m_vehicle->getIso8601Time().toLocal8Bit().data(), "%d-%02d-%02dT", &year, &month, &day) != 3)
+        if (sscanf(m_plugins.getVehicle()->getIso8601Time().toLocal8Bit().data(), "%d-%02d-%02dT", &year, &month, &day) != 3)
             return;
-        if (!isPositionValid(m_vehicle))
+        if (!isPositionValid(m_plugins.getVehicle()))
         {
             return; // No valid fix yet
         }
 
-        // if (vehicle_get_attr(m_vehicle->vehicle, attr_position_coord_geo, &geo_attr, NULL) != 1)
+        // if (vehicle_get_attr(m_plugins.getVehicle()->vehicle, attr_position_coord_geo, &geo_attr, NULL) != 1)
         // {
         //     // No position - no sun
         //     return;
         // }
-        coord_geo position = m_vehicle->getPosition();
+        coord_geo position = m_plugins.getVehicle()->getPosition();
 
         // We calculate sunrise anyway, cause it is needed both for day and for night
         if (__sunriset__(year, month, day, position.lng, position.lat, m_config.sunrise_degrees, 1, &trise,
@@ -2933,7 +2941,7 @@ void Navit::layout_switch()
 
 int Navit::set_vehicle_by_name(const QString &name)
 {
-    for (Vehicle *vehicle : m_vehicles)
+    for (Vehicle *vehicle : m_plugins.getVehicles())
     {
         if (vehicle->getName() == name)
         {
@@ -2969,8 +2977,8 @@ int Navit::set_layout_by_name(const QString &name)
 bool Navit::isPositionValid(Vehicle *vehicle)
 {
     struct tracking *tracking;
-    if (m_vehicle == vehicle && m_config.tracking_flag)
-        tracking = m_pluginLoader.getTracking();
+    if (m_plugins.getVehicle() == vehicle && m_config.tracking_flag)
+        tracking = m_plugins.getTracking();
     if (tracking)
     {
         struct attr attr;
@@ -2985,8 +2993,8 @@ bool Navit::isPositionValid(Vehicle *vehicle)
 coord_geo Navit::getPosition(Vehicle *vehicle)
 {
     struct tracking *tracking;
-    if (m_vehicle == vehicle && m_config.tracking_flag)
-        tracking = m_pluginLoader.getTracking();
+    if (m_plugins.getVehicle() == vehicle && m_config.tracking_flag)
+        tracking = m_plugins.getTracking();
     if (tracking)
     {
         struct attr attr;
@@ -3002,8 +3010,8 @@ coord_geo Navit::getPosition(Vehicle *vehicle)
 double Navit::getSpeed(Vehicle *vehicle)
 {
     struct tracking *tracking;
-    if (m_vehicle == vehicle && m_config.tracking_flag)
-        tracking = m_pluginLoader.getTracking();
+    if (m_plugins.getVehicle() == vehicle && m_config.tracking_flag)
+        tracking = m_plugins.getTracking();
     if (tracking)
     {
         struct attr attr;
@@ -3019,8 +3027,8 @@ double Navit::getSpeed(Vehicle *vehicle)
 double Navit::getDirection(Vehicle *vehicle)
 {
     struct tracking *tracking;
-    if (m_vehicle == vehicle && m_config.tracking_flag)
-        tracking = m_pluginLoader.getTracking();
+    if (m_plugins.getVehicle() == vehicle && m_config.tracking_flag)
+        tracking = m_plugins.getTracking();
     if (tracking)
     {
         struct attr attr;
@@ -3139,8 +3147,8 @@ Navit::~Navit()
     callback_destroy(m_predraw_callback);
 
     callback_destroy(m_route_cb);
-    if (m_pluginLoader.getRoute())
-        route_destroy(m_pluginLoader.getRoute());
+    if (m_plugins.getRoute())
+        route_destroy(m_plugins.getRoute());
 
     map_destroy(m_former_destination);
 

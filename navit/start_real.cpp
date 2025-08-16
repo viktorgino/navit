@@ -183,26 +183,8 @@ int navit_enter(int argc, char *const *argv)
 
     return 0;
 }
-
-int main(int argc, char **argv)
+void test1(Layout &layout)
 {
-
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
-    QGuiApplication app(argc, argv);
-    app.setApplicationName(QString("Navit"));
-    app.setOrganizationName(QString("navit"));
-    app.setOrganizationDomain(QString("navit-project.org"));
-
-    navit_enter(argc, argv);
-
-    QQmlApplicationEngine engine;
-    NavitConfig navitConfig;
-    Layout layout;
-
-    // ConfigLoader::loadNavit("navit.json", navitConfig);
-    ConfigLoader::loadLayout("navit_layout_car_modern.json", layout);
     auto cursor = layout.getCursors()[0];
     auto itemgra = cursor->getItemgra()[0];
     auto item = itemgra->getElements()[1];
@@ -242,23 +224,41 @@ int main(int argc, char **argv)
     {
         qDebug() << "itemType: " << item_to_name(itemType);
     }
+}
+int main(int argc, char **argv)
+{
 
-    return 0;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#endif
+    QGuiApplication app(argc, argv);
+    app.setApplicationName(QString("Navit"));
+    app.setOrganizationName(QString("navit"));
+    app.setOrganizationDomain(QString("navit-project.org"));
 
-    // Navit navit(navitConfig, &engine);
+    navit_enter(argc, argv);
 
-    // engine.addImportPath("navit/");
-    // engine.addImportPath("navit/graphics");
+    QQmlApplicationEngine engine;
+    NavitConfig navitConfig;
+    Layout layout;
 
-    // engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
-    // if (engine.rootObjects().isEmpty())
-    //     return -1;
+    ConfigLoader::loadNavit("navit.json", navitConfig);
+    ConfigLoader::loadLayout("navit_layout_car_modern.json", layout);
 
-    // qDebug() << "Loading QML";
-    // int ret = app.exec();
-    // navit_exit();
-    // qDebug() << "Finished with : " << ret;
-    // return ret;
+    Navit navit(navitConfig, &engine);
+
+    engine.addImportPath("navit/");
+    engine.addImportPath("navit/graphics");
+
+    engine.load(QUrl(QStringLiteral("qrc:/mainWindow.qml")));
+    if (engine.rootObjects().isEmpty())
+        return -1;
+
+    qDebug() << "Loading QML";
+    int ret = app.exec();
+    navit_exit();
+    qDebug() << "Finished with : " << ret;
+    return ret;
 }
 
 void navit_exit()

@@ -34,6 +34,8 @@
 
 #include "NavitInterfaces.h"
 #include "config_loader_layout.h"
+#include "navit_wrapper.h"
+#include "transform_2.h"
 
 extern "C"
 {

@@ -32,7 +32,6 @@
 #include <math.h>
 
 #include "graphics.h"
-#include "navit_wrapper.h"
 
 extern "C"
 {
@@ -57,7 +56,6 @@ extern "C"
 #include "event.h"
 #include "util.h"
 }
-#include "transform_2.h"
 
 /**
  * @brief maximum amount of coordinates to allocate on stack using g_alloca
