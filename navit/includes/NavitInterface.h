@@ -23,6 +23,18 @@ struct attr_iter
     } u;
 };
 
+class NavitVehicleInterface
+{
+public:
+    virtual bool isPositionValid() = 0;
+    virtual coord_geo getPosition() = 0;
+    virtual QString getIso8601Time() = 0;
+    virtual double getSpeed() = 0;
+    virtual double getDirection() = 0;
+    virtual int getFixType() = 0;
+    virtual int getLag() = 0;
+};
+
 class NavitInterface
 {
 public:
@@ -55,8 +67,11 @@ public:
     virtual void set_center_cursor_draw() = 0;
     virtual int set_layout_by_name(const QString &name) = 0;
 
+    virtual NavitVehicleInterface *getVehicle() = 0;
+
     virtual Layout *getCurrentLayout() = 0;
     virtual const QVector<Layout *> &getLayouts() = 0;
+    virtual const QVector<map *> getMaps() = 0;
 
     static struct attr_iter *attr_iter_new()
     {

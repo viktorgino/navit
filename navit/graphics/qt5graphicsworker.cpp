@@ -110,11 +110,15 @@ void Qt5GraphicsWorker::zoomToRoute(NavitInstance *navitInstance)
         navitInstance->getNavit().zoom_to_route(1);
     }
 }
-void Qt5GraphicsWorker::setNumAttr(NavitInstance *navitInstance, struct attr *attr)
+void Qt5GraphicsWorker::setNumAttr(NavitInstance *navitInstance, int type, int value)
 {
-    if (navitInstance && attr)
+    if (navitInstance)
     {
-        navitInstance->getNavit().set_attr(attr);
+        struct attr attr;
+
+        attr.type = static_cast<enum attr_type>(type);
+        attr.u.num = value;
+        navitInstance->getNavit().set_attr(&attr);
     }
 }
 

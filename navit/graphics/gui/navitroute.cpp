@@ -89,10 +89,14 @@ void NavitRoute::updateNextTurn(struct map *map)
 void NavitRoute::routeUpdate()
 {
     NavitInterface &navit = m_navitInstance->getNavit();
+    NavitVehicleInterface *vehicle;
+    struct route *route;
+    struct tracking *tracking;
+
     struct map *map = nullptr;
     struct map_rect *mr = nullptr;
     struct navigation *nav = nullptr;
-    struct attr attr, route;
+    struct attr attr;
     struct item *item = nullptr;
     struct item *item2 = nullptr;
 
@@ -149,16 +153,17 @@ void NavitRoute::routeUpdate()
     }
     map_rect_destroy(mr);
 
-    if (navit.get_attr(attr_route, &route, nullptr))
+    route = navit.get_route();
+    if (route)
     {
         struct attr destination_length, destination_time;
 
-        if (route_get_attr(route.u.route, attr_destination_length, &destination_length, nullptr))
+        if (route_get_attr(route, attr_destination_length, &destination_length, nullptr))
         {
             m_distance = attr_to_text_ext(&destination_length, nullptr, attr_format_with_units, attr_format_default, nullptr);
         }
 
-        if (route_get_attr(route.u.route, attr_destination_time, &destination_time, nullptr))
+        if (route_get_attr(route, attr_destination_time, &destination_time, nullptr))
         {
             char test[] = ": ads :";
 
@@ -194,18 +199,13 @@ void NavitRoute::routeUpdate()
         }
     }
 
-    struct attr vehicle, speed_attr;
-
-    int speed = -1;
-    if (navit.get_attr(attr_vehicle, &vehicle, nullptr))
+    vehicle = navit.getVehicle();
+    if (vehicle)
     {
-        vehicle_get_attr(vehicle.u.vehicle, attr_position_speed, &speed_attr, nullptr);
-        speed = *(speed_attr.u.numd);
+        m_speed = vehicle->getSpeed();
     }
-    m_speed = speed;
 
     struct attr maxspeed_attr, street_name_attr;
-    struct tracking *tracking;
     int routespeed = -1;
     tracking = navit.get_tracking();
 

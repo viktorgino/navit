@@ -72,15 +72,17 @@ message("Copying files: ${JSON_FILES}")
 add_custom_target(navit_config_json ALL DEPENDS COMMAND cp ${JSON_FILES} ${CMAKE_BINARY_DIR})
 
 
-# target_link_libraries(graphics_qt5 navit_core)
-# target_link_libraries(map_binfile navit_core)
-# target_link_libraries(map_textfile navit_core)
-# target_link_libraries(vehicle_demo navit_core)
+target_link_libraries(graphics_qt5 navit_core)
+target_link_libraries(map_binfile navit_core)
+target_link_libraries(map_textfile navit_core)
+target_link_libraries(vehicle_demo navit_core)
 
 Qt5_add_resources(NAVIT_QRC "navit.qrc")
 
 add_executable(navit_app start_real.cpp ${NAVIT_QRC})
-target_link_libraries (navit_app navit_core graphics_qt5 vehicle_demo map_binfile ${NAVIT_LIBS})
+target_link_libraries(navit_app PRIVATE navit_core ${NAVIT_LIBS})
+# target_link_libraries(navit_app INTERFACE graphics_qt5 vehicle_demo map_binfile)
+target_include_directories(navit_app PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/graphics/ ${CMAKE_CURRENT_SOURCE_DIR}/includes/)
 
 add_custom_command(TARGET navit_app POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:navit_app> ${CMAKE_BINARY_DIR}

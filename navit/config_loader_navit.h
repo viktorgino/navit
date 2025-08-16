@@ -140,10 +140,22 @@ public:
     bool enabled = true;
 };
 
+class NavitMapset : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QVector<NavitMap *> maps MEMBER maps)
+public:
+    QVector<NavitMap *> maps;
+    QVector<NavitMap *> getMaps()
+    {
+        return maps;
+    }
+};
+
 class NavitConfig : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString center MEMBER center REQUIRED)
+    Q_PROPERTY(coord_geo *center READ getCenter CONSTANT)
     Q_PROPERTY(int zoom MEMBER zoom REQUIRED)
     Q_PROPERTY(bool vehicle_tracking MEMBER vehicle_tracking REQUIRED)
     Q_PROPERTY(int orientation MEMBER orientation REQUIRED)
@@ -159,10 +171,10 @@ class NavitConfig : public QObject
     Q_PROPERTY(NavitTrackingConfig *tracking READ getTracking CONSTANT)
     Q_PROPERTY(NavitRouteConfig *route READ getRoute CONSTANT)
     Q_PROPERTY(NavitNavigationConfig *navigation READ getNavigation CONSTANT)
-    Q_PROPERTY(QVector<NavitMap *> maps MEMBER maps)
+    Q_PROPERTY(QVector<NavitMapset *> mapsets MEMBER mapsets)
 
 public:
-    QString center;
+    coord_geo center;
     int zoom;
     bool vehicle_tracking;
     int orientation = -1;
@@ -178,7 +190,7 @@ public:
     NavitTrackingConfig tracking;
     NavitRouteConfig route;
     NavitNavigationConfig navigation;
-    QVector<NavitMap *> maps;
+    QVector<NavitMapset *> mapsets;
 
     int tracking_flag = 1;
     int recentdest_count = 10;
@@ -229,9 +241,13 @@ private:
     {
         return &navigation;
     }
-    QVector<NavitMap *> getMaps()
+    QVector<NavitMapset *> getMapsets()
     {
-        return maps;
+        return mapsets;
+    }
+    coord_geo *getCenter()
+    {
+        return &center;
     }
 };
 
@@ -244,3 +260,5 @@ Q_DECLARE_METATYPE(NavitRouteConfig *)
 Q_DECLARE_METATYPE(QVector<NavitAnnounceConfig *>)
 Q_DECLARE_METATYPE(NavitNavigationConfig *)
 Q_DECLARE_METATYPE(QVector<NavitMap *>)
+Q_DECLARE_METATYPE(QVector<NavitMapset *>)
+Q_DECLARE_METATYPE(coord_geo *)

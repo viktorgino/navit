@@ -70,6 +70,20 @@ void build_int_list(const QVariant &jsonObject, QVariant &propertyValue, QObject
     // listPtr->append(0); // Don't think we need this
 }
 
+void build_coord_geo(const QVariant &jsonObject, QVariant &propertyValue, QObject *parent)
+{
+    struct coord c;
+    QString coordStr = jsonObject.toString();
+    coord_geo g;
+    coord_geo *value = static_cast<coord_geo *>(propertyValue.data());
+
+    coord_parse(coordStr.toLocal8Bit().data(), projection_mg, &c);
+    transform_to_geo(projection_mg, &c, &g);
+
+    value->lat = g.lat;
+    value->lng = g.lng;
+}
+
 const static QMap<QString, NewTypeBuilder> typeBuilders{
     {"NavitLogConfig*", build_struct<NavitLogConfig>},
     {"NavitTrackingConfig*", build_struct<NavitTrackingConfig>},
@@ -79,7 +93,8 @@ const static QMap<QString, NewTypeBuilder> typeBuilders{
     {"QVector<NavitDebugConfig*>", build_list<NavitDebugConfig>},
     {"QVector<NavitVehicleConfig*>", build_list<NavitVehicleConfig>},
     {"QVector<NavitAnnounceConfig*>", build_list<NavitAnnounceConfig>},
-    {"QVector<NavitMap>", build_struct<NavitMap>},
+    {"QVector<NavitMap*>", build_list<NavitMap>},
+    {"QVector<NavitMapset*>", build_list<NavitMapset>},
     {"QVector<LayoutCoord*>", build_list<LayoutCoord>},
     {"QVector<LayoutItemGraphElement*>", build_itemgraph_list},
     {"QVector<LayoutItemGraph*>", build_list<LayoutItemGraph>},
@@ -89,6 +104,7 @@ const static QMap<QString, NewTypeBuilder> typeBuilders{
     {"LayoutRange*", build_range},
     {"QVector<item_type>", build_item_type},
     {"QVector<int>", build_int_list},
+    {"coord_geo*", build_coord_geo},
 };
 
 const static QMap<QString, NewItemGraphItemBuilder> itemGraphItemBuilders{
@@ -107,27 +123,34 @@ void populateProperties(const QMetaObject *configMeta, QVariantMap &jsonObjectMa
     for (int i = configMeta->propertyOffset(); i < configMeta->propertyCount(); i++)
     {
         QMetaProperty property = configMeta->property(i);
-        QVariant configValue = jsonObjectMap.value(property.name());
+        const char *name = property.name();
+        const char *typeName = property.typeName();
+        QVariant configValue = jsonObjectMap.value(name);
 
         // Make sure required properties are set from config
         if ((configValue.isNull() && property.isRequired()))
         {
-            qDebug() << "Property " << property.name() << " is required, but not set" << jsonObjectMap.value("name");
+            qDebug() << "Property " << name << " is required, but not set" << jsonObjectMap.value("name");
             assert(false);
         }
         if (configValue.isValid())
         {
-            if (property.name() == QString("plugins"))
-            {
-                qDebug() << "Found plugins";
-            }
             if (property.type() == QVariant::Type::UserType)
             {
                 // Custom types
-                QVariant propertyValue = configObject->property(property.name());
-                assert(typeBuilders.contains(property.typeName()) && propertyValue.isValid());
-                typeBuilders.value(property.typeName())(configValue, propertyValue, parent);
-                configObject->setProperty(property.name(), propertyValue);
+                QVariant propertyValue = configObject->property(name);
+                if (!typeBuilders.contains(typeName))
+                {
+                    qWarning() << "No type builder for " << typeName << " on: " << name;
+                    assert(false);
+                }
+                if (!propertyValue.isValid())
+                {
+                    qWarning() << "Invalid property value for " << typeName << " on: " << name;
+                    assert(false);
+                }
+                typeBuilders.value(typeName)(configValue, propertyValue, parent);
+                configObject->setProperty(name, propertyValue);
             }
             else
             {
@@ -135,7 +158,7 @@ void populateProperties(const QMetaObject *configMeta, QVariantMap &jsonObjectMa
                 property.write(configObject, configValue);
             }
             // Remove already added properties so they don't get populated twice
-            jsonObjectMap.remove(property.name());
+            jsonObjectMap.remove(name);
         }
     }
     // If there's a parent populate its properties too

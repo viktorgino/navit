@@ -19,7 +19,7 @@
 
 #include "vehicle_demo.h"
 
-NavitVehicleInterface *VehicleDemoFactory::instantiate(NavitInterface *navit)
+NavitVehiclePlugin *VehicleDemoFactory::instantiate(NavitInterface *navit)
 {
     return new VehicleDemo(navit);
 }
@@ -33,7 +33,7 @@ static void timer_callback(void *data)
     }
 }
 
-VehicleDemo::VehicleDemo(NavitInterface *navit, QObject *parent) : NavitVehicleInterface(parent), m_navit(navit)
+VehicleDemo::VehicleDemo(NavitInterface *navit, QObject *parent) : QObject(parent), m_navit(navit)
 {
     assert(navit);
 
@@ -95,7 +95,7 @@ int VehicleDemo::position_attr_get(
         attr->u.str = m_timep;
         break;
     case attr_position_fix_type:
-        if ((flags = tracking_get_current_flags(navit_get_tracking(m_navit))))
+        if ((flags = tracking_get_current_flags(m_navit->get_tracking())))
         {
             if (*flags & AF_UNDERGROUND)
                 attr->u.num = 0;
@@ -212,7 +212,7 @@ void VehicleDemo::timer()
     if (m_route)
         route = m_route;
     else if (m_navit)
-        route = navit_get_route(m_navit);
+        route = m_navit->get_route();
     if (route)
         route_map = route_get_map(route);
     if (route_map)
@@ -314,7 +314,7 @@ double VehicleDemo::getSpeed() { return m_speed; }
 double VehicleDemo::getDirection() { return m_direction; }
 int VehicleDemo::getFixType()
 {
-    int *flags = tracking_get_current_flags(navit_get_tracking(m_navit));
+    int *flags = tracking_get_current_flags(m_navit->get_tracking());
     if (flags)
     {
         if (*flags & AF_UNDERGROUND)

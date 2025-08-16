@@ -78,7 +78,7 @@ public:
     Navit(NavitConfig &navitConfig, QObject *parent = nullptr);
     ~Navit();
 
-    void add_mapset(struct mapset *ms);
+    void load_dynamic_mapsets();
 
     // Interfaces
     int set_vehicleprofile_name(const QString &name) override;
@@ -112,6 +112,9 @@ public:
     int set_layout_by_name(const QString &name) override;
     Layout *getCurrentLayout() override;
     const QVector<Layout *> &getLayouts() override;
+    const QVector<map *> getMaps() override;
+
+    NavitVehicleInterface *getVehicle() override;
 
     // Other public functions
     struct map *get_search_results_map();
@@ -175,24 +178,29 @@ private:
     PluginLoader m_plugins;
     Graphics m_graphics;
     GraphicsDisplayList m_displaylist;
-    Layout *m_layout_current; /*!< The current layout theme used to display the map */
+    Layout *m_layout_current = nullptr; /*!< The current layout theme used to display the map */
 
     QVector<Layout *> m_layouts;
     QList<LayoutLayer *> m_layers;
 
     struct attr m_self;
 
-    GList *m_mapsets;
-    struct action *m_action;
-    struct transformation *m_trans, *m_trans_cursor;
-    struct compass *m_compass;
-    struct speech *m_speech;
+    struct action *m_action = nullptr;
+    struct transformation *m_trans, *m_trans_cursor = nullptr;
+    struct compass *m_compass = nullptr;
+    struct speech *m_speech = nullptr;
+    struct callback_list *m_attr_cbl = nullptr;
+    struct window *m_win = nullptr;
+    struct callback *m_nav_speech_cb, *m_roadbook_callback, *m_route_cb = nullptr;
+    struct datawindow *m_roadbook_window = nullptr;
+    struct messagelist *m_messages = nullptr;
+    struct callback *m_resize_callback, *m_motion_callback, *m_predraw_callback = nullptr;
+    struct vehicleprofile *m_vehicleprofile = nullptr;
+    struct bookmarks *m_bookmarks = nullptr;
+    GList *m_vehicleprofiles = nullptr;
+    GList *m_windows_items = nullptr;
+
     int m_ready;
-    struct window *m_win;
-    GList *m_windows_items;
-    struct callback_list *m_attr_cbl;
-    struct callback *m_nav_speech_cb, *m_roadbook_callback, *m_route_cb;
-    struct datawindow *m_roadbook_window;
     struct map *m_former_destination;
     struct point m_pressed, m_last, m_current;
 
@@ -212,25 +220,15 @@ private:
     int m_autozoom_active;
     int m_autozoom_paused;
 
-    struct messagelist *m_messages;
-    struct callback *m_resize_callback, *m_motion_callback, *m_predraw_callback;
-    struct vehicleprofile *m_vehicleprofile;
-    GList *m_vehicleprofiles;
-    struct bookmarks *m_bookmarks;
-
     struct coord_geo m_center;
     QString m_layout_before_tunnel;
 
-    void draw_vehicle(Vehicle *nv, point *pnt);
-
-    int add_vehicle(Vehicle *v);
     int add_layout(Layout *layout);
     int add_log(struct log *log);
 
     int set_attr_do(struct attr *attr, int init);
     int get_cursor_pnt(struct point *p, int keep_orientation, int *dir);
     void set_cursors();
-    void set_vehicle(Vehicle *nv);
     int set_vehicleprofile(struct vehicleprofile *vp);
 
     int restrict_to_range(int value, int min, int max);
@@ -246,8 +244,11 @@ private:
     void add_former_destinations_from_file();
     void set_center_coord_screen(struct coord *c, struct point *p, int set_timeout_);
 
-    coord get_vehicle_cursor_coords(Vehicle *vehicle);
+    void draw_vehicle(Vehicle *nv, point *pnt);
+    int add_vehicle(Vehicle *v);
+    void set_vehicle(Vehicle *nv);
 
+    coord get_vehicle_cursor_coords(Vehicle *vehicle);
     void get_tracking_attr(attr *_attr, const enum attr_type &type);
     bool isPositionValid(Vehicle *vehicle);
     coord_geo getPosition(Vehicle *vehicle);

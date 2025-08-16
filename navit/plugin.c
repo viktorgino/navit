@@ -133,6 +133,11 @@ void plugin_call_init(struct plugin *pl)
     pl->init();
 }
 
+int plugin_has_init(struct plugin *pl)
+{
+    return pl != NULL && pl->init != NULL;
+}
+
 void plugin_unload(struct plugin *pl)
 {
 #ifdef USE_PLUGINS

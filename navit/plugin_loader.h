@@ -31,9 +31,10 @@ public:
     route *getRoute();
     navigation *getNavigation();
     Vehicle *getVehicle();
-    mapset *getMapset();
 
+    QVector<mapset *> &getMapsets();
     QVector<Vehicle *> &getVehicles();
+
     void setVehicle(Vehicle *vehicle);
 
 private:
@@ -42,6 +43,7 @@ private:
 
     QVector<debug *> m_debugConfigs;
     QVector<plugin *> m_plugins;
+    QVector<mapset *> m_mapsets;
 
     QVector<Vehicle *> m_vehicles;
 
@@ -63,7 +65,7 @@ private:
     void loadTracking(NavitTrackingConfig &tracking);
     void loadRoute(NavitRouteConfig &route);
     void loadNavigation(NavitNavigationConfig &navigation);
-    void loadMaps(QVector<NavitMap *> &maps);
+    void loadMapsets(QVector<NavitMapset *> &mapsets);
 };
 
 #endif

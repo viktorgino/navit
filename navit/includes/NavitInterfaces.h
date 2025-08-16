@@ -2,4 +2,4 @@
 
 #include "NavitInterface.h"
 #include "NavitGraphicsInterface.h"
-#include "NavitVehicleInterface.h"
+#include "NavitVehiclePlugin.h"

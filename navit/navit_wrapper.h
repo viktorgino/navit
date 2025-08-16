@@ -40,7 +40,6 @@ extern "C"
     typedef void *GraphicsHandle;
     typedef void *GraphicsGCHandle;
 
-    void navit_add_mapset(NavitHandle navit, struct mapset *ms);
     struct mapset *navit_get_mapset(NavitHandle navit);
     struct map *navit_get_search_results_map(NavitHandle navit);
     int navit_populate_search_results_map(NavitHandle navit, GList *search_results, struct coord_rect *r);

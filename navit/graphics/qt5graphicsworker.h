@@ -68,7 +68,7 @@ public:
     void zoomIn(NavitInstance *navitInstance, int zoomLevel, struct point *p);
     void zoomOut(NavitInstance *navitInstance, int zoomLevel, struct point *p);
     void zoomToRoute(NavitInstance *navitInstance);
-    void setNumAttr(NavitInstance *navitInstance, struct attr *attr);
+    void setNumAttr(NavitInstance *navitInstance, int type, int value);
     void centerOnPosition(NavitInstance *navitInstance);
 
 signals:

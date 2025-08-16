@@ -21,7 +21,8 @@
 #define NAVIT_VEHICLE_H
 
 #include <QObject>
-#include "NavitVehicleInterface.h"
+#include "NavitInterfaces.h"
+
 #include "config_loader_layout.h"
 #include "config_loader_navit.h"
 
@@ -37,7 +38,7 @@ extern "C"
 typedef void *GraphicsHandle;
 typedef void *GraphicsGCHandle;
 
-class Vehicle : public QObject
+class Vehicle : public QObject, public NavitVehicleInterface
 {
     Q_OBJECT
 public:
@@ -56,13 +57,13 @@ public:
     void draw_do();
 
     // Getters
-    bool isPositionValid();
-    coord_geo getPosition();
-    QString getIso8601Time();
-    double getSpeed();
-    double getDirection();
-    int getFixType();
-    int getLag();
+    bool isPositionValid() override;
+    coord_geo getPosition() override;
+    QString getIso8601Time() override;
+    double getSpeed() override;
+    double getDirection() override;
+    int getFixType() override;
+    int getLag() override;
 
     const int &getFollow();
     const int &getFollowCursor();
@@ -83,7 +84,7 @@ signals:
 
 private:
     NavitVehicleConfig *m_config;
-    NavitVehicleInterface *m_plugin;
+    NavitVehiclePlugin *m_plugin;
 
     struct callback_list *m_cbl;
     struct log *m_nmea_log, *m_gpx_log;
@@ -94,21 +95,22 @@ private:
     int m_followCursor;
 
     // cursor
-    LayoutCursor *m_cursor;
+    LayoutCursor *m_cursor = nullptr;
+    struct callback *m_animate_callback = nullptr;
+    struct event_timeout *m_animate_timer = nullptr;
+    Graphics *m_gra = nullptr;
+    GraphicsContext *m_bg = nullptr;
+    struct transformation *m_trans = nullptr;
+    GHashTable *m_log_to_cb = nullptr;
+
     int m_cursor_fixed;
-    struct callback *m_animate_callback;
-    struct event_timeout *m_animate_timer;
     struct point m_cursor_pnt;
     int m_need_resize;
     int m_real_w;
     int m_real_h;
-    Graphics *m_gra;
-    GraphicsContext *m_bg;
-    struct transformation *m_trans;
     int m_angle;
     int m_speed;
     int m_sequence;
-    GHashTable *m_log_to_cb;
 
     void log_nmea(struct log *log);
     void log_gpx(struct log *log);

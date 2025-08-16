@@ -248,12 +248,7 @@ void QNavitQuick_2::setNavitNumProperty(enum attr_type type, int value)
 {
     if (m_navitInstance)
     {
-        struct attr attr;
-
-        attr.type = type;
-        attr.u.num = value;
-
-        emit onSetNumAttr(m_navitInstance, &attr);
+        emit onSetNumAttr(m_navitInstance, type, value);
     }
 }
 

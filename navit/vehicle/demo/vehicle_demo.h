@@ -1,44 +1,35 @@
-
-#ifndef __vehicle_h
-#define __vehicle_h
+#pragma once
 
 #include <QObject>
 
 #include "NavitInterfaces.h"
+#include <cmath>
 
 extern "C"
 {
-#include <glib.h>
-#include <string.h>
-#include <math.h>
-#include "config.h"
-#include "debug.h"
-#include "coord.h"
-#include "item.h"
-#include "navit_wrapper.h"
-#include "map.h"
-#include "route.h"
 #include "callback.h"
-#include "transform.h"
-#include "plugin.h"
-#include "vehicle_wrapper.h"
+#include "debug.h"
 #include "event.h"
 #include "util.h"
 #include "track.h"
-#include "attr_def.h"
+#include "map.h"
+#include "route.h"
+#include "transform.h"
 }
 
-class VehicleDemoFactory : public NavitVehicleFactory
+class VehicleDemoFactory : public QObject, public NavitVehicleFactory
 {
-
-    Q_PLUGIN_METADATA(IID NavitVehicleFactory_iid)
+    Q_OBJECT
+    Q_PLUGIN_METADATA(IID NavitVehicleFactory_iid FILE "test.json")
     Q_INTERFACES(NavitVehicleFactory)
+
 public:
-    NavitVehicleInterface *instantiate(NavitInterface *navit) override;
+    NavitVehiclePlugin *instantiate(NavitInterface *navit) override;
 };
 
-class VehicleDemo : public NavitVehicleInterface
+class VehicleDemo : public QObject, public NavitVehiclePlugin
 {
+    Q_OBJECT
 public:
     explicit VehicleDemo(NavitInterface *navit, QObject *parent = 0);
     ~VehicleDemo();
@@ -55,6 +46,10 @@ public:
     int getLag() override;
 
     void timer();
+
+signals:
+    void positionValidChanged(const bool &isValid);
+    void positionChanged(const coord_geo &position);
 
 private:
     NavitInterface *m_navit;
@@ -77,4 +72,3 @@ private:
     double m_height;
     QString m_currentIso;
 };
-#endif

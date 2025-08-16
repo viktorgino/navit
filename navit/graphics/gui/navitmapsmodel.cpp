@@ -93,25 +93,19 @@ void NavitMapsModel::update()
     if (m_navitInstance)
     {
         NavitInterface &navit = m_navitInstance->getNavit();
-        struct attr attr, active;
-        struct attr_iter *iter;
+        struct attr active;
 
         beginResetModel();
         m_maps.clear();
-        endResetModel();
-
-        iter = navit.attr_iter_new();
-
-        while (navit.get_attr(attr_map, &attr, iter))
+        for (map *map : navit.getMaps())
         {
-
             QVariantMap maps;
             // TODO : Internal GUI has option for download? gui_internal_cmd_map_download
 
-            maps.insert("name", getMapLabel(attr.u.map));
+            maps.insert("name", getMapLabel(map));
             maps.insert("action", "toggleMap");
 
-            map_get_attr(attr.u.map, attr_active, &active, nullptr);
+            map_get_attr(map, attr_active, &active, nullptr);
             if (active.u.num)
             {
                 maps.insert("imageUrl", "qrc:/NavitGUI/assets/ionicons/md-checkmark-circle-outline.svg");
@@ -120,12 +114,9 @@ void NavitMapsModel::update()
             {
                 maps.insert("imageUrl", "");
             }
-
-            beginInsertRows(QModelIndex(), rowCount(), rowCount());
             m_maps.append(maps);
-            endInsertRows();
         }
-        navit.attr_iter_destroy(iter);
+        endResetModel();
     }
 }
 
@@ -134,19 +125,18 @@ void NavitMapsModel::toggleMap(QString name)
     if (m_navitInstance)
     {
         NavitInterface &navit = m_navitInstance->getNavit();
-        struct attr attr, active, activeSet;
+        struct attr active, activeSet;
         struct attr_iter *iter;
 
         iter = navit.attr_iter_new();
-
-        while (navit.get_attr(attr_map, &attr, iter))
+        for (map *map : navit.getMaps())
         {
-            if (getMapLabel(attr.u.map) == name)
+            if (getMapLabel(map) == name)
             {
-                map_get_attr(attr.u.map, attr_active, &active, nullptr);
+                map_get_attr(map, attr_active, &active, nullptr);
                 activeSet.type = attr_active;
                 activeSet.u.num = 1 - active.u.num;
-                map_set_attr(attr.u.map, &activeSet);
+                map_set_attr(map, &activeSet);
                 navit.draw();
                 break;
             }

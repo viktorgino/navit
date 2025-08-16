@@ -88,6 +88,7 @@ extern "C"
     void plugin_set_active(struct plugin *pl, int active);
     void plugin_set_lazy(struct plugin *pl, int lazy);
     void plugin_call_init(struct plugin *pl);
+    int plugin_has_init(struct plugin *pl);
     void plugin_unload(struct plugin *pl);
     void plugin_destroy(struct plugin *pl);
     struct plugins *plugins_new(struct attr *, struct attr **);

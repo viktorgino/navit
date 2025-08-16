@@ -7,11 +7,9 @@
 #include "coord.h"
 #include "attr.h"
 
-class NavitVehicleInterface : public QObject
+class NavitVehiclePlugin
 {
-    Q_OBJECT
 public:
-    NavitVehicleInterface(QObject *parent = nullptr);
     virtual int position_attr_get(enum attr_type type, struct attr *attr) = 0;
     virtual int set_attr(struct attr *attr) = 0;
 
@@ -22,16 +20,16 @@ public:
     virtual double getDirection() = 0;
     virtual int getFixType() = 0;
     virtual int getLag() = 0;
-signals:
-    void positionValidChanged(const bool &isValid);
-    void positionChanged(const coord_geo &position);
+
+    // Signals
+    virtual void positionValidChanged(const bool &isValid) = 0;
+    virtual void positionChanged(const coord_geo &position) = 0;
 };
 
-class NavitVehicleFactory : public QObject
+class NavitVehicleFactory
 {
-    Q_OBJECT
 public:
-    virtual NavitVehicleInterface *instantiate(NavitInterface *navit) = 0;
+    virtual NavitVehiclePlugin *instantiate(NavitInterface *navit) = 0;
 };
 #define NavitVehicleFactory_iid "navit.NavitVehicleFactory"
 Q_DECLARE_INTERFACE(NavitVehicleFactory, NavitVehicleFactory_iid)

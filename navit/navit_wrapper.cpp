@@ -1,10 +1,6 @@
 #include "navit.h"
 #include "navit_wrapper.h"
 
-void navit_add_mapset(NavitHandle navit, struct mapset *ms)
-{
-    return ((Navit *)navit)->add_mapset(ms);
-}
 struct mapset *navit_get_mapset(NavitHandle navit)
 {
     return ((Navit *)navit)->get_mapset();

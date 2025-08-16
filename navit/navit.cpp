@@ -120,7 +120,6 @@ Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
     m_plugins.loadModules();
 
     add_vehicle(m_plugins.getVehicle());
-    add_mapset(m_plugins.getMapset());
 
     m_attr_cbl = callback_list_new();
 
@@ -136,12 +135,14 @@ Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
     m_trans_cursor = transform_new(&center, zoom, (m_config.orientation != -1) ? m_config.orientation : 0);
 
     m_bookmarks = bookmarks_new(&m_self, NULL, m_trans);
+    m_center = m_config.center;
 
     m_prevTs = 0;
 
     Layout *modern_layout = new Layout();
     ConfigLoader::loadLayout("navit_layout_car_modern.json", *modern_layout);
     add_layout(modern_layout);
+    update_current_layout(modern_layout);
 
     // for (; *attrs; attrs++)
     // {
@@ -153,14 +154,16 @@ Navit::Navit(NavitConfig &navitConfig, QObject *parent) : QObject(parent),
 
     // Init graphics callbacks
     set_graphics();
-
+    m_plugins.getVehicle()->set_cursor(modern_layout->getCursors().first(), 1);
     dbg(lvl_debug, "return %p", this);
+
+    init();
+
+    coord *trans_c = transform_get_center(m_trans);
+    transform_to_geo(transform_get_projection(m_trans), trans_c, &m_center);
 }
 
-void Navit::add_mapset(struct mapset *ms)
-{
-    m_mapsets = g_list_append(m_mapsets, ms);
-}
+// m_plugins.getMapsets().first()
 
 /**
  * @brief Get the current mapset
@@ -171,9 +174,9 @@ void Navit::add_mapset(struct mapset *ms)
  */
 struct mapset *Navit::get_mapset()
 {
-    if (m_mapsets)
+    if (m_plugins.getMapsets().size() > 0)
     {
-        return (struct mapset *)m_mapsets->data;
+        return m_plugins.getMapsets().first();
     }
     else
     {
@@ -359,7 +362,7 @@ void Navit::draw_async(int async)
         return;
     }
     transform_setup_source_rect(m_trans);
-    m_displaylist.draw_graphics((mapset *)m_mapsets->data, m_trans, m_layout_current, async, NULL, m_graphics_flags | 1);
+    m_displaylist.draw_graphics(m_plugins.getMapsets().first(), m_trans, m_layout_current, async, NULL, m_graphics_flags | 1);
 }
 
 void Navit::draw()
@@ -390,7 +393,7 @@ void Navit::map_progress()
     if (m_ready != 3)
         return;
 
-    ms = (struct mapset *)m_mapsets->data;
+    ms = m_plugins.getMapsets().first();
     msh = mapset_open(ms);
     while (msh && (map = mapset_next(msh, 0)))
     {
@@ -1444,13 +1447,8 @@ static void navit_speak_callback(void *data)
 
 int Navit::init()
 {
-    struct mapset *ms;
-    struct map *map;
     int callback;
     char *center_file;
-    struct attr_iter *iter;
-    struct attr *attr_;
-    struct traffic *traffic;
 
     m_w = 0;
     m_h = 0;
@@ -1472,103 +1470,7 @@ int Navit::init()
     dbg(lvl_info, "Initializing graphics");
     dbg(lvl_info, "Setting Vehicle");
     set_vehicle(m_plugins.getVehicle());
-    dbg(lvl_info, "Adding dynamic maps to mapset %p", m_mapsets);
-    if (m_mapsets)
-    {
-        struct mapset_handle *msh;
-        ms = (struct mapset *)m_mapsets->data;
-        msh = mapset_open(ms);
-        while (msh && (map = mapset_next(msh, 0)))
-        {
-            // pass new callback instance for each map in the mapset to make map callback list destruction work correctly
-            struct callback *pcb = callback_new_attr_1(callback_cast(navit_map_progress), attr_progress, this);
-            map_add_callback(map, pcb);
-        }
-        mapset_close(msh);
-
-        if (m_plugins.getRoute())
-        {
-            if ((map = route_get_map(m_plugins.getRoute())))
-            {
-                struct attr map_a;
-                map_a.type = attr_map;
-                map_a.u.map = map;
-                mapset_add_attr(ms, &map_a);
-            }
-            if ((map = route_get_graph_map(m_plugins.getRoute())))
-            {
-                struct attr map_a, active;
-                map_a.type = attr_map;
-                map_a.u.map = map;
-                active.type = attr_active;
-                active.u.num = 0;
-                mapset_add_attr(ms, &map_a);
-                map_set_attr(map, &active);
-            }
-            route_set_mapset(m_plugins.getRoute(), ms);
-            route_set_projection(m_plugins.getRoute(), transform_get_projection(m_trans));
-        }
-        if (m_plugins.getTracking())
-        {
-            tracking_set_mapset(m_plugins.getTracking(), ms);
-            if (m_plugins.getRoute())
-                tracking_set_route(m_plugins.getTracking(), m_plugins.getRoute());
-        }
-
-        attr_ = g_new0(attr, 1);
-        iter = attr_iter_new();
-        map = NULL;
-        while (get_attr(attr_traffic, attr_, iter))
-        {
-            traffic = (struct traffic *)attr_->u.navit_object;
-            traffic_set_mapset(traffic, ms);
-            if (m_plugins.getRoute())
-                traffic_set_route(traffic, m_plugins.getRoute());
-            /* add the first map found */
-            if (!map && (map = traffic_get_map(traffic)))
-            {
-                struct attr map_a;
-                map_a.type = attr_map;
-                map_a.u.map = map;
-                mapset_add_attr(ms, &map_a);
-            }
-        }
-        attr_iter_destroy(iter);
-        g_free(attr_);
-
-        if (m_plugins.getNavigation())
-        {
-            if ((map = navigation_get_map(m_plugins.getNavigation())))
-            {
-                struct attr map_a, active;
-                map_a.type = attr_map;
-                map_a.u.map = map;
-                active.type = attr_active;
-                active.u.num = 0;
-                mapset_add_attr(ms, &map_a);
-                map_set_attr(map, &active);
-            }
-        }
-        if (m_plugins.getTracking())
-        {
-            if ((map = tracking_get_map(m_plugins.getTracking())))
-            {
-                struct attr map_a, active;
-                map_a.type = attr_map;
-                map_a.u.map = map;
-                active.type = attr_active;
-                active.u.num = 0;
-                mapset_add_attr(ms, &map_a);
-                map_set_attr(map, &active);
-            }
-        }
-        add_former_destinations_from_file();
-    }
-    else
-    {
-        dbg(lvl_error, "FATAL: No mapset available. Please add a (valid) mapset to your configuration.");
-        exit(1);
-    }
+    load_dynamic_mapsets();
     if (m_plugins.getRoute())
     {
         struct attr callback;
@@ -1592,7 +1494,8 @@ int Navit::init()
     bookmarks_set_center_from_file(m_bookmarks, center_file);
     g_free(center_file);
 
-    messagelist_init(m_messages);
+    // TODO: maybe fix
+    // messagelist_init(m_messages);
 
     set_cursors();
 
@@ -1605,6 +1508,122 @@ int Navit::init()
     if (callback)
         callback_list_call_attr_1(m_attr_cbl, attr_graphics_ready, this);
     return 0;
+}
+
+void Navit::load_dynamic_mapsets()
+{
+    dbg(lvl_info, "Adding dynamic maps to mapset");
+    if (m_plugins.getMapsets().size() == 0)
+    {
+        dbg(lvl_error, "FATAL: No mapset available. Please add a (valid) mapset to your configuration.");
+        exit(1);
+    }
+
+    for (struct map *m : getMaps())
+    {
+        // pass new callback instance for each map in the mapset to make map callback list destruction work correctly
+        struct callback *pcb = callback_new_attr_1(callback_cast(navit_map_progress), attr_progress, this);
+        map_add_callback(m, pcb);
+    }
+
+    struct map *map;
+    struct mapset *mapset = m_plugins.getMapsets().first();
+    if (m_plugins.getRoute())
+    {
+        if ((map = route_get_map(m_plugins.getRoute())))
+        {
+            struct attr map_a;
+            map_a.type = attr_map;
+            map_a.u.map = map;
+            mapset_add_attr(mapset, &map_a);
+        }
+        if ((map = route_get_graph_map(m_plugins.getRoute())))
+        {
+            struct attr map_a, active;
+            map_a.type = attr_map;
+            map_a.u.map = map;
+            active.type = attr_active;
+            active.u.num = 0;
+            mapset_add_attr(mapset, &map_a);
+            map_set_attr(map, &active);
+        }
+        route_set_mapset(m_plugins.getRoute(), mapset);
+        route_set_projection(m_plugins.getRoute(), transform_get_projection(m_trans));
+    }
+    if (m_plugins.getTracking())
+    {
+        tracking_set_mapset(m_plugins.getTracking(), mapset);
+        if (m_plugins.getRoute())
+            tracking_set_route(m_plugins.getTracking(), m_plugins.getRoute());
+    }
+
+    // TODO: fix traffic
+    // struct attr *attr_ = g_new0(attr, 1);
+    // struct attr_iter *iter = attr_iter_new();
+    // map = NULL;
+    // while (get_attr(attr_traffic, attr_, iter))
+    // {
+    //     traffic = (struct traffic *)attr_->u.navit_object;
+    //     traffic_set_mapset(traffic, ms);
+    //     if (m_plugins.getRoute())
+    //         traffic_set_route(traffic, m_plugins.getRoute());
+    //     /* add the first map found */
+    //     if (!map && (map = traffic_get_map(traffic)))
+    //     {
+    //         struct attr map_a;
+    //         map_a.type = attr_map;
+    //         map_a.u.map = map;
+    //         mapset_add_attr(ms, &map_a);
+    //     }
+    // }
+    // attr_iter_destroy(iter);
+    // g_free(attr_);
+
+    if (m_plugins.getNavigation())
+    {
+        if ((map = navigation_get_map(m_plugins.getNavigation())))
+        {
+            struct attr map_a, active;
+            map_a.type = attr_map;
+            map_a.u.map = map;
+            active.type = attr_active;
+            active.u.num = 0;
+            mapset_add_attr(mapset, &map_a);
+            map_set_attr(map, &active);
+        }
+    }
+    if (m_plugins.getTracking())
+    {
+        if ((map = tracking_get_map(m_plugins.getTracking())))
+        {
+            struct attr map_a, active;
+            map_a.type = attr_map;
+            map_a.u.map = map;
+            active.type = attr_active;
+            active.u.num = 0;
+            mapset_add_attr(mapset, &map_a);
+            map_set_attr(map, &active);
+        }
+    }
+    add_former_destinations_from_file();
+}
+
+const QVector<map *> Navit::getMaps()
+{
+    QVector<map *> ret;
+    if (m_plugins.getMapsets().size() > 0)
+    {
+        struct mapset *mapset = m_plugins.getMapsets().first();
+        struct mapset_handle *handle = mapset_open(mapset);
+        struct map *map;
+
+        while (handle && (map = mapset_next(handle, 0)))
+        {
+            ret.append(map);
+        }
+        mapset_close(handle);
+    }
+    return ret;
 }
 
 void Navit::zoom_to_rect(struct coord_rect *r)
@@ -1744,8 +1763,9 @@ void Navit::set_cursors()
     LayoutCursor *cursor = nullptr;
     for (Vehicle *vehicle : m_plugins.getVehicles())
     {
+        QString cursorName = vehicle->getCursorName();
 
-        if (vehicle->getCursorName() == "none")
+        if (cursorName == "none")
             cursor = nullptr;
         else
             cursor = get_layout_cursor(vehicle->getCursorName());
@@ -2194,27 +2214,20 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         qWarning() << "Trying to get layouts";
         break;
     case attr_map:
-        if (iter && m_mapsets)
+        qWarning() << "Trying to get maps";
+        return 0;
+        break;
+    case attr_mapset:
+        if (m_plugins.getMapsets().size() > 0)
         {
-            if (!iter->u.mapset_handle)
-            {
-                iter->u.mapset_handle = mapset_open((struct mapset *)m_mapsets->data);
-            }
-            attr->u.map = mapset_next(iter->u.mapset_handle, 0);
-            if (!attr->u.map)
-            {
-                mapset_close(iter->u.mapset_handle);
-                return 0;
-            }
+            attr->u.mapset = m_plugins.getMapsets().first();
+            ret = 1;
         }
         else
         {
+            qWarning() << "No mapsets";
             return 0;
         }
-        break;
-    case attr_mapset:
-        attr->u.mapset = (struct mapset *)m_mapsets->data;
-        ret = (attr->u.mapset != NULL);
         break;
     case attr_navigation:
         attr->u.navigation = m_plugins.getNavigation();
@@ -2305,7 +2318,7 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         attr->u.num = m_config.sunrise_degrees;
         break;
     default:
-        qCritical() << "Calling generic attribute setter: " << attr_to_name(attr->type);
+        qCritical() << "Calling generic attribute setter: " << attr_to_name(attr->type) << attr->type;
         dbg(lvl_debug, "calling generic getter method for attribute type %s", attr_to_name(type));
         // return navit_object_get_attr(&m_navit_object, type, attr, iter);
         return 1;
@@ -2453,7 +2466,7 @@ int Navit::add_attr(struct attr *attr)
         qWarning() << "Can't add route";
         break;
     case attr_mapset:
-        m_mapsets = g_list_append(m_mapsets, attr->u.mapset);
+        qWarning() << "Can't add mapset";
         break;
     case attr_navigation:
         qWarning() << "Can't add navigation";
@@ -2998,7 +3011,7 @@ coord_geo Navit::getPosition(Vehicle *vehicle)
     if (tracking)
     {
         struct attr attr;
-        tracking_get_attr(tracking, attr_position_valid, &attr, nullptr);
+        tracking_get_attr(tracking, attr_position_coord_geo, &attr, nullptr);
         coord_geo ret = *attr.u.coord_geo;
         return ret;
     }
@@ -3042,6 +3055,10 @@ double Navit::getDirection(Vehicle *vehicle)
     }
 }
 
+NavitVehicleInterface *Navit::getVehicle()
+{
+    return m_plugins.getVehicle();
+}
 /**
  * @brief Blocks or unblocks redraw operations.
  *
@@ -3095,12 +3112,11 @@ Navit::~Navit()
     struct attr attr;
     m_displaylist.draw_cancel();
 
-    mapsets = m_mapsets;
-    while (mapsets)
+    for (mapset *mapset : m_plugins.getMapsets())
     {
         GList *maps = NULL;
         struct mapset_handle *msh;
-        msh = mapset_open((mapset *)mapsets->data);
+        msh = mapset_open(mapset);
         while (msh && (map = mapset_next(msh, 0)))
         {
             /* Add traffic map (identified by the `attr_traffic` attribute) to list of maps to remove */
@@ -3114,7 +3130,7 @@ Navit::~Navit()
         {
             attr.type = attr_map;
             attr.u.map = (struct map *)maps->data;
-            mapset_remove_attr((mapset *)mapsets->data, &attr);
+            mapset_remove_attr(mapset, &attr);
             attr_free_content(&attr);
             maps = g_list_next(maps);
         }

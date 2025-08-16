@@ -48,6 +48,10 @@ void GraphicsDisplayList::load_mapset(struct mapset *mapset, struct transformati
 {
     int order = transform_get_order(trans);
 
+    coord_geo geo;
+    transform_to_geo(trans->pro, &trans->map_center, &geo);
+    qDebug() << "Current pos: " << geo.lat << geo.lng;
+
     dbg(lvl_debug, "enter");
     if (busy)
     {

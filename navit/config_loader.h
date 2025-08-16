@@ -12,6 +12,8 @@
 #include "config_loader_layout.h"
 
 #include "item.h"
+#include "transform.h"
+#include "projection.h"
 
 class ConfigLoader
 {

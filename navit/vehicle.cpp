@@ -160,7 +160,7 @@ void Vehicle::set_cursor(LayoutCursor *cursor, int overwrite)
 {
     if (m_cursor_fixed && !overwrite)
         return;
-    if (m_animate_callback)
+    if (m_animate_callback && m_animate_timer != nullptr)
     {
         event_remove_timeout(m_animate_timer);
         m_animate_timer = NULL; // dangling pointer! prevent double freeing.

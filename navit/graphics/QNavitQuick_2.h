@@ -121,7 +121,7 @@ signals:
     void onZoomIn(struct NavitInstance *navitInstance, int zoomLevel, struct point *p);
     void onZoomOut(struct NavitInstance *navitInstance, int zoomLevel, struct point *p);
     void onZoomToRoute(struct NavitInstance *navitInstance);
-    void onSetNumAttr(struct NavitInstance *navitInstance, struct attr *attr);
+    void onSetNumAttr(struct NavitInstance *navitInstance, int type, int value);
     void onCenterOnPosition(struct NavitInstance *navitInstance);
 };
 
