@@ -350,66 +350,59 @@ void NavitHelper::addBookmark(NavitInterface &navit, QString label, int x, int y
 QString NavitHelper::get_icon(NavitInterface &navit, struct item *item)
 {
 
-    struct attr layout;
-    struct attr icon_src;
-    GList *layer;
-    navit.get_attr(attr_layout, &layout, NULL);
-    layer = layout.u.layout->layers;
-
-    while (layer)
+    Layout *layout = navit.getCurrentLayout();
+    if (!layout)
     {
-        GList *itemgra = ((struct layer *)layer->data)->itemgras;
-        while (itemgra)
+        qWarning() << "Invalid layout!";
+        return "";
+    }
+
+    for (LayoutLayer *layer : layout->getLayers())
+    {
+        for (LayoutItemGraph *itemgra : layer->getItemgraphs())
         {
-            GList *types = ((struct itemgra *)itemgra->data)->type;
-            while (types)
+            for (item_type type : itemgra->getItemTypes())
             {
-                if ((long)types->data == item->type)
+                if ((long)type == item->type)
                 {
-                    GList *elementIter = ((struct itemgra *)itemgra->data)->elements;
-                    while (elementIter)
+                    for (LayoutItemGraphElement *el : itemgra->getElements())
                     {
-                        struct element *el = (struct element *)elementIter->data;
-                        if (el->type == element::element_icon)
+                        if (el->getType() == LayoutElementType::LayoutElementIcon)
                         {
-                            char *src;
-                            char src_str[] = "%s";
-                            char *icon;
+                            LayoutIcon *layoutIcon = qobject_cast<LayoutIcon *>(el);
+                            QString src;
+                            QString iconStr;
+
                             if (item_is_custom_poi(*item))
                             {
                                 struct map_rect *mr = map_rect_new(item->map, NULL);
+                                attr icon_src;
                                 item = map_rect_get_item_byid(mr, item->id_hi, item->id_lo);
                                 if (item_attr_get(item, attr_icon_src, &icon_src))
                                 {
-                                    src = el->u.icon.src;
-                                    if (!src || !src[0])
-                                        src = src_str;
-                                    icon = g_strdup_printf(src, map_convert_string_tmp(item->map, icon_src.u.str));
+                                    src = layoutIcon->getSrc();
+                                    if (src.isEmpty())
+                                        src = "%s";
+
+                                    iconStr = QString(src).arg(map_convert_string_tmp(item->map, icon_src.u.str));
                                 }
                                 else
                                 {
-                                    icon = g_strdup(el->u.icon.src);
+                                    iconStr = layoutIcon->getSrc();
                                 }
                             }
                             else
                             {
-                                icon = g_strdup(el->u.icon.src);
+                                iconStr = layoutIcon->getSrc();
                             }
-                            icon[strlen(icon) - 3] = 's';
-                            icon[strlen(icon) - 2] = 'v';
-                            icon[strlen(icon) - 1] = 'g';
-                            return icon;
-                            // FIXME
-                            g_free(icon);
+                            // TODO: fix me
+                            iconStr = iconStr.replace(iconStr.size() - 3, 3, "svg");
+                            return iconStr;
                         }
-                        elementIter = g_list_next(elementIter);
                     }
                 }
-                types = g_list_next(types);
             }
-            itemgra = g_list_next(itemgra);
         }
-        layer = g_list_next(layer);
     }
-    return QString("unknown.svg");
+    return "unknown.svg";
 }

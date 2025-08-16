@@ -41,9 +41,9 @@ extern "C"
 
 #include "vehicle_demo.h"
 
-NavitVehicleInterface *VehicleDemoFactory::newVehicle(NavitInterface &navit, NavitVehicleAttrs &attrs, callback_list *cbl)
+NavitVehicleInterface *VehicleDemoFactory::instantiate(NavitInterface *navit)
 {
-    return new VehicleDemo(navit, attrs, cbl);
+    return new VehicleDemo(navit);
 }
 
 static void timer_callback(void *data)
@@ -55,29 +55,25 @@ static void timer_callback(void *data)
     }
 }
 
-VehicleDemo::VehicleDemo(NavitInterface &navit, NavitVehicleAttrs &attrs, callback_list *cbl, QObject *parent)
-    : NavitVehicleInterface(parent)
+VehicleDemo::VehicleDemo(NavitInterface *navit, QObject *parent) : NavitVehicleInterface(parent), m_navit(navit)
 {
+    assert(navit);
+
     dbg(lvl_debug, "enter");
-    m_cbl = cbl;
     m_interval = 1000;
     m_config_speed = 40;
     m_height = -10;
     m_timer_callback = callback_new_1(callback_cast(timer_callback), this);
-    m_valid = attr_position_valid_invalid;
+    m_valid = false;
 
     if (!m_timer)
         m_timer = event_add_timeout(m_interval, 1, m_timer_callback);
 
     // No attrs, so set everything
-    m_route = navit.get_route();
-    m_config_speed = attrs.config_speed;
-    m_height = attrs.height;
-    m_interval = attrs.interval;
-    m_geo = attrs.geo;
+    m_route = navit->get_route();
 }
 
-void VehicleDemo::destroy()
+VehicleDemo::~VehicleDemo()
 {
     if (m_timer)
         event_remove_timeout(m_timer);
@@ -165,7 +161,7 @@ int VehicleDemo::position_attr_get(
         attr->u.str = m_nmea;
         break;
     case attr_position_valid:
-        attr->u.num = m_valid;
+        attr->u.num = m_valid ? attr_position_valid_valid : attr_position_valid_invalid;
         break;
     default:
         return 0;
@@ -178,9 +174,6 @@ int VehicleDemo::set_attr_do(struct attr *attr)
 {
     switch (attr->type)
     {
-    case attr_navit:
-        m_navit = attr->u.navit;
-        break;
     case attr_route:
         m_route = attr->u.route;
         break;
@@ -198,10 +191,10 @@ int VehicleDemo::set_attr_do(struct attr *attr)
         break;
     case attr_position_coord_geo:
         m_geo = *(attr->u.coord_geo);
-        if (m_valid != attr_position_valid_valid)
+        if (!m_valid)
         {
-            m_valid = attr_position_valid_valid;
-            emit positionValidChanged(true);
+            m_valid = true;
+            emit positionValidChanged(m_valid);
         }
         m_position_set = 1;
         dbg(lvl_debug, "position_set %f %f", m_geo.lat, m_geo.lng);
@@ -314,9 +307,9 @@ void VehicleDemo::timer()
                 dbg(lvl_debug, "ci=0x%x,0x%x", ci.x, ci.y);
                 transform_to_geo(projection_mg, &ci,
                                  &m_geo);
-                if (m_valid != attr_position_valid_valid)
+                if (!m_valid)
                 {
-                    m_valid = attr_position_valid_valid;
+                    m_valid = true;
                     emit positionValidChanged(true);
                 }
                 emit positionChanged(m_geo);
@@ -333,14 +326,26 @@ void VehicleDemo::timer()
         map_rect_destroy(mr);
 }
 
-NavitVehicleInterface *get_vehicle_functions()
+bool VehicleDemo::isPositionValid() { return m_speed; }
+coord_geo VehicleDemo::getPosition() { return m_geo; }
+QString VehicleDemo::getIso8601Time()
 {
+    return m_currentIso;
 }
-
-void plugin_init(void)
+double VehicleDemo::getSpeed() { return m_speed; }
+double VehicleDemo::getDirection() { return m_direction; }
+int VehicleDemo::getFixType()
 {
-    dbg(lvl_debug, "enter");
-    // plugin_register_category(plugin_category_vehicle, "demo", get_vehicle_class);
+    int *flags = tracking_get_current_flags(navit_get_tracking(m_navit));
+    if (flags)
+    {
+        if (*flags & AF_UNDERGROUND)
+            return 0;
+    }
+    else
+    {
+        return 2;
+    }
+    return 0;
 }
-
-/** @} */
+int VehicleDemo::getLag() { return 0; }

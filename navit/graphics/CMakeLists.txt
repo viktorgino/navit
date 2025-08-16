@@ -28,9 +28,10 @@ add_library (graphics_qt5 SHARED graphics_qt5 graphics_qt5.cpp event_qt5.cpp qt5
     ${GUI_QT5_QML_QRC}
     ${QT5_QRC})
 
-target_link_libraries(graphics_qt5 PkgConfig::GMODULE PkgConfig::GLIB2)
+target_link_libraries(graphics_qt5 PkgConfig::GMODULE PkgConfig::GLIB2 Qt5::Core Qt5::Quick Qt5::Svg Qt5::Quick3D)
 
-target_include_directories(graphics_qt5 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../ ${CMAKE_CURRENT_SOURCE_DIR}/../../)
+
+target_include_directories(graphics_qt5 PRIVATE ${CMAKE_SOURCE_DIR}/navit ${CMAKE_SOURCE_DIR}/navit/includes)
 set_target_properties(graphics_qt5 PROPERTIES COMPILE_DEFINITIONS "MODULE=graphics_qt5")
 # pass QML and QWIDGET preference to source
 

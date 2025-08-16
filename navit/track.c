@@ -90,7 +90,7 @@ struct tracking
     struct mapset *ms;                     /**< The mapset */
     struct route *rt;                      /**< The route */
     struct map *map;                       /**< The tracking map which holds our past movements */
-    struct vehicle *vehicle;               /**< The vehicle from which we are obtaining location data */
+    VehicleHandle vehicle;                 /**< The vehicle from which we are obtaining location data */
     struct vehicleprofile *vehicleprofile; /**< The current vehicle profile */
     struct coord last_updated;
     struct tracking_line *lines;
@@ -653,7 +653,7 @@ static int tracking_value(struct tracking *tr, struct tracking_line *t, int offs
  * @param vehicleprofile The vehicle profile to use
  * @param pro The projection to use for transformations
  */
-void tracking_update(struct tracking *tr, struct vehicle *v, struct vehicleprofile *vehicleprofile,
+void tracking_update(struct tracking *tr, VehicleHandle v, struct vehicleprofile *vehicleprofile,
                      enum projection pro)
 {
     struct tracking_line *t;

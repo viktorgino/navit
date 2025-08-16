@@ -1,9 +1,10 @@
 #include "plugin_loader.h"
 
-PluginLoader::PluginLoader(NavitConfig &navitConfig, NavitHandle navit, QObject *parent) : QObject(parent),
-                                                                                           m_navitConfig(navitConfig),
-                                                                                           m_navit(navit)
+PluginLoader::PluginLoader(NavitConfig &navitConfig, NavitInterface *navit, QObject *parent) : QObject(parent),
+                                                                                               m_navitConfig(navitConfig),
+                                                                                               m_navit(navit)
 {
+    assert(m_navit);
     loadDebug(m_navitConfig.debug);
     loadPlugins(m_navitConfig.plugins);
 }
@@ -78,32 +79,41 @@ QObject *PluginLoader::loadPlugin(QString path)
 {
     QPluginLoader pluginLoader(path);
     QObject *plugin = pluginLoader.instance();
-    assert(plugin);
-    plugin->setParent(this);
     return plugin;
 }
 
 void PluginLoader::loadVehicles(QList<NavitVehicleConfig *> &configs)
 {
-    bool vehicleFound = false;
-
-    for (const NavitVehicleConfig *config : configs)
+    for (NavitVehicleConfig *config : configs)
     {
-        assert(config);
+        if (!config)
+        {
+            qWarning() << "Invalid vehicle config!";
+            continue;
+        }
+
+        if (!m_vehiclePlugins.contains(config->name))
+        {
+            qWarning() << "No plugin for:" << config->name;
+            continue;
+        }
+
+        NavitVehicleFactory *factory = qobject_cast<NavitVehicleFactory *>(loadPlugin(m_vehiclePlugins[config->name]));
+        if (!factory)
+        {
+            qWarning() << "Unable to load vehicle factory for: " << config->name;
+        }
+        Vehicle *vehicle = new Vehicle(m_navit, config, factory, this);
+
+        m_vehicles.append(vehicle);
+
         if (config->active)
         {
-            if (m_vehiclePlugins.contains(config->name))
-            {
-                vehicleFound = true;
-                NavitVehicleInterface *plugin = qobject_cast<NavitVehicleInterface *>(loadPlugin(m_vehiclePlugins[config->name]));
-                assert(plugin);
-                m_vehicle = new Vehicle(config, plugin, this);
-            }
-            break;
+            m_current_vehicle = vehicle;
         }
     }
 
-    if (!vehicleFound)
+    if (!m_current_vehicle)
     {
         qWarning() << "No active vehicle found!";
     }
@@ -114,7 +124,7 @@ void PluginLoader::loadTracking(NavitTrackingConfig &tracking)
     struct attr *attrs = g_new0(struct attr, 1);
     attrs->type = attr_cdf_histsize;
     attrs->u.num = tracking.cdf_histsize;
-    m_tracking = tracking_new(NULL, attr_generic_set_attr(NULL, attrs));
+    m_current_tracking = tracking_new(NULL, attr_generic_set_attr(NULL, attrs));
 }
 
 void PluginLoader::loadRoute(NavitRouteConfig &route)
@@ -122,7 +132,7 @@ void PluginLoader::loadRoute(NavitRouteConfig &route)
     struct attr *attrs = g_new0(struct attr, 1);
     attrs->type = attr_destination_distance;
     attrs->u.num = route.destination_distance;
-    m_route = route_new(NULL, &attrs);
+    m_current_route = route_new(NULL, &attrs);
 }
 
 void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
@@ -132,7 +142,7 @@ void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
 
     struct attr *attrs = g_new0(struct attr, 0);
 
-    m_navigation = navigation_new(parent, &attrs);
+    m_current_navigation = navigation_new(parent, &attrs);
 
     for (const NavitAnnounceConfig *announce : navigation.announce)
     {
@@ -147,7 +157,7 @@ void PluginLoader::loadNavigation(NavitNavigationConfig &navigation)
 
             if (itemType != type_none)
             {
-                navigation_set_announce(m_navigation, itemType, level);
+                navigation_set_announce(m_current_navigation, itemType, level);
             }
             else
             {
@@ -161,7 +171,7 @@ void PluginLoader::loadMaps(QList<NavitMap *> &maps)
 {
     struct attr *attrs = g_new0(struct attr, 0);
 
-    m_mapset = mapset_new(NULL, &attrs);
+    m_current_mapset = mapset_new(NULL, &attrs);
 
     for (const NavitMap *map : maps)
     {
@@ -175,16 +185,16 @@ void PluginLoader::loadMaps(QList<NavitMap *> &maps)
 
         map_attr.type = attr_map;
         map_attr.u.map = map_new(NULL, &map_attrs);
-        mapset_add_attr(m_mapset, &map_attr);
+        mapset_add_attr(m_current_mapset, &map_attr);
     }
 }
 
-tracking *PluginLoader::getTracking() { return m_tracking; }
+tracking *PluginLoader::getTracking() { return m_current_tracking; }
 
-route *PluginLoader::getRoute() { return m_route; }
+route *PluginLoader::getRoute() { return m_current_route; }
 
-navigation *PluginLoader::getNavigation() { return m_navigation; }
+navigation *PluginLoader::getNavigation() { return m_current_navigation; }
 
-Vehicle *PluginLoader::getVehicle() { return m_vehicle; }
+Vehicle *PluginLoader::getVehicle() { return m_current_vehicle; }
 
-mapset *PluginLoader::getMapset() { return m_mapset; }
+mapset *PluginLoader::getMapset() { return m_current_mapset; }

@@ -240,7 +240,7 @@ QPixmap &GraphicsQt5::pixmap()
     return m_pixmap;
 }
 
-struct graphics_image_priv *GraphicsQt5::image_new(struct graphics_image_methods *meth, char *path,
+struct graphics_image_priv *GraphicsQt5::image_new(struct graphics_image_methods *meth, QString &path,
                                                    int *w, int *h, struct point *hot, int rotation)
 {
     struct graphics_image_priv *image_priv;
@@ -267,13 +267,13 @@ struct graphics_image_priv *GraphicsQt5::image_new(struct graphics_image_methods
         if (extension != "")
         {
             /*file doesn't exist. give up */
-            dbg(lvl_debug, "File %s does not exist", path);
+            qWarning() << "File does not exist: " << path;
             return NULL;
         }
         else
         {
             /* add ".svg" for renderer to try .svg file first in renderer */
-            dbg(lvl_debug, "Guess extension on %s", path);
+            dbg(lvl_debug, "Guess extension on %s", path.toLocal8Bit().data());
             renderer_key += ".svg";
         }
     }
@@ -286,7 +286,7 @@ struct graphics_image_priv *GraphicsQt5::image_new(struct graphics_image_methods
         QSvgRenderer renderer(renderer_key);
         if (renderer.isValid())
         {
-            dbg(lvl_debug, "render %s", path);
+            dbg(lvl_debug, "render %s", path.toLocal8Bit().data());
             /* try to render this */
             /* assume "standard" size if size is not given */
             if (*w <= 0)
@@ -303,7 +303,7 @@ struct graphics_image_priv *GraphicsQt5::image_new(struct graphics_image_methods
     if (image_priv->pixmap == nullptr)
     {
         /*cannot be rendered. try to load it */
-        dbg(lvl_debug, "cannot render %s", path);
+        dbg(lvl_debug, "cannot render %s", path.toLocal8Bit().data());
         image_priv->pixmap = new QPixmap(key);
     }
 
@@ -320,7 +320,7 @@ struct graphics_image_priv *GraphicsQt5::image_new(struct graphics_image_methods
         {
             if ((image_priv->pixmap->width() != *w) || (image_priv->pixmap->height() != *h))
             {
-                dbg(lvl_debug, "scale pixmap %s, %d->%d,%d->%d", path, image_priv->pixmap->width(), *w, image_priv->pixmap->height(),
+                dbg(lvl_debug, "scale pixmap %s, %d->%d,%d->%d", path.toLocal8Bit().data(), image_priv->pixmap->width(), *w, image_priv->pixmap->height(),
                     *h);
                 QPixmap *scaled = new QPixmap(image_priv->pixmap->scaled(*w, *h, Qt::IgnoreAspectRatio, Qt::FastTransformation));
                 delete (image_priv->pixmap);
@@ -439,12 +439,12 @@ void GraphicsQt5::draw_circle(NavitGraphicsContextInterface *gc, struct point *p
  *
  * Renders given text on gr surface. Draws nice contrast outline around text.
  */
-void GraphicsQt5::draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsContextInterface *bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy)
+void GraphicsQt5::draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsContextInterface *bg, struct graphics_font_priv *font, QString &text, struct point *p, int dx, int dy)
 {
-    dbg(lvl_debug, "enter gr=%p, fg=%p, bg=%p pos(%d,%d) d(%d, %d) %s", this, fg, bg, p->x, p->y, dx, dy, text);
+    dbg(lvl_debug, "enter gr=%p, fg=%p, bg=%p pos(%d,%d) d(%d, %d) %s", this, fg, bg, p->x, p->y, dx, dy, text.toLocal8Bit().data());
 
     GraphicsContextQt5 *fgContext = dynamic_cast<GraphicsContextQt5 *>(fg);
-    GraphicsContextQt5 *bgContext = dynamic_cast<GraphicsContextQt5 *>(bg);
+    // GraphicsContextQt5 *bgContext = dynamic_cast<GraphicsContextQt5 *>(bg);
     if (m_painter == nullptr)
         return;
 #if HAVE_FREETYPE
@@ -519,7 +519,6 @@ void GraphicsQt5::draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsCont
     }
     m_freetype_methods.text_destroy(t);
 #else
-    QString tmp = QString::fromUtf8(text);
     qreal m_dx = ((qreal)dx) / 65536.0;
     qreal m_dy = ((qreal)dy) / 65536.0;
     QTransform sav = m_painter->worldTransform();
@@ -534,12 +533,12 @@ void GraphicsQt5::draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsCont
     outline.setColor(QColor(0, 0, 0, 200));
     outline.setWidth(3);
     m_painter->setPen(outline);
-    path.addText(0, 0, *font->font, tmp);
+    path.addText(0, 0, *font->font, text);
     m_painter->drawPath(path);
 
     // Paint fg
     m_painter->setPen(fgContext->pen());
-    m_painter->drawText(0, 0, tmp);
+    m_painter->drawText(0, 0, text);
 
     m_painter->setWorldTransform(sav);
 #endif
@@ -695,18 +694,17 @@ void GraphicsQt5::image_free(struct graphics_image_priv *priv)
  *
  * Calculates the bounding box around the given text.
  */
-void GraphicsQt5::get_text_bbox(struct graphics_font_priv *font, char *text, int dx, int dy,
+void GraphicsQt5::get_text_bbox(struct graphics_font_priv *font, QString &text, int dx, int dy,
                                 struct point *ret, int estimate)
 {
     int i;
     struct point pt;
-    QString tmp = QString::fromUtf8(text);
     QRect r;
     //        dbg(lvl_debug,"enter %s %d %d", text, dx, dy);
 
     /* use QFontMetrix for bbox calculation as we do not always have a painter */
     QFontMetrics fm(*font->font);
-    r = fm.boundingRect(tmp);
+    r = fm.boundingRect(text);
 
     /* low left */
     ret[0].x = r.left();
@@ -869,18 +867,16 @@ void GraphicsContextQt5::set_dashes(int w, int offset, unsigned char *dash_list,
     m_pen.setDashPattern(dashes);
 }
 
-void GraphicsContextQt5::set_foreground(QColor *c)
+void GraphicsContextQt5::set_foreground(const QColor &c)
 {
-    QColor col(c->r >> 8, c->g >> 8, c->b >> 8, c->a >> 8);
-    m_pen.setColor(col);
-    m_brush.setColor(col);
+    m_pen.setColor(c);
+    m_brush.setColor(c);
 }
 
-void GraphicsContextQt5::set_background(QColor *c)
+void GraphicsContextQt5::set_background(const QColor &c)
 {
-    QColor col(c->r >> 8, c->g >> 8, c->b >> 8, c->a >> 8);
-    m_bg_pen.setColor(col);
-    m_bg_brush.setColor(col);
+    m_bg_pen.setColor(c);
+    m_bg_brush.setColor(c);
 }
 
 void GraphicsContextQt5::set_texture(struct graphics_image *img)

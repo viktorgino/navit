@@ -41,18 +41,13 @@ class Vehicle : public QObject
 {
     Q_OBJECT
 public:
-    Vehicle(const NavitVehicleConfig *config, NavitVehicleInterface *plugin, QObject *parent = nullptr);
-    // struct vehicle *new(struct attr *parent, struct attr **attrs);
+    Vehicle(NavitInterface *navit, NavitVehicleConfig *config, NavitVehicleFactory *factory, QObject *parent = nullptr);
+    ~Vehicle();
+
     void destroy();
-    int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter);
-    int set_attr(struct attr *attr);
-    int add_attr(struct attr *attr);
     int remove_attr(struct attr *attr);
     void set_cursor(LayoutCursor *cursor, int overwrite);
     void draw(Graphics *gra, struct point *pnt, int angle, int speed);
-    int get_cursor_data(struct point *pnt, int *angle, int *speed);
-    struct vehicle *ref();
-    void unref();
 
     static attr_iter *attr_iter_new(void *unused);
     static void attr_iter_destroy(struct attr_iter *iter);
@@ -60,17 +55,43 @@ public:
 
     void draw_do();
 
+    // Getters
+    bool isPositionValid();
+    coord_geo getPosition();
+    QString getIso8601Time();
+    double getSpeed();
+    double getDirection();
+    int getFixType();
+    int getLag();
+
+    const int &getFollow();
+    const int &getFollowCursor();
+
+    const QString &getName();
+    const QString &getCursorName();
+    const QString &getProfileName();
+
+    // Setters
+    void setFollowCursor(const int &followCursor);
+
 signals:
     void positionValidChanged(const bool &isValid);
     void positionChanged(const coord_geo &position);
+    void fixTypeChanged(double &hdop);
+    void hdopChanged(double &hdop);
+    void satellitesChanged(int satellites);
 
 private:
+    NavitVehicleConfig *m_config;
     NavitVehicleInterface *m_plugin;
+
     struct callback_list *m_cbl;
     struct log *m_nmea_log, *m_gpx_log;
     char *m_gpx_desc;
 
     QString m_name;
+    int m_follow;
+    int m_followCursor;
 
     // cursor
     LayoutCursor *m_cursor;
@@ -89,7 +110,6 @@ private:
     int m_sequence;
     GHashTable *m_log_to_cb;
 
-    void set_default_name(const QString &name);
     void log_nmea(struct log *log);
     void log_gpx(struct log *log);
     void log_textfile(struct log *log);

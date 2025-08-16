@@ -1,5 +1,4 @@
 #include "transform_2.h"
-#include "transform.h"
 
 struct coord_3d
 {
@@ -24,7 +23,7 @@ struct z_clip_result
 #define HOG(t) 0
 #endif
 
-static struct point transform_project_onto_view_plane(struct transformation *t, struct coord_3d c)
+struct point transform_project_onto_view_plane(struct transformation *t, struct coord_3d c)
 {
     struct point result;
     result.x = (long long)c.x * t->xscale / c.z;
@@ -32,7 +31,7 @@ static struct point transform_project_onto_view_plane(struct transformation *t, 
     return result;
 }
 
-static int transform_points_too_close(struct point screen_point, LayoutCoord *screen_point_old, int mindist)
+int transform_points_too_close(struct point screen_point, LayoutCoord *screen_point_old, int mindist)
 {
     if (!mindist)
     {
@@ -43,8 +42,8 @@ static int transform_points_too_close(struct point screen_point, LayoutCoord *sc
             abs(screen_point.y - screen_point_old->getY())) < mindist;
 }
 
-static const navit_float gar2geo_units = 360.0 / (1 << 24);
-static const navit_float geo2gar_units = 1 / (360.0 / (1 << 24));
+const navit_float gar2geo_units = 360.0 / (1 << 24);
+const navit_float geo2gar_units = 1 / (360.0 / (1 << 24));
 
 void transform_to_geo2(enum projection pro, LayoutCoord *coord, struct coord_geo *g)
 {
@@ -90,8 +89,8 @@ void transform_from_geo2(enum projection pro, struct coord_geo *g, LayoutCoord *
     }
 }
 
-static void transform_correct_projection(struct transformation *t, enum projection required_projection,
-                                         LayoutCoord *coord, LayoutCoord *result)
+void transform_correct_projection(struct transformation *t, enum projection required_projection,
+                                  LayoutCoord *coord, LayoutCoord *result)
 {
     struct coord_geo g;
     if (required_projection == t->pro)
@@ -105,7 +104,7 @@ static void transform_correct_projection(struct transformation *t, enum projecti
     }
 }
 
-static void transform_shift_by_center_and_scale(struct transformation *t, LayoutCoord *coord, LayoutCoord *result)
+void transform_shift_by_center_and_scale(struct transformation *t, LayoutCoord *coord, LayoutCoord *result)
 {
     int x = coord->getX() - t->map_center.x;
     int y = coord->getY() - t->map_center.y;
@@ -115,7 +114,7 @@ static void transform_shift_by_center_and_scale(struct transformation *t, Layout
     result->set(x, y);
 }
 
-static struct coord_3d transform_rotate(struct transformation *t, LayoutCoord *coord)
+coord_3d transform_rotate(struct transformation *t, LayoutCoord *coord)
 {
     struct coord_3d result;
     result.x = coord->getX() * t->m00 + coord->getY() * t->m01 + HOG(*t) * t->m02;
@@ -126,7 +125,7 @@ static struct coord_3d transform_rotate(struct transformation *t, LayoutCoord *c
     return result;
 }
 
-static struct coord_3d transform_z_clip(struct coord_3d c, struct coord_3d c_old, int zlimit)
+coord_3d transform_z_clip(struct coord_3d c, struct coord_3d c_old, int zlimit)
 {
     struct coord_3d result;
     float clip_factor = ((float)zlimit - c.z) / (c_old.z - c.z);
@@ -138,8 +137,8 @@ static struct coord_3d transform_z_clip(struct coord_3d c, struct coord_3d c_old
     return result;
 }
 
-static struct z_clip_result transform_z_clip_if_necessary(struct coord_3d coord, int zlimit,
-                                                          struct z_clip_result clip_result_old)
+z_clip_result transform_z_clip_if_necessary(struct coord_3d coord, int zlimit,
+                                            struct z_clip_result clip_result_old)
 {
     int visibility_changed;
     struct z_clip_result clip_result = {{0, 0}, 0, 0, 0};
@@ -166,32 +165,25 @@ static struct z_clip_result transform_z_clip_if_necessary(struct coord_3d coord,
     return clip_result;
 }
 
-int transform_point(struct transformation *t, enum projection required_projection, LayoutCoord *coord, LayoutCoord *result)
+void transform_point(transformation *t, projection required_projection, LayoutCoord *coord, LayoutCoord *result)
 {
     QVector<LayoutCoord *> coords;
-    coords.append(coord);
-
     QVector<LayoutCoord *> results;
+
+    coords.append(coord);
     coords.append(result);
-
-    int ret = transform_point_buf(t, required_projection, coords, results, 0, 0, NULL);
-
-    return ret;
+    transform_point_buf(t, required_projection, coords, results, 0, 0, nullptr);
 }
 
-int transform_point_buf(struct transformation *t, enum projection required_projection, QVector<LayoutCoord *> &coords,
-                        QVector<LayoutCoord *> &result, int mindist, int width, int *width_result)
+void transform_point_buf(transformation *t, projection required_projection, QVector<LayoutCoord *> &coords, QVector<LayoutCoord *> &result, int mindist, int width, QVector<int> *width_result)
 {
     LayoutCoord projected_coord, shifted_coord;
     struct coord_3d rotated_coord;
-    struct point screen_point;
     int zlimit = t->znear;
     struct z_clip_result clip_result, clip_result_old = {{0, 0}, -1, 0, 0};
-    int i, result_idx = 0, result_idx_last = 0;
-    long max_results = result.size() / sizeof(struct point);
 
     dbg(lvl_debug, "count=%d", coords.size());
-    for (i = 0; i < coords.size(); i++)
+    for (int i = 0; i < coords.size(); i++)
     {
         int x, y;
         dbg(lvl_debug, "input coord %d: (%d, %d)", i, coords[i]->getX(), coords[i]->getY());
@@ -206,17 +198,7 @@ int transform_point_buf(struct transformation *t, enum projection required_proje
             clip_result_old = clip_result;
             if (clip_result.process_coord_again)
             {
-                /* if we repeat an interation, we have to make sure that there is enough space in the result buffer to
-                   not overflow. */
-                if (result_idx + 1 < max_results)
-                {
-                    i--;
-                }
-                else
-                {
-                    dbg(lvl_debug, "Not enough space in buf for transform_point_buf");
-                    return TRANSFORM_ERR_BUF_SPACE;
-                }
+                i--;
             }
             else if (clip_result.skip_coord)
             {
@@ -238,7 +220,7 @@ int transform_point_buf(struct transformation *t, enum projection required_proje
         if (i != 0 && i != coords.size() - 1 &&
             (coords[i + 1]->getX() != coords[0]->getX() || coords[i + 1]->getY() != coords[0]->getY()))
         {
-            if (transform_points_too_close(point(x, y), result[result_idx_last], mindist))
+            if (i > 0 && transform_points_too_close(point(x, y), result[i - 1], mindist))
             {
                 continue;
             }
@@ -251,13 +233,12 @@ int transform_point_buf(struct transformation *t, enum projection required_proje
             if (t->ddd)
             {
                 dbg(lvl_debug, "width %d * %d / %d", width, t->wscale, clip_result.clipped_coord.z);
-                width_result[result_idx] = width * t->wscale / clip_result.clipped_coord.z;
+                width_result->append(width * t->wscale / clip_result.clipped_coord.z);
             }
             else
-                width_result[result_idx] = width;
+            {
+                width_result->append(width);
+            }
         }
-        result_idx_last = result_idx;
-        result_idx++;
     }
-    return result_idx;
 }

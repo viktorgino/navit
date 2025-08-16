@@ -178,7 +178,7 @@ void GraphicsDisplayList::close(struct displaylist_handle *dlh)
     g_free(dlh);
 }
 
-void GraphicsDisplayList::destroy()
+GraphicsDisplayList::~GraphicsDisplayList()
 {
     if (m_display_context.trans)
         transform_destroy(m_display_context.trans);
@@ -218,6 +218,11 @@ void GraphicsDisplayList::xdisplay_draw_elements(LayoutItemGraph *itemGraph, Lay
         {
             m_display_context.type = type;
             entry = get_hash_entry(type);
+            if (entry && entry->di)
+            {
+                m_graphics.displayitem_draw(entry->di, layout, &m_display_context);
+                m_graphics.display_context_free(&m_display_context);
+            }
             m_graphics.display_context_free(&m_display_context);
         }
     }
@@ -516,106 +521,62 @@ int GraphicsDisplayList::draw_cancel()
  * @param p changeable pointer to buffer. Advanced by the size used
  * @returns pointer to newly created holes structure
  */
-struct displayitem_poly_holes *GraphicsDisplayList::display_add_holes(struct item *item, int hole_count, char **p)
+void GraphicsDisplayList::display_add_holes(struct displayitem *di, struct item *item, char **p)
 {
     struct attr attr;
-    struct displayitem_poly_holes *holes;
-    holes = (struct displayitem_poly_holes *)*p;
-    *p += sizeof(*holes);
-    holes->count = 0;
-    holes->ccount = (int *)*p;
-    *p += hole_count * sizeof(int);
-    holes->coords = (struct coord **)*p;
-    *p += hole_count * sizeof(struct coord *);
     item_attr_rewind(item);
     while (item_attr_get(item, attr_poly_hole, &attr))
     {
-        holes->coords[holes->count] = (struct coord *)*p;
-        holes->ccount[holes->count] = attr.u.poly_hole->coord_count;
-        memcpy(holes->coords[holes->count], attr.u.poly_hole->coord, holes->ccount[holes->count] * sizeof(struct coord));
-        *p += holes->ccount[holes->count] * sizeof(struct coord);
-        holes->count++;
+        QVector<LayoutCoord *> hole;
+        di->holes.append(hole);
+        for (int i = 0; i < attr.u.poly_hole->coord_count; i++)
+        {
+            coord &c = attr.u.poly_hole->coord[i];
+            hole.append(new LayoutCoord(c.x, c.y));
+        }
     }
-    return holes;
 }
 
 void GraphicsDisplayList::display_add(struct hash_entry *entry, struct item *item, int count, struct coord *c, char **label, int label_count)
 {
-    struct displayitem *di;
-    int len, i;
+    struct displayitem *di = new displayitem;
     char *p;
     struct attr attr;
-    int hole_count = 0;
-    int hole_total_coords = 0;
-    int holes_length;
-    int flags = 0;
 
-    /* calculate number of bytes required */
-    /* own length */
-    len = sizeof(*di) + count * sizeof(*c);
-    /* add length of lables including closing zero */
-    if (label && label_count)
-    {
-        for (i = 0; i < label_count; i++)
-        {
-            if (label[i])
-                len += strlen(label[i]) + 1;
-            else
-                len++;
-        }
-    }
     /* check for and remember flags (for underground drawing) */
     item_attr_rewind(item);
     if (item_attr_get(item, attr_flags, &attr))
     {
-        flags = attr.u.num;
+        di->flags = attr.u.num;
     }
-    /* add length for holes */
-    item_attr_rewind(item);
-    while (item_attr_get(item, attr_poly_hole, &attr))
-    {
-        hole_count++;
-        hole_total_coords += attr.u.poly_hole->coord_count;
-    }
-    holes_length = sizeof(struct displayitem_poly_holes) + hole_count * sizeof(int) + hole_count * sizeof(struct coord *) + hole_total_coords * sizeof(struct coord);
-    if (hole_count > 0)
-        dbg(lvl_debug, "got %d holes with %d coords total", hole_count, hole_total_coords);
-    len += holes_length;
 
-    p = (char *)g_malloc(len);
-
-    di = (struct displayitem *)p;
-    p += sizeof(*di) + count * sizeof(*c);
     di->item = *item;
     di->z_order = 0;
-    di->flags = flags;
-    di->holes = NULL;
-    if (hole_count > 0)
-    {
-        di->holes = display_add_holes(item, hole_count, &p);
-    }
+
+    display_add_holes(di, item, &p);
     if (label && label_count)
     {
-        di->label = p;
-        for (i = 0; i < label_count; i++)
+        for (int i = 0; i < label_count; i++)
         {
             if (label[i])
             {
-                strcpy(p, label[i]);
-                p += strlen(label[i]) + 1;
+                di->label.append(label[i]);
             }
             else
-                *p++ = '\0';
+            {
+                di->label.append("");
+            }
         }
     }
-    else
-        di->label = NULL;
-    di->count = count;
-    memcpy(di->c, c, count * sizeof(*c));
+
+    for (int i = 0; i < count; i++)
+    {
+        di->coords.append(new LayoutCoord(&c[i]));
+    }
+
     di->next = entry->di;
     entry->di = di;
 }
-
 #pragma endregion
 #pragma region Selection
 
@@ -733,58 +694,58 @@ void GraphicsDisplayList::clear_selection()
 #pragma endregion
 #pragma region Distance
 
-int GraphicsDisplayList::within_dist_point(struct point *p0, struct point *p1, int dist)
+int GraphicsDisplayList::within_dist_point(LayoutCoord *p0, LayoutCoord *p1, int dist)
 {
-    if (p0->x == 32767 || p0->y == 32767 || p1->x == 32767 || p1->y == 32767)
+    if (p0->getX() == 32767 || p0->getY() == 32767 || p1->getX() == 32767 || p1->getY() == 32767)
         return 0;
-    if (p0->x == -32768 || p0->y == -32768 || p1->x == -32768 || p1->y == -32768)
+    if (p0->getX() == -32768 || p0->getY() == -32768 || p1->getX() == -32768 || p1->getY() == -32768)
         return 0;
-    if ((p0->x - p1->x) * (p0->x - p1->x) + (p0->y - p1->y) * (p0->y - p1->y) <= dist * dist)
+    if ((p0->getX() - p1->getX()) * (p0->getX() - p1->getX()) + (p0->getY() - p1->getY()) * (p0->getY() - p1->getY()) <= dist * dist)
     {
         return 1;
     }
     return 0;
 }
 
-int GraphicsDisplayList::within_dist_line(struct point *p, struct point *line_p0, struct point *line_p1, int dist)
+int GraphicsDisplayList::within_dist_line(LayoutCoord *p, LayoutCoord *line_p0, LayoutCoord *line_p1, int dist)
 {
     int vx, vy, wx, wy;
     int c1, c2;
-    struct point line_p;
+    LayoutCoord line_p;
 
-    if (line_p0->x < line_p1->x)
+    if (line_p0->getX() < line_p1->getX())
     {
-        if (p->x < line_p0->x - dist)
+        if (p->getX() < line_p0->getX() - dist)
             return 0;
-        if (p->x > line_p1->x + dist)
+        if (p->getX() > line_p1->getX() + dist)
             return 0;
     }
     else
     {
-        if (p->x < line_p1->x - dist)
+        if (p->getX() < line_p1->getX() - dist)
             return 0;
-        if (p->x > line_p0->x + dist)
+        if (p->getX() > line_p0->getX() + dist)
             return 0;
     }
-    if (line_p0->y < line_p1->y)
+    if (line_p0->getY() < line_p1->getY())
     {
-        if (p->y < line_p0->y - dist)
+        if (p->getY() < line_p0->getY() - dist)
             return 0;
-        if (p->y > line_p1->y + dist)
+        if (p->getY() > line_p1->getY() + dist)
             return 0;
     }
     else
     {
-        if (p->y < line_p1->y - dist)
+        if (p->getY() < line_p1->getY() - dist)
             return 0;
-        if (p->y > line_p0->y + dist)
+        if (p->getY() > line_p0->getY() + dist)
             return 0;
     }
 
-    vx = line_p1->x - line_p0->x;
-    vy = line_p1->y - line_p0->y;
-    wx = p->x - line_p0->x;
-    wy = p->y - line_p0->y;
+    vx = line_p1->getX() - line_p0->getX();
+    vy = line_p1->getY() - line_p0->getY();
+    wx = p->getX() - line_p0->getX();
+    wy = p->getY() - line_p0->getY();
 
     c1 = vx * wx + vy * wy;
     if (c1 <= 0)
@@ -793,74 +754,60 @@ int GraphicsDisplayList::within_dist_line(struct point *p, struct point *line_p0
     if (c2 <= c1)
         return within_dist_point(p, line_p1, dist);
 
-    line_p.x = line_p0->x + vx * c1 / c2;
-    line_p.y = line_p0->y + vy * c1 / c2;
+    line_p.set(line_p0->getX() + vx * c1 / c2, line_p0->getY() + vy * c1 / c2);
     return within_dist_point(p, &line_p, dist);
 }
 
-int GraphicsDisplayList::within_dist_polyline(struct point *p, struct point *line_pnt, int count, int dist, int close)
+int GraphicsDisplayList::within_dist_polyline(LayoutCoord *p, QVector<LayoutCoord *> &line_pnt, int dist, int close)
 {
     int i;
-    for (i = 0; i < count - 1; i++)
+    for (i = 0; i < line_pnt.size() - 1; i++)
     {
-        if (within_dist_line(p, line_pnt + i, line_pnt + i + 1, dist))
+        if (within_dist_line(p, line_pnt[i], line_pnt[i + 1], dist))
         {
             return 1;
         }
     }
     if (close)
-        return (within_dist_line(p, line_pnt, line_pnt + count - 1, dist));
+        return (within_dist_line(p, line_pnt.first(), line_pnt.last(), dist));
     return 0;
 }
 
-int GraphicsDisplayList::within_dist_polygon(struct point *p, struct point *poly_pnt, int count, int dist)
+int GraphicsDisplayList::within_dist_polygon(LayoutCoord *p, QVector<LayoutCoord *> &poly_pnt, int dist)
 {
     int i, j, c = 0;
-    for (i = 0, j = count - 1; i < count; j = i++)
+    for (i = 0, j = poly_pnt.size() - 1; i < poly_pnt.size(); j = i++)
     {
-        if ((((poly_pnt[i].y <= p->y) && (p->y < poly_pnt[j].y)) ||
-             ((poly_pnt[j].y <= p->y) && (p->y < poly_pnt[i].y))) &&
-            (p->x < (poly_pnt[j].x - poly_pnt[i].x) * (p->y - poly_pnt[i].y) / (poly_pnt[j].y - poly_pnt[i].y) + poly_pnt[i].x))
+        if ((((poly_pnt[i]->getY() <= p->getY()) && (p->getY() < poly_pnt[j]->getY())) ||
+             ((poly_pnt[j]->getY() <= p->getY()) && (p->getY() < poly_pnt[i]->getY()))) &&
+            (p->getX() < (poly_pnt[j]->getX() - poly_pnt[i]->getX()) * (p->getY() - poly_pnt[i]->getY()) / (poly_pnt[j]->getY() - poly_pnt[i]->getY()) + poly_pnt[i]->getX()))
             c = !c;
     }
     if (!c)
-        return within_dist_polyline(p, poly_pnt, count, dist, 1);
+        return within_dist_polyline(p, poly_pnt, dist, 1);
     return c;
 }
 
-int GraphicsDisplayList::displayitem_within_dist(struct displayitem *di, struct point *p, int dist)
+int GraphicsDisplayList::displayitem_within_dist(struct displayitem *di, LayoutCoord *p, int dist)
 {
     int result;
-    struct point *pa;
-    int count;
-    long pa_buf_size = sizeof(struct point) * m_display_context.maxlen;
+    QVector<LayoutCoord *> pa;
 
-    if (m_display_context.maxlen < ALLOCA_COORD_LIMIT)
-    {
-        pa = (struct point *)g_alloca(pa_buf_size);
-    }
-    else
-    {
-        pa = (struct point *)g_malloc(pa_buf_size);
-    }
-
-    count = transform_point_buf(m_display_context.trans, m_display_context.pro, di->coords, pa, pa_buf_size, 0, 0, NULL);
+    transform_point_buf(m_display_context.trans, m_display_context.pro, di->coords, pa, 0, 0, NULL);
 
     if (di->item.type < type_line)
     {
-        result = within_dist_point(p, &pa[0], dist);
+        result = within_dist_point(p, pa[0], dist);
     }
     else if (di->item.type < type_area)
     {
-        result = within_dist_polyline(p, pa, count, dist, 0);
+        result = within_dist_polyline(p, pa, dist, 0);
     }
     else
-        result = within_dist_polygon(p, pa, count, dist);
+        result = within_dist_polygon(p, pa, dist);
 
-    if (m_display_context.maxlen >= ALLOCA_COORD_LIMIT)
-    {
-        g_free(pa);
-    }
+    qDeleteAll(pa);
+
     return result;
 }
 
@@ -876,7 +823,7 @@ int GraphicsDisplayList::cmp_zorder(const struct displayitem *a, const struct di
     return 0;
 }
 
-GList *GraphicsDisplayList::get_clicked_list(struct point *p, int radius)
+GList *GraphicsDisplayList::get_clicked_list(LayoutCoord *p, int radius)
 {
     GList *l = NULL;
     struct displayitem *di;

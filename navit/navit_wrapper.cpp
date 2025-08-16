@@ -252,11 +252,6 @@ int navit_get_blocked(NavitHandle navit)
 {
     return ((Navit *)navit)->get_blocked();
 }
-void navit_destroy(NavitHandle navit)
-{
-    return ((Navit *)navit)->destroy();
-}
-
 GraphicsGCHandle graphics_gc_new(GraphicsHandle graphics)
 {
     GraphicsFunctions &graphics_functions = ((Graphics *)graphics)->get_graphics_functions();
@@ -298,14 +293,6 @@ void graphics_draw_mode(GraphicsHandle graphics, enum draw_mode_num mode)
 {
     ((Graphics *)graphics)->draw_mode(mode);
 }
-void graphics_draw_rectangle(GraphicsHandle graphics, GraphicsGCHandle *gc, struct point *p, int w, int h)
-{
-    ((Graphics *)graphics)->draw_rectangle((GraphicsContext *)gc, p, w, h);
-}
-void graphics_draw_itemgra(GraphicsHandle graphics, struct itemgra *itm, struct transformation *t, char *label)
-{
-    ((Graphics *)graphics)->draw_itemgra(itm, t, label);
-}
 int graphics_draw_drag(GraphicsHandle graphics, struct point *p)
 {
     return ((Graphics *)graphics)->draw_drag(p);
@@ -314,19 +301,3 @@ char *graphics_icon_path(const char *icon)
 {
     return Graphics::icon_path(icon).toLocal8Bit().data();
 }
-
-struct object_func navit_func = {
-    attr_navit,
-    (object_func_new)navit_new,
-    (object_func_get_attr)navit_get_attr,
-    (object_func_iter_new)navit_attr_iter_new,
-    (object_func_iter_destroy)navit_attr_iter_destroy,
-    (object_func_set_attr)navit_set_attr,
-    (object_func_add_attr)navit_add_attr,
-    (object_func_remove_attr)navit_remove_attr,
-    (object_func_init)navit_init,
-    (object_func_destroy)navit_destroy,
-    (object_func_dup)NULL,
-    (object_func_ref)navit_object_ref,
-    (object_func_unref)navit_object_unref,
-};

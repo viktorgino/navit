@@ -23,7 +23,7 @@ class PluginLoader : public QObject
 {
     Q_OBJECT
 public:
-    PluginLoader(NavitConfig &navitConfig, NavitHandle navit, QObject *parent = nullptr);
+    PluginLoader(NavitConfig &navitConfig, NavitInterface *navit, QObject *parent = nullptr);
 
     void loadModules();
 
@@ -35,15 +35,18 @@ public:
 
 private:
     NavitConfig &m_navitConfig;
-    NavitHandle m_navit;
+    NavitInterface *m_navit;
 
-    QList<debug *> m_debugConfigs;
-    QList<plugin *> m_plugins;
-    Vehicle *m_vehicle;
-    tracking *m_tracking;
-    route *m_route;
-    navigation *m_navigation;
-    mapset *m_mapset;
+    QVector<debug *> m_debugConfigs;
+    QVector<plugin *> m_plugins;
+
+    QVector<Vehicle *> m_vehicles;
+
+    Vehicle *m_current_vehicle;
+    tracking *m_current_tracking;
+    route *m_current_route;
+    navigation *m_current_navigation;
+    mapset *m_current_mapset;
 
     QMap<QString, QString> m_vehiclePlugins;
 

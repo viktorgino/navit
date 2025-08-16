@@ -151,6 +151,8 @@ extern "C"
         short min, max;
     };
 
+    typedef void *VehicleHandle;
+
     struct attr
     {
         enum attr_type type;
@@ -168,7 +170,7 @@ extern "C"
             void *navit;
             struct callback *callback;
             struct callback_list *callback_list;
-            struct vehicle *vehicle;
+            VehicleHandle *vehicle;
             struct layout *layout;
             struct layer *layer;
             struct map *map;

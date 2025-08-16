@@ -223,7 +223,7 @@ struct route
     int route_status;                           /**< Route Status */
     int link_path;                              /**< Link paths over multiple waypoints together */
     struct pcoord pc;
-    struct vehicle *v;
+    VehicleHandle *v;
 };
 
 #define HASHCOORD(c) ((((c)->x + (c)->y) * 2654435761UL) & (HASH_SIZE - 1))
@@ -4688,11 +4688,6 @@ int route_set_attr(struct route *this_, struct attr *attr)
     case attr_destination:
         route_set_destination(this_, attr->u.pcoord, 1);
         return 1;
-    case attr_position:
-        route_set_position_flags(this_, attr->u.pcoord, route_path_flag_async);
-        return 1;
-    case attr_position_test:
-        return route_set_position_flags(this_, attr->u.pcoord, route_path_flag_no_rebuild);
     case attr_vehicle:
         attr_updated = (this_->v != attr->u.vehicle);
         this_->v = attr->u.vehicle;

@@ -1,52 +1,46 @@
 #include "vehicle.h"
 #include "vehicle_wrapper.h"
 
-void vehicle_destroy(VehicleHandle vehicle)
+int vehicle_get_attr(VehicleHandle v, enum attr_type type, struct attr *attr, struct attr_iter *iter)
 {
-    return ((Vehicle *)vehicle)->destroy();
-}
-struct attr_iter *vehicle_attr_iter_new(void *unused)
-{
-    return Vehicle::attr_iter_new(unused);
-}
-void vehicle_attr_iter_destroy(struct attr_iter *iter)
-{
-    return Vehicle::attr_iter_destroy(iter);
-}
-int vehicle_get_attr(VehicleHandle vehicle, enum attr_type type, struct attr *attr, struct attr_iter *iter)
-{
-    return ((Vehicle *)vehicle)->get_attr(type, attr, iter);
-}
-int vehicle_set_attr(VehicleHandle vehicle, struct attr *attr)
-{
-    return ((Vehicle *)vehicle)->set_attr(attr);
-}
-int vehicle_add_attr(VehicleHandle vehicle, struct attr *attr)
-{
-    return ((Vehicle *)vehicle)->add_attr(attr);
-}
-int vehicle_remove_attr(VehicleHandle vehicle, struct attr *attr)
-{
-    return ((Vehicle *)vehicle)->remove_attr(attr);
-}
+    // return ((Vehicle *)vehicle)->get_attr(type, attr, iter);
+    Vehicle *vehicle = static_cast<Vehicle *>(v);
+    switch (type)
+    {
+    case attr_position_valid:
+        attr->u.num = vehicle->isPositionValid() ? attr_position_valid_valid : attr_position_valid_invalid;
+        break;
+    case attr_position_speed:
+    {
+        double speed = vehicle->getSpeed();
+        attr->u.numd = &speed;
+    }
+    break;
+    case attr_position_direction:
+    {
+        double direction = vehicle->getDirection();
+        attr->u.numd = &direction;
+    }
+    break;
+    case attr_position_time_iso8601:
+        attr->u.str = vehicle->getIso8601Time().toLocal8Bit().data();
+        break;
+    case attr_position_coord_geo:
+    {
+        coord_geo geo = vehicle->getPosition();
+        attr->u.coord_geo = &geo;
+        break;
+    }
+    case attr_position_fix_type:
+        attr->u.num = vehicle->getFixType();
+        break;
+    case attr_lag:
+        attr->u.num = vehicle->getLag();
+        break;
 
-void vehicle_draw(VehicleHandle vehicle, GraphicsHandle gra, struct point *pnt, int angle, int speed)
-{
-    return ((Vehicle *)vehicle)->draw(gra, pnt, angle, speed);
-}
-int vehicle_get_cursor_data(VehicleHandle vehicle, struct point *pnt, int *angle, int *speed)
-{
-    return ((Vehicle *)vehicle)->get_cursor_data(pnt, angle, speed);
-}
-void vehicle_log_gpx_add_tag(char *tag, char **logstr)
-{
-    return Vehicle::log_gpx_add_tag(tag, logstr);
-}
-struct vehicle *vehicle_ref(VehicleHandle vehicle)
-{
-    return ((Vehicle *)vehicle)->ref();
-}
-void vehicle_unref(VehicleHandle vehicle)
-{
-    return ((Vehicle *)vehicle)->unref();
+    default:
+        return 0;
+        break;
+    }
+    return 1;
 }

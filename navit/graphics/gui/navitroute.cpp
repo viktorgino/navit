@@ -5,39 +5,28 @@ NavitRoute::NavitRoute() : m_status(Invalid)
 }
 void listIcons(NavitInstance *navitInstance)
 {
-    struct attr attr;
-    navitInstance->getNavit().get_attr(attr_layout, &attr, nullptr);
-
-    if (attr.u.layout && attr.u.layout->layers)
+    if (!navitInstance)
     {
-        qDebug() << "Got layout";
-        GList *layers = attr.u.layout->layers;
-        while (layers)
+        qWarning() << "Invalid navit instance";
+    }
+
+    NavitInterface &navit = navitInstance->getNavit();
+
+    for (LayoutLayer *layer : navit.getCurrentLayout()->getLayers())
+    {
+        if (layer->getName().contains("POI", Qt::CaseInsensitive))
         {
-            qDebug() << "Got layers";
-            struct layer *l = (struct layer *)layers->data;
-            QString name = l->name;
-            if (name.contains("POI", Qt::CaseInsensitive))
+            for (LayoutItemGraph *itemgra : layer->getItemgraphs())
             {
-                GList *itemgras = l->itemgras;
-                while (itemgras)
+                for (LayoutItemGraphElement *element : itemgra->getElements())
                 {
-                    struct itemgra *itg = (struct itemgra *)itemgras->data;
-                    GList *elements = itg->elements;
-                    while (elements)
+                    if (element->getType() == LayoutElementType::LayoutElementIcon)
                     {
-                        struct element *el = (struct element *)elements->data;
-                        //                    struct attr itattr = (struct attr) g_list_nth(types, g_list_index(elements, elements->data));
-                        if (el->type == element::element_icon)
-                        {
-                            qDebug() << "src : " << el->u.icon.src << "x : " << el->u.icon.x << "y : " << el->u.icon.y;
-                        }
-                        elements = g_list_next(elements);
+                        LayoutIcon *icon = qobject_cast<LayoutIcon *>(element);
+                        qDebug() << "src : " << icon->getSrc() << "x : " << icon->getX() << "y : " << icon->getY();
                     }
-                    itemgras = g_list_next(itemgras);
                 }
             }
-            layers = g_list_next(layers);
         }
     }
 }

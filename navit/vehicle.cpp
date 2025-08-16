@@ -66,9 +66,10 @@ extern "C"
  * @return The newly created vehicle object
  */
 
-Vehicle::Vehicle(const NavitVehicleConfig *config, NavitVehicleInterface *plugin, QObject *parent) : QObject(parent), m_plugin(plugin)
+Vehicle::Vehicle(NavitInterface *navit, NavitVehicleConfig *config, NavitVehicleFactory *factory, QObject *parent) : QObject(parent),
+                                                                                                                     m_config(config),
+                                                                                                                     m_plugin(factory->instantiate(navit))
 {
-
     assert(m_plugin);
 
     struct pcoord center;
@@ -77,7 +78,6 @@ Vehicle::Vehicle(const NavitVehicleConfig *config, NavitVehicleInterface *plugin
     center.x = 0;
     center.y = 0;
     m_trans = transform_new(&center, 16, 0);
-    m_name = config->name;
 
     dbg(lvl_debug, "leave");
     m_log_to_cb = g_hash_table_new(NULL, NULL);
@@ -86,7 +86,7 @@ Vehicle::Vehicle(const NavitVehicleConfig *config, NavitVehicleInterface *plugin
  * @brief Destroys a vehicle
  *
  */
-void Vehicle::destroy()
+Vehicle::~Vehicle()
 {
     dbg(lvl_debug, "enter");
     if (m_animate_callback)
@@ -95,7 +95,7 @@ void Vehicle::destroy()
         event_remove_timeout(m_animate_timer);
     }
     transform_destroy(m_trans);
-    m_plugin->destroy();
+    // m_plugin->destroy();
     callback_list_destroy(m_cbl);
 }
 
@@ -116,88 +116,6 @@ Vehicle::attr_iter_new(void *unused)
 void Vehicle::attr_iter_destroy(struct attr_iter *iter)
 {
     g_free(iter);
-}
-
-/**
- * Generic get function
- *
- * @param type The attribute type to look for
- * @param attr Pointer to a {@code struct attr} to store the attribute
- * @param iter A vehicle attr_iter. This is only used for generic attributes; for attributes specific to the vehicle object it is ignored.
- * @return True for success, false for failure
- */
-int Vehicle::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter)
-{
-    int ret;
-    if (type == attr_log_gpx_desc)
-    {
-        attr->u.str = m_gpx_desc;
-        return 1;
-    }
-    ret = m_plugin->position_attr_get(type, attr);
-    if (ret)
-        return ret;
-
-    // return attr_generic_get_attr(m_attrs, NULL, type, attr, iter);
-    qDebug() << "Trying to get generic vehicle attr";
-    return 0;
-}
-
-/**
- * Generic set function
- *
- * * @param attr The attribute to set
- * @return False on success, true on failure
- */
-int Vehicle::set_attr(struct attr *attr)
-{
-    int ret = 1;
-    if (attr->type == attr_log_gpx_desc)
-    {
-        g_free(m_gpx_desc);
-        m_gpx_desc = g_strdup(attr->u.str);
-    }
-    ret = m_plugin->set_attr(attr);
-    /* attr_profilename probably is never used by vehicle itself but it's used to control the
-      routing engine. So any vehicle should allow to set and read it. */
-    if (attr->type == attr_profilename)
-        ret = 1;
-    if (ret == 1 && attr->type != attr_navit && attr->type != attr_pdl_gps_update)
-    {
-        qDebug() << "Trying to get generic vehicle attribute: " << attr_to_name(attr->type);
-    }
-    return ret != 0;
-}
-
-/**
- * Generic add function
- *
- * * @param attr The attribute to add
- *
- * @return true if the attribute was added, false if not.
- */
-int Vehicle::add_attr(struct attr *attr)
-{
-    int ret = 1;
-    switch (attr->type)
-    {
-    case attr_callback:
-        callback_list_add(m_cbl, attr->u.callback);
-        break;
-    case attr_log:
-        ret = Vehicle::add_log(attr->u.log);
-        break;
-    // currently supporting oldstyle cursor config.
-    case attr_cursor:
-        m_cursor_fixed = 1;
-        qDebug() << "Trying to set cursor as attr";
-        break;
-    default:
-        break;
-    }
-    if (ret)
-        qDebug() << "Trying to add generic vehicle attribute" << attr_to_name(attr->type);
-    return ret;
 }
 
 /**
@@ -331,7 +249,7 @@ void Vehicle::draw(Graphics *gra, struct point *pnt, int angle, int speed)
 
             c.setAlpha(0);
 
-            m_bg->set_foreground(&c);
+            m_bg->set_foreground(c);
             m_gra->background_gc(m_bg);
         }
     }
@@ -345,22 +263,9 @@ void Vehicle::draw(Graphics *gra, struct point *pnt, int angle, int speed)
     draw_do();
 }
 
-int Vehicle::get_cursor_data(struct point *pnt, int *angle, int *speed)
-{
-    *pnt = m_cursor_pnt;
-    *angle = m_angle;
-    *speed = m_speed;
-    return 1;
-}
-
-void Vehicle::set_default_name(const QString &name)
-{
-    m_name = name;
-}
-
 void Vehicle::draw_do()
 {
-    struct point p;
+    LayoutCoord p;
     int speed = m_speed;
     int angle = m_angle;
     int sequence = m_sequence;
@@ -379,8 +284,7 @@ void Vehicle::draw_do()
     }
     transform_set_yaw(m_trans, -m_angle);
     m_gra->draw_mode(draw_mode_begin);
-    p.x = 0;
-    p.y = 0;
+
     /* clear old content by overwriting with an rectangle */
     m_gra->draw_rectangle(m_bg, &p, m_real_w, m_real_h);
     for (LayoutItemGraph *itemGraph : m_cursor->getItemgra())
@@ -413,7 +317,39 @@ void Vehicle::draw_do()
         }
     }
 }
+bool Vehicle::isPositionValid() { return m_plugin->isPositionValid(); }
+coord_geo Vehicle::getPosition() { return m_plugin->getPosition(); }
+QString Vehicle::getIso8601Time() { return m_plugin->getIso8601Time(); }
+double Vehicle::getSpeed() { return m_plugin->getSpeed(); }
+double Vehicle::getDirection() { return m_plugin->getDirection(); }
+int Vehicle::getFixType() { return m_plugin->getFixType(); }
+int Vehicle::getLag() { return m_plugin->getLag(); }
 
+const int &Vehicle::getFollow()
+{
+    return m_follow;
+}
+const int &Vehicle::getFollowCursor()
+{
+    return m_followCursor;
+}
+const QString &Vehicle::getName()
+{
+    return m_config->name;
+}
+const QString &Vehicle::getCursorName()
+{
+    return m_cursor->getName();
+}
+const QString &Vehicle::getProfileName()
+{
+    return m_config->profilename;
+}
+
+void Vehicle::setFollowCursor(const int &followCursor)
+{
+    m_followCursor = followCursor;
+}
 /**
  * @brief Writes to an NMEA log.
  *

@@ -86,9 +86,9 @@ constexpr uint8_t UNDERGROUND_ALPHA_ = 0xFF;
  * @see GraphicsContext
  */
 
-static void
-circle_to_points(const struct point *center, int diameter, int scale, int start, int len, struct point *res,
-                 int *pos, int dir);
+// static void
+// circle_to_points(const struct point *center, int diameter, int scale, int start, int len, QVector<LayoutCoord *> &res,
+//                  int *pos, int dir);
 
 int Graphics::dpi_scale(int p)
 {
@@ -431,12 +431,12 @@ void Graphics::gc_init()
     QColor black = {COLOR_BLACK_};
     QColor white = {COLOR_WHITE_};
 
-    m_gcBackground.set_background(&background);
-    m_gcBackground.set_foreground(&background);
-    m_gcMiddground.set_background(&black);
-    m_gcMiddground.set_foreground(&white);
-    m_gcForeground.set_background(&white);
-    m_gcForeground.set_foreground(&black);
+    m_gcBackground.set_background(background);
+    m_gcBackground.set_foreground(background);
+    m_gcMiddground.set_background(black);
+    m_gcMiddground.set_foreground(white);
+    m_gcForeground.set_background(white);
+    m_gcForeground.set_foreground(black);
 }
 
 /**
@@ -532,12 +532,12 @@ void Graphics::font_destroy_all()
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-struct graphics_image *Graphics::image_new_scaled(char *path, int w, int h)
+struct graphics_image *Graphics::image_new_scaled(QString &path, int w, int h)
 {
     return image_new_scaled_rotated(path, w, h, 0);
 }
 
-void Graphics::image_new_helper(graphics_image *image, char *path, char *name, int width, int height, int rotate)
+void Graphics::image_new_helper(graphics_image *image, QString &path, char *name, int width, int height, int rotate)
 {
     int i = 0;
     int stdsizes[] = {8, 12, 16, 22, 24, 32, 36, 48, 64, 72, 96, 128, 192, 256};
@@ -548,7 +548,7 @@ void Graphics::image_new_helper(graphics_image *image, char *path, char *name, i
     sz = width > 0 ? width : height;
     while (mode <= 8)
     {
-        char *new_name = NULL;
+        QString new_name;
         int n;
         switch (mode)
         {
@@ -557,7 +557,7 @@ void Graphics::image_new_helper(graphics_image *image, char *path, char *name, i
             mode++;
             if (width != IMAGE_W_H_UNSET && height != IMAGE_W_H_UNSET)
             {
-                new_name = g_strdup_printf("%s_%d_%d.png", name, width, height);
+                new_name = QString("%s_%d_%d.png").arg(name).arg(width, height);
             }
             break;
         case 2:
@@ -565,17 +565,17 @@ void Graphics::image_new_helper(graphics_image *image, char *path, char *name, i
             /* Try to load image by the exact name given by user. For example, if she wants to
               scale some prescaled png variant to a new size given as function params, or have
               default png image to be displayed unscaled. */
-            new_name = g_strdup(path);
+            new_name = path;
             break;
         case 3:
             mode++;
             /* Next, try uncompressed and compressed svgs as they should give best quality but
                rendering might take more cpu resources when the image is displayed for the first time */
-            new_name = g_strdup_printf("%s.svg", name);
+            new_name = QString("%s.svg").arg(name);
             break;
         case 4:
             mode++;
-            new_name = g_strdup_printf("%s.svgz", name);
+            new_name = QString("%s.svgz").arg(name);
             break;
         case 5:
             mode++;
@@ -583,7 +583,7 @@ void Graphics::image_new_helper(graphics_image *image, char *path, char *name, i
             /* If we have no size specifiers, try the default png now */
             if (sz <= 0)
             {
-                new_name = g_strdup_printf("%s.png", name);
+                new_name = QString("%s.png").arg(name);
                 break;
             }
             /* Find best matching size from standard row */
@@ -614,26 +614,26 @@ void Graphics::image_new_helper(graphics_image *image, char *path, char *name, i
             }
             if (n < 0 || n >= numstdsizes)
                 break;
-            new_name = g_strdup_printf("%s_%d_%d.png", name, stdsizes[n], stdsizes[n]);
+            new_name = QString("%s_%d_%d.png").arg(name).arg(stdsizes[n], stdsizes[n]);
             break;
 
         case 7:
             /* Scaling the default prescaled png of unknown size to the needed size will give random quality loss */
             mode++;
-            new_name = g_strdup_printf("%s.png", name);
+            new_name = QString("%s.png").arg(name);
             break;
         case 8:
             /* xpm format is used as a last resort, because its not widely supported and we are moving to svg and png formats */
             mode++;
-            new_name = g_strdup_printf("%s.xpm", name);
+            new_name = QString("%s.xpm").arg(name);
             break;
         }
-        if (!new_name)
+        if (new_name.isEmpty())
             continue;
 
         image->width = width;
         image->height = height;
-        dbg(lvl_debug, "Trying to load image '%s' for '%s' at %dx%d", new_name, path, width, height);
+        // dbg(lvl_debug, "Trying to load image '%s' for '%s' at %dx%d", new_name, path, width, height);
 
         image->hot = dpi_scale_point(&image->hot);
         if (image->width != IMAGE_W_H_UNSET)
@@ -649,11 +649,9 @@ void Graphics::image_new_helper(graphics_image *image, char *path, char *name, i
 
         if (image->priv)
         {
-            dbg(lvl_info, "Using image '%s' for '%s' at %dx%d", new_name, path, width, height);
-            g_free(new_name);
+            // dbg(lvl_info, "Using image '%s' for '%s' at %dx%d", new_name, path, width, height);
             break;
         }
-        g_free(new_name);
     }
 }
 
@@ -668,17 +666,17 @@ void Graphics::image_new_helper(graphics_image *image, char *path, char *name, i
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-struct graphics_image *Graphics::image_new_scaled_rotated(char *path, int w, int h, int rotate)
+struct graphics_image *Graphics::image_new_scaled_rotated(QString &path, int w, int h, int rotate)
 {
     struct graphics_image *image;
-    char *hash_key = g_strdup_printf("%s*%d*%d*%d", path, w, h, rotate);
+    char *hash_key = g_strdup_printf("%s*%d*%d*%d", path.toLocal8Bit().data(), w, h, rotate);
     struct file_wordexp *we;
     int i;
     char **paths;
     if (g_hash_table_lookup_extended(m_image_cache_hash, hash_key, NULL, (void **)&image))
     {
         g_free(hash_key);
-        dbg(lvl_debug, "Found cached image%sfor '%s'", image ? " " : " miss ", path);
+        dbg(lvl_debug, "Found cached image%sfor '%s'", image ? " " : " miss ", path.toLocal8Bit().data());
         return image;
     }
 
@@ -686,7 +684,7 @@ struct graphics_image *Graphics::image_new_scaled_rotated(char *path, int w, int
     image->height = h;
     image->width = w;
 
-    we = file_wordexp_new(path);
+    we = file_wordexp_new(path.toLocal8Bit().data());
     paths = file_wordexp_get_array(we);
 
     for (i = 0; i < file_wordexp_get_count(we) && !image->priv; i++)
@@ -753,7 +751,8 @@ struct graphics_image *Graphics::image_new_scaled_rotated(char *path, int w, int
             newheight = h;
 
         name = g_strndup(pathi, s - pathi);
-        image_new_helper(image, pathi, name, newwidth, newheight, rotate);
+        QString pathi_ = pathi;
+        image_new_helper(image, pathi_, name, newwidth, newheight, rotate);
         g_free(name);
     }
 
@@ -761,7 +760,7 @@ struct graphics_image *Graphics::image_new_scaled_rotated(char *path, int w, int
 
     if (!image->priv)
     {
-        dbg(lvl_error, "No image for '%s'", path);
+        qDebug() << "No image for " << path;
         g_free(image);
         image = NULL;
     }
@@ -778,7 +777,7 @@ struct graphics_image *Graphics::image_new_scaled_rotated(char *path, int w, int
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-struct graphics_image *Graphics::image_new(char *path)
+struct graphics_image *Graphics::image_new(QString &path)
 {
     return image_new_scaled_rotated(path, IMAGE_W_H_UNSET, IMAGE_W_H_UNSET, 0);
 }
@@ -846,20 +845,11 @@ void Graphics::draw_lines(GraphicsContext *gc, QVector<LayoutCoord *> &p)
  *
  * @author Martin Schaller (04/2008)
  */
-void Graphics::draw_circle(GraphicsContext *gc, struct point *p, int r)
+void Graphics::draw_circle(GraphicsContext *gc, LayoutCoord *p, int r)
 {
-    struct point *pnt;
-    if ((r * 4 + 64) < ALLOCA_COORD_LIMIT)
-        pnt = (point *)g_alloca(sizeof(struct point) * (r * 4 + 64));
-    else
-        pnt = (point *)g_malloc(sizeof(struct point) * (r * 4 + 64));
-
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
     m_graphicsInterface.draw_circle(&gc->get_context_interface(), &p_scaled, dpi_scale(r));
-
-    if ((r * 4 + 64) >= ALLOCA_COORD_LIMIT)
-        g_free(pnt);
 }
 
 /**
@@ -868,7 +858,7 @@ void Graphics::draw_circle(GraphicsContext *gc, struct point *p, int r)
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void Graphics::draw_rectangle(GraphicsContext *gc, point *p, int w, int h)
+void Graphics::draw_rectangle(GraphicsContext *gc, LayoutCoord *p, int w, int h)
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
@@ -895,8 +885,8 @@ void Graphics::draw_polygon(GraphicsContext *gc, QVector<LayoutCoord *> &pin)
     for (a = 0; a < pin.size(); a++)
         pin_scaled[a] = dpi_scale_point(pin[a]);
     m_graphicsInterface.draw_polygon(&gc->get_context_interface(), pin_scaled, pin.size());
-
-    qDeleteAll(pin_scaled);
+    if (pin.size() >= ALLOCA_COORD_LIMIT)
+        g_free(pin_scaled);
 }
 
 /**
@@ -911,47 +901,60 @@ void Graphics::draw_polygon(GraphicsContext *gc, QVector<LayoutCoord *> &pin)
  *        points per hole
  * @param holes array of point arrays for the hole polygons
  */
-void Graphics::draw_polygon_with_holes(GraphicsContext *gc, struct point *pin, int count_in, int hole_count, int *ccount, struct point **holes)
+void Graphics::draw_polygon_with_holes(GraphicsContext *gc, QVector<LayoutCoord *> &pin, DisplayitemPolyHoles &holes)
 {
 
     struct point *pin_scaled;
     struct point **holes_scaled;
-    int a;
-    int b;
-    if (count_in < ALLOCA_COORD_LIMIT)
+    int *hole_coord_count;
+    if (pin.size() < ALLOCA_COORD_LIMIT)
     {
-        pin_scaled = (point *)g_alloca(sizeof(struct point) * count_in);
+        pin_scaled = (point *)g_alloca(sizeof(struct point) * pin.size());
     }
     else
     {
-        pin_scaled = (point *)g_malloc(sizeof(struct point) * count_in);
+        pin_scaled = (point *)g_malloc(sizeof(struct point) * pin.size());
     }
-    if (hole_count < ALLOCA_COORD_LIMIT)
+    if (holes.size() < ALLOCA_COORD_LIMIT)
     {
-        holes_scaled = (point **)g_alloca(sizeof(struct point *) * hole_count);
+        holes_scaled = (point **)g_alloca(sizeof(struct point *) * holes.size());
+        hole_coord_count = (int *)g_alloca(sizeof(int) * holes.size());
     }
     else
     {
-        holes_scaled = (point **)g_malloc(sizeof(struct point *) * hole_count);
+        holes_scaled = (point **)g_malloc(sizeof(struct point *) * holes.size());
+        hole_coord_count = (int *)g_malloc(sizeof(int) * holes.size());
     }
     /* scale the outline */
-    for (a = 0; a < count_in; a++)
-        pin_scaled[a] = dpi_scale_point(&(pin[a]));
-    /*scale the holes */
-    for (b = 0; b < hole_count; b++)
+    for (int a = 0; a < pin.size(); a++)
     {
-        holes_scaled[b] = (point *)g_malloc(sizeof(*(holes_scaled[b])) * ccount[b]);
-        for (a = 0; a < ccount[b]; a++)
-            holes_scaled[b][a] = dpi_scale_point(&(holes[b][a]));
+        pin_scaled[a] = dpi_scale_point(pin[a]);
     }
-    m_graphicsInterface.draw_polygon_with_holes(&gc->get_context_interface(), pin_scaled, count_in, hole_count, ccount, holes_scaled);
+    /*scale the holes */
+    for (int b = 0; b < holes.size(); b++)
+    {
+        QVector<LayoutCoord *> hole = holes[b];
+        holes_scaled[b] = (point *)g_malloc(sizeof(*(holes_scaled[b])) * hole.size());
+        for (int i = 0; i < hole.size(); i++)
+        {
+            holes_scaled[b][i] = dpi_scale_point(hole[i]);
+        }
+    }
+    m_graphicsInterface.draw_polygon_with_holes(&gc->get_context_interface(), pin_scaled, pin.size(), holes.size(), hole_coord_count, holes_scaled);
     /* free the hole arrays */
-    for (b = 0; b < hole_count; b++)
+    for (int b = 0; b < holes.size(); b++)
+    {
         g_free(holes_scaled[b]);
-    if (count_in >= ALLOCA_COORD_LIMIT)
+    }
+    if (pin.size() >= ALLOCA_COORD_LIMIT)
+    {
         g_free(pin_scaled);
-    if (hole_count >= ALLOCA_COORD_LIMIT)
+    }
+    if (holes.size() >= ALLOCA_COORD_LIMIT)
+    {
         g_free(holes_scaled);
+        g_free(hole_coord_count);
+    }
 }
 
 void Graphics::draw_rectangle_rounded(GraphicsContext *gc, struct point *plu, int w, int h,
@@ -992,7 +995,7 @@ void Graphics::draw_rectangle_rounded(GraphicsContext *gc, struct point *plu, in
  * @author Martin Schaller (04/2008)
  */
 void Graphics::draw_text(GraphicsContext *gc1, GraphicsContext *gc2,
-                         struct graphics_font *font, char *text, struct point *p, int dx, int dy)
+                         struct graphics_font *font, QString &text, LayoutCoord *p, int dx, int dy)
 {
     struct point p_scaled;
     p_scaled = dpi_scale_point(p);
@@ -1005,7 +1008,7 @@ void Graphics::draw_text(GraphicsContext *gc1, GraphicsContext *gc2,
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void Graphics::get_text_bbox(struct graphics_font *font, char *text, int dx, int dy,
+void Graphics::get_text_bbox(struct graphics_font *font, QString &text, int dx, int dy,
                              struct point *ret, int estimate)
 {
     m_graphicsInterface.get_text_bbox(font->priv, text, dx, dy, ret, estimate);
@@ -1051,20 +1054,10 @@ void Graphics::draw_image(GraphicsContext *gc, struct point *p, struct graphics_
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void Graphics::draw_image_warp(GraphicsContext *gc, struct point *p, int count, struct graphics_image *img)
+void Graphics::draw_image_warp(GraphicsContext *gc, LayoutCoord *p, struct graphics_image *img)
 {
-    struct point *p_scaled;
-    int a;
-    if (count < ALLOCA_COORD_LIMIT)
-        p_scaled = (point *)g_alloca(sizeof(struct point) * count);
-    else
-        p_scaled = (point *)g_malloc(sizeof(struct point) * count);
-
-    for (a = 0; a < count; a++)
-        p_scaled[a] = dpi_scale_point(&(p[a]));
-    m_graphicsInterface.draw_image_warp(&gc->get_context_interface(), p_scaled, count, img->priv);
-    if (count >= ALLOCA_COORD_LIMIT)
-        g_free(p_scaled);
+    struct point p_scaled = dpi_scale_point(p);
+    m_graphicsInterface.draw_image_warp(&gc->get_context_interface(), &p_scaled, 1, img->priv);
 }
 
 // ##############################################################################################################
@@ -1089,8 +1082,8 @@ void Graphics::set_layout(Layout *layout)
 {
     if (layout)
     {
-        m_gcBackground.set_background(&layout->getColor());
-        m_gcBackground.set_foreground(&layout->getColor());
+        m_gcBackground.set_background(layout->getColor());
+        m_gcBackground.set_foreground(layout->getColor());
         m_default_font = layout->getFont();
     }
     background_gc(&m_gcBackground);
@@ -1098,7 +1091,8 @@ void Graphics::set_layout(Layout *layout)
 
 void Graphics::draw_background()
 {
-    draw_rectangle(&m_gcBackground, &m_r.lu, m_r.rl.x - m_r.lu.x, m_r.rl.y - m_r.lu.y);
+    LayoutCoord lu(&m_r.lu);
+    draw_rectangle(&m_gcBackground, &lu, m_r.rl.x - m_r.lu.x, m_r.rl.y - m_r.lu.y);
 }
 
 void Graphics::set_z_order(int z_order)
@@ -1194,12 +1188,12 @@ int Graphics::hide_native_keyboard(struct graphics_keyboard *kbd)
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void Graphics::label_line(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, QVector<LayoutCoord *> points, char *label)
+void Graphics::label_line(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, QVector<LayoutCoord *> points, QString &label)
 {
     int i, x, y, tl, tlm, th, thm, tlsq, l;
     float lsq;
     double dx, dy;
-    struct point p_t;
+    LayoutCoord p_t;
     struct point pb[5];
 
     get_text_bbox(font, label, 0x10000, 0x00, pb, 1);
@@ -1232,23 +1226,21 @@ void Graphics::label_line(GraphicsContext *fg, GraphicsContext *bg, struct graph
             y += (l - tlm) * dy / l / 64;
             x -= dy * thm / l / 64;
             y += dx * thm / l / 64;
-            p_t.x = x;
-            p_t.y = y;
+            p_t.set(x, y);
             if (x < m_r.rl.x && x + tl > m_r.lu.x && y + tl > m_r.lu.y && y - tl < m_r.rl.y)
                 draw_text(fg, bg, font, label, &p_t, dx * 0x10000 / l, dy * 0x10000 / l);
         }
     }
 }
 
-void Graphics::display_draw_arrow(struct point *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc, int filled)
+void Graphics::display_draw_arrow(LayoutCoord *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc, int filled)
 {
-    // qVector struct point pnt[4];
-    QVector<LayoutCoord *> pnt;
     /* half the width in every direction */
     width /= 2;
-    pnt.append(new LayoutCoord(-dx * width + dy * width, -dy * width - dx * width));
-    pnt.append(new LayoutCoord(p));
-    pnt.append(new LayoutCoord(-dx * width - dy * width, -dy * width + dx * width));
+    LayoutCoord start(-dx * width + dy * width, -dy * width - dx * width);
+    LayoutCoord end(-dx * width - dy * width, -dy * width + dx * width);
+
+    QVector<LayoutCoord *> pnt = {&start, p, &end};
 
     if (filled)
     {
@@ -1277,18 +1269,19 @@ void Graphics::display_draw_arrow(struct point *p, navit_float dx, navit_float d
  * @param width arrray of integers giving the expexted line width at the corresponding point
  * @param filled. True to draw filled arrows, false to draw only line arrows.
  */
-void Graphics::display_draw_arrows(struct display_context *dc, struct point *pnt, int count, int *width, int filled)
+void Graphics::display_draw_arrows(struct display_context *dc, QVector<LayoutCoord *> &pnt, QVector<int> &widths, int filled)
 {
     navit_float dx, dy, dw, l;
     int i;
-    struct point p;
+    LayoutCoord p;
+    int x, y;
     int w;
-    for (i = 0; i < count - 1; i++)
+    for (i = 0; i < pnt.size() - 1; i++)
     {
         /* get the X and Y size */
-        dx = pnt[i + 1].x - pnt[i].x;
-        dy = pnt[i + 1].y - pnt[i].y;
-        dw = width[i + 1] - width[i];
+        dx = pnt[i + 1]->getX() - pnt[i]->getX();
+        dy = pnt[i + 1]->getY() - pnt[i]->getY();
+        dw = widths[i + 1] - widths[i];
         /* calculate the length of the way segment */
         l = navit_sqrt(dx * dx + dy * dy);
         if (l)
@@ -1301,31 +1294,31 @@ void Graphics::display_draw_arrows(struct display_context *dc, struct point *pnt
             /* different behaviour for oneway arrows than for routing graph ones */
             if (filled)
             {
-                if (l > (2 * width[i]))
+                if (l > (2 * widths[i]))
                 {
                     /* print arrow at middle point */
-                    p = pnt[i];
-                    p.x += dx * (l / 2);
-                    p.y += dy * (l / 2);
-                    w = width[i];
+                    x += pnt[i]->getX() + dx * (l / 2);
+                    y += pnt[i]->getY() + dy * (l / 2);
+                    p.set(x, y);
+                    w = widths[i];
                     w += dw * (l / 2);
                     display_draw_arrow(&p, dx, dy, w, dc, filled);
                 }
                 /* if line is quite long, print arrows at 1/4 and 3/4 length */
-                if (l > (20 * width[i]))
+                if (l > (20 * widths[i]))
                 {
                     /* at 1/4 the line length */
-                    p = pnt[i];
-                    p.x += dx * (l / 4);
-                    p.y += dy * (l / 4);
-                    w = width[i];
+                    x += pnt[i]->getX() + dx * (l / 4);
+                    y += pnt[i]->getY() + dy * (l / 4);
+                    p.set(x, y);
+                    w = widths[i];
                     w += dw * (l / 4);
                     display_draw_arrow(&p, dx, dy, w, dc, filled);
                     /* at 3/4 the arrow length */
-                    p = pnt[i + 1];
-                    p.x -= dx * (l / 4);
-                    p.y -= dy * (l / 4);
-                    w = width[i + 1];
+                    x += pnt[i + 1]->getX() - dx * (l / 4);
+                    y += pnt[i + 1]->getY() - dy * (l / 4);
+                    p.set(x, y);
+                    w = widths[i + 1];
                     w -= dw * (l / 4);
                     display_draw_arrow(&p, dx, dy, w, dc, filled);
                 }
@@ -1334,21 +1327,21 @@ void Graphics::display_draw_arrows(struct display_context *dc, struct point *pnt
             {
                 /*FIXME: what if line length was smaller than 15?*/
                 /* print arrow 15 units from start */
-                p = pnt[i];
-                p.x += dx * 15;
-                p.y += dy * 15;
+                x += pnt[i]->getX() + dx * 15;
+                y += pnt[i]->getY() + dy * 15;
+                p.set(x, y);
                 display_draw_arrow(&p, dx, dy, 20, dc, filled);
                 /* print arrow 15 units before end */
-                p = pnt[i + 1];
-                p.x -= dx * 15;
-                p.y -= dy * 15;
+                x += pnt[i + 1]->getX() - dx * 15;
+                y += pnt[i + 1]->getY() - dy * 15;
+                p.set(x, y);
                 display_draw_arrow(&p, dx, dy, 20, dc, filled);
             }
         }
     }
 }
 
-void Graphics::display_draw_spike(struct point *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc)
+void Graphics::display_draw_spike(LayoutCoord *p, navit_float dx, navit_float dy, navit_float width, struct display_context *dc)
 {
     QVector<LayoutCoord *> pnt;
     navit_float l = navit_sqrt(dx * dx + dy * dy);
@@ -1372,24 +1365,25 @@ void Graphics::display_draw_spike(struct point *p, navit_float dx, navit_float d
  * @param width array of integers giving the expected line width at the corresponding point
  * @param distance giving the distance between spikes
  */
-void Graphics::display_draw_spikes(struct display_context *dc, struct point *pnt, int count, int *width, int distance)
+void Graphics::display_draw_spikes(struct display_context *dc, QVector<LayoutCoord *> &pnt, QVector<int> &widths, int distance)
 {
     navit_float dx, dy, dw, l;
     int i;
-    struct point p;
+    LayoutCoord p;
+    int x, y;
     int w;
-    for (i = 0; i < count - 1; i++)
+    for (i = 0; i < pnt.size() - 1; i++)
     {
         /* get the X and Y size */
-        dx = pnt[i + 1].x - pnt[i].x;
-        dy = pnt[i + 1].y - pnt[i].y;
-        dw = width[i + 1] - width[i];
+        dx = pnt[i + 1]->getX() - pnt[i]->getX();
+        dy = pnt[i + 1]->getY() - pnt[i]->getY();
+        dw = widths[i + 1] - widths[i];
         /* calculate the length of the way segment */
         l = navit_sqrt(dx * dx + dy * dy);
         if (l != 0)
         {
             /* length is not zero */
-            if (l > width[i])
+            if (l > widths[i])
             {
                 /* length is bigger than the length of one spike */
                 int a;
@@ -1400,10 +1394,10 @@ void Graphics::display_draw_spikes(struct display_context *dc, struct point *pnt
                 dw = dw / spike_count;
                 for (a = 0; a < spike_count; a++)
                 {
-                    p = pnt[i];
-                    p.x += dx * a;
-                    p.y += dy * a;
-                    w = width[i];
+                    x += pnt[i]->getX() + dx * a;
+                    y += pnt[i]->getY() + dy * a;
+                    p.set(x, y);
+                    w = widths[i];
                     w += dw * a;
                     display_draw_spike(&p, dx, dy, w, dc);
                 }
@@ -1412,13 +1406,12 @@ void Graphics::display_draw_spikes(struct display_context *dc, struct point *pnt
     }
 }
 
-static int intersection(struct point *a1, int adx, int ady, struct point *b1, int bdx, int bdy, struct point *res)
+static int intersection(LayoutCoord *a1, int adx, int ady, LayoutCoord *b1, int bdx, int bdy, LayoutCoord *res)
 {
     int n, a, b;
-    dbg(lvl_debug, "%d,%d - %d,%d x %d,%d-%d,%d", a1->x, a1->y, a1->x + adx, a1->y + ady, b1->x, b1->y, b1->x + bdx, b1->y + bdy);
     n = bdy * adx - bdx * ady;
-    a = bdx * (a1->y - b1->y) - bdy * (a1->x - b1->x);
-    b = adx * (a1->y - b1->y) - ady * (a1->x - b1->x);
+    a = bdx * (a1->getY() - b1->getY()) - bdy * (a1->getX() - b1->getX());
+    b = adx * (a1->getY() - b1->getY()) - ady * (a1->getX() - b1->getX());
     dbg(lvl_debug, "a %d b %d n %d", a, b, n);
     if (n < 0)
     {
@@ -1428,9 +1421,9 @@ static int intersection(struct point *a1, int adx, int ady, struct point *b1, in
     }
     if (n == 0)
         return 0;
-    res->x = a1->x + a * adx / n;
-    res->y = a1->y + a * ady / n;
-    dbg(lvl_debug, "%d,%d", res->x, res->y);
+    int x = a1->getX() + a * adx / n;
+    int y = a1->getY() + a * ady / n;
+    res->set(x, y);
     return 1;
 }
 
@@ -1516,75 +1509,75 @@ struct circle
  * @param[out] pos Index of the last point filled inside array @p res
  * @param dir Direction of the circle (valid values are 1 (counter-clockwise) or -1 (clockwise), other values may lead to unknown result)
  */
-static void circle_to_points(const struct point *center, int diameter, int scale, int start, int len, QVector<LayoutCoord *> &res,
-                             int *pos, int dir)
-{
-    struct circle *c;
-    int count = 64;
-    int end = start + len;
-    int i, step;
-    c = circle64;
-    if (diameter > 128)
-        step = 1;
-    else if (diameter > 64)
-        step = 2;
-    else if (diameter > 16)
-        step = 4;
-    else if (diameter > 4)
-        step = 8;
-    else
-        step = 16;
-    if (len > 0)
-    {
-        while (start < 0)
-        {
-            start += 1024;
-            end += 1024;
-        }
-        while (end > 0)
-        {
-            i = 0;
-            while (i < count && c[i].fowler <= start)
-                i += step;
-            while (i < count && c[i].fowler < end)
-            {
-                if (1 < *pos || 0 < dir)
-                {
-                    res[*pos]->set(center->x + ((c[i].x * diameter + 128) >> 8), center->y + ((c[i].y * diameter + 128) >> 8));
-                    (*pos) += dir;
-                }
-                i += step;
-            }
-            end -= 1024;
-            start -= 1024;
-        }
-    }
-    else
-    {
-        while (start > 1024)
-        {
-            start -= 1024;
-            end -= 1024;
-        }
-        while (end < 1024)
-        {
-            i = count - 1;
-            while (i >= 0 && c[i].fowler >= start)
-                i -= step;
-            while (i >= 0 && c[i].fowler > end)
-            {
-                if (1 < *pos || 0 < dir)
-                {
-                    res[*pos]->set(center->x + ((c[i].x * diameter + 128) >> 8), center->y + ((c[i].y * diameter + 128) >> 8));
-                    (*pos) += dir;
-                }
-                i -= step;
-            }
-            start += 1024;
-            end += 1024;
-        }
-    }
-}
+// static void circle_to_points(const struct point *center, int diameter, int scale, int start, int len, QVector<LayoutCoord *> &res,
+//                              int *pos, int dir)
+// {
+//     struct circle *c;
+//     int count = 64;
+//     int end = start + len;
+//     int i, step;
+//     c = circle64;
+//     if (diameter > 128)
+//         step = 1;
+//     else if (diameter > 64)
+//         step = 2;
+//     else if (diameter > 16)
+//         step = 4;
+//     else if (diameter > 4)
+//         step = 8;
+//     else
+//         step = 16;
+//     if (len > 0)
+//     {
+//         while (start < 0)
+//         {
+//             start += 1024;
+//             end += 1024;
+//         }
+//         while (end > 0)
+//         {
+//             i = 0;
+//             while (i < count && c[i].fowler <= start)
+//                 i += step;
+//             while (i < count && c[i].fowler < end)
+//             {
+//                 if (1 < *pos || 0 < dir)
+//                 {
+//                     res[*pos]->set(center->x + ((c[i].x * diameter + 128) >> 8), center->y + ((c[i].y * diameter + 128) >> 8));
+//                     (*pos) += dir;
+//                 }
+//                 i += step;
+//             }
+//             end -= 1024;
+//             start -= 1024;
+//         }
+//     }
+//     else
+//     {
+//         while (start > 1024)
+//         {
+//             start -= 1024;
+//             end -= 1024;
+//         }
+//         while (end < 1024)
+//         {
+//             i = count - 1;
+//             while (i >= 0 && c[i].fowler >= start)
+//                 i -= step;
+//             while (i >= 0 && c[i].fowler > end)
+//             {
+//                 if (1 < *pos || 0 < dir)
+//                 {
+//                     res[*pos]->set(center->x + ((c[i].x * diameter + 128) >> 8), center->y + ((c[i].y * diameter + 128) >> 8));
+//                     (*pos) += dir;
+//                 }
+//                 i -= step;
+//             }
+//             start += 1024;
+//             end += 1024;
+//         }
+//     }
+// }
 
 static int fowler(int dy, int dx)
 {
@@ -1634,8 +1627,8 @@ struct draw_polyline_shape
 struct draw_polyline_context
 {
     int prec;
-    int ppos, npos;
-    struct point *res;
+    int positive_pos, negative_pos;
+    QVector<LayoutCoord *> res;
     struct draw_polyline_shape shape;
     struct draw_polyline_shape prev_shape;
 };
@@ -1646,7 +1639,7 @@ static void draw_shape_update(struct draw_polyline_shape *shape)
     shape->dyw = (shape->dy * shape->wi * shape->lscale) / shape->l;
 }
 
-static void draw_shape(struct draw_polyline_context *ctx, struct point *pnt, int wi)
+static void draw_shape(struct draw_polyline_context *ctx, LayoutCoord *pnt, LayoutCoord *next_pnt, int wi)
 {
     int dxs, dys, lscales;
     int lscale = 16;
@@ -1661,8 +1654,8 @@ static void draw_shape(struct draw_polyline_context *ctx, struct point *pnt, int
         draw_shape_update(prev);
     }
     shape->wi = wi;
-    shape->dx = (pnt[1].x - pnt[0].x);
-    shape->dy = (pnt[1].y - pnt[0].y);
+    shape->dx = (next_pnt->getX() - pnt->getX());
+    shape->dy = (next_pnt->getY() - pnt->getY());
     if (wi > 16)
         shape->step = 4;
     else if (wi > 8)
@@ -1690,33 +1683,36 @@ static void draw_shape(struct draw_polyline_context *ctx, struct point *pnt, int
     draw_shape_update(shape);
 }
 
-static void draw_point(struct draw_polyline_shape *shape, struct point *src, struct point *dst, int pos)
+static LayoutCoord *draw_point(struct draw_polyline_shape *shape, LayoutCoord *src, LayoutCoord *dst, int pos)
 {
+    int x, y;
     if (pos)
     {
-        dst->x = (src->x * 2 - shape->dyw) / 2;
-        dst->y = (src->y * 2 - shape->dxw) / 2;
+        x = (src->getX() * 2 - shape->dyw) / 2;
+        y = (src->getY() * 2 - shape->dxw) / 2;
     }
     else
     {
-        dst->x = (src->x * 2 + shape->dyw) / 2;
-        dst->y = (src->y * 2 + shape->dxw) / 2;
+        x = (src->getX() * 2 + shape->dyw) / 2;
+        y = (src->getY() * 2 + shape->dxw) / 2;
     }
+    dst->set(x, y);
+    return dst;
 }
 
-static void draw_begin(struct draw_polyline_context *ctx, struct point *p)
+static void draw_begin(struct draw_polyline_context *ctx, LayoutCoord *p)
 {
     struct draw_polyline_shape *shape = &ctx->shape;
-    int i;
+    int i, x, y;
     for (i = 0; i <= 32; i += shape->step)
     {
-        ctx->res[ctx->ppos].x = (p->x * 256 + (shape->dyw * circle64[i].y) + (shape->dxw * circle64[i].x)) / 256;
-        ctx->res[ctx->ppos].y = (p->y * 256 + (shape->dxw * circle64[i].y) - (shape->dyw * circle64[i].x)) / 256;
-        ctx->ppos++;
+        x = (p->getX() * 256 + (shape->dyw * circle64[i].y) + (shape->dxw * circle64[i].x)) / 256;
+        y = (p->getY() * 256 + (shape->dxw * circle64[i].y) - (shape->dyw * circle64[i].x)) / 256;
+        ctx->res.append(new LayoutCoord(x, y));
     }
 }
 
-static int draw_middle(struct draw_polyline_context *ctx, struct point *p)
+static int draw_middle(struct draw_polyline_context *ctx, LayoutCoord *p)
 {
     int delta = ctx->prev_shape.fow - ctx->shape.fow;
     if (delta > 512)
@@ -1725,63 +1721,63 @@ static int draw_middle(struct draw_polyline_context *ctx, struct point *p)
         delta += 1024;
     if (delta < 16 && delta > -16)
     {
-        draw_point(&ctx->shape, p, &ctx->res[ctx->npos--], 0);
-        draw_point(&ctx->shape, p, &ctx->res[ctx->ppos++], 1);
+        ctx->res.prepend(draw_point(&ctx->shape, p, new LayoutCoord(), 0));
+        ctx->res.append(draw_point(&ctx->shape, p, new LayoutCoord(), 1));
         return 1;
     }
     dbg(lvl_debug, "delta %d", delta);
     if (delta > 0)
     {
-        struct point pos, poso;
+        LayoutCoord pos, poso;
         draw_point(&ctx->shape, p, &pos, 1);
         draw_point(&ctx->prev_shape, p, &poso, 1);
         if (delta >= 256)
             return 0;
         if (intersection(&pos, ctx->shape.dx, ctx->shape.dy, &poso, ctx->prev_shape.dx, ctx->prev_shape.dy,
-                         &ctx->res[ctx->ppos]))
+                         ctx->res.last()))
         {
-            ctx->ppos++;
-            draw_point(&ctx->prev_shape, p, &ctx->res[ctx->npos--], 0);
-            draw_point(&ctx->shape, p, &ctx->res[ctx->npos--], 0);
+            delete ctx->res.takeLast();
+            ctx->res.prepend(draw_point(&ctx->prev_shape, p, new LayoutCoord(), 0));
+            ctx->res.prepend(draw_point(&ctx->shape, p, new LayoutCoord(), 0));
             return 1;
         }
     }
     else
     {
-        struct point neg, nego;
+        LayoutCoord neg, nego;
         draw_point(&ctx->shape, p, &neg, 0);
         draw_point(&ctx->prev_shape, p, &nego, 0);
         if (delta <= -256)
             return 0;
         if (intersection(&neg, ctx->shape.dx, ctx->shape.dy, &nego, ctx->prev_shape.dx, ctx->prev_shape.dy,
-                         &ctx->res[ctx->npos]))
+                         ctx->res.first()))
         {
-            ctx->npos--;
-            draw_point(&ctx->prev_shape, p, &ctx->res[ctx->ppos++], 1);
-            draw_point(&ctx->shape, p, &ctx->res[ctx->ppos++], 1);
+            delete ctx->res.takeFirst();
+            ctx->res.append(draw_point(&ctx->prev_shape, p, new LayoutCoord(), 1));
+            ctx->res.append(draw_point(&ctx->shape, p, new LayoutCoord(), 1));
             return 1;
         }
     }
     return 0;
 }
 
-static void draw_end(struct draw_polyline_context *ctx, struct point *p)
+static void draw_end(struct draw_polyline_context *ctx, LayoutCoord *p)
 {
-    int i;
+    int i, x, y;
     struct draw_polyline_shape *shape = &ctx->prev_shape;
     for (i = 0; i <= 32; i += shape->step)
     {
-        ctx->res[ctx->npos].x = (p->x * 256 + (shape->dyw * circle64[i].y) - (shape->dxw * circle64[i].x)) / 256;
-        ctx->res[ctx->npos].y = (p->y * 256 + (shape->dxw * circle64[i].y) + (shape->dyw * circle64[i].x)) / 256;
-        ctx->npos--;
+        x = (p->getX() * 256 + (shape->dyw * circle64[i].y) - (shape->dxw * circle64[i].x)) / 256;
+        y = (p->getY() * 256 + (shape->dxw * circle64[i].y) + (shape->dyw * circle64[i].x)) / 256;
+        ctx->res.prepend(new LayoutCoord(x, y));
     }
 }
 
 static void draw_init_ctx(struct draw_polyline_context *ctx, int maxpoints)
 {
     ctx->prec = 1;
-    ctx->ppos = maxpoints / 2;
-    ctx->npos = maxpoints / 2 - 1;
+    ctx->positive_pos = maxpoints / 2;     // 100
+    ctx->negative_pos = maxpoints / 2 - 1; // 99
 }
 
 void Graphics::draw_polyline_as_polygon(GraphicsContext *gc, QVector<LayoutCoord *> &pnt, QVector<int> &widths)
@@ -1790,37 +1786,34 @@ void Graphics::draw_polyline_as_polygon(GraphicsContext *gc, QVector<LayoutCoord
     struct draw_polyline_context ctx;
     int i = 0;
     int max_circle_points = 20;
+    int count = pnt.size();
     if (pnt.size() < 2)
         return;
     ctx.shape.l = 0;
     ctx.shape.wi = 0;
-    if (maxpoints < ALLOCA_COORD_LIMIT)
-        ctx.res = (point *)g_alloca(sizeof(struct point) * maxpoints);
-    else
-        ctx.res = (point *)g_malloc(sizeof(struct point) * maxpoints);
     i = 0;
     draw_init_ctx(&ctx, maxpoints);
-    draw_shape(&ctx, pnt, *width++);
-    draw_begin(&ctx, &pnt[0]);
+    draw_shape(&ctx, pnt[0], pnt[1], widths[0]);
+    draw_begin(&ctx, pnt[0]);
     for (i = 1; i < count - 1; i++)
     {
-        draw_shape(&ctx, pnt + i, *width++);
-        if (ctx.npos < max_circle_points || ctx.ppos >= maxpoints - max_circle_points || !draw_middle(&ctx, &pnt[i]))
+        draw_shape(&ctx, pnt[i], pnt[i + 1], widths[i]);
+        if (ctx.res.size() >= maxpoints - max_circle_points || !draw_middle(&ctx, pnt[i]))
         {
-            draw_end(&ctx, &pnt[i]);
-            ctx.res[ctx.npos] = ctx.res[ctx.ppos - 1];
-            draw_polygon(gc, ctx.res + ctx.npos, ctx.ppos - ctx.npos);
+            draw_end(&ctx, pnt[i]);
+            ctx.res.prepend(ctx.res.last());
+            draw_polygon(gc, ctx.res);
             draw_init_ctx(&ctx, maxpoints);
-            draw_begin(&ctx, &pnt[i]);
+            draw_begin(&ctx, pnt[i]);
         }
     }
-    draw_shape(&ctx, &pnt[count - 2], *width++);
+    draw_shape(&ctx, pnt[count - 2], pnt.last(), widths.last());
     ctx.prev_shape = ctx.shape;
-    draw_end(&ctx, &pnt[count - 1]);
-    ctx.res[ctx.npos] = ctx.res[ctx.ppos - 1];
-    draw_polygon(gc, ctx.res + ctx.npos, ctx.ppos - ctx.npos);
-    if (maxpoints >= ALLOCA_COORD_LIMIT)
-        g_free(ctx.res);
+    draw_end(&ctx, pnt.last());
+    ctx.res.prepend(ctx.res.last());
+    draw_polygon(gc, ctx.res);
+
+    qDeleteAll(ctx.res);
 }
 
 struct wpoint
@@ -2145,15 +2138,6 @@ void Graphics::clip_polygon(struct point_rect *r, QVector<LayoutCoord *> &in, QV
             pout = temp;
         }
     }
-
-    /* have clipped poly in out. And number of points now in *count_out */
-
-    /* if we had to allocate the buffer, we need to free it */
-    if (in.size() >= ALLOCA_COORD_LIMIT)
-    {
-        g_free(temp);
-    }
-    return;
 }
 
 /**
@@ -2187,87 +2171,29 @@ void Graphics::draw_polygon_clipped(GraphicsContext *gc, QVector<LayoutCoord *> 
  *        points per hole
  * @param holes array of point arrays for the hole polygons
  */
-void Graphics::draw_polygon_with_holes_clipped(GraphicsContext *gc, struct point *pin, int count_in, DisplayitemPolyHoles &holes)
+void Graphics::draw_polygon_with_holes_clipped(GraphicsContext *gc, QVector<LayoutCoord *> &pin, DisplayitemPolyHoles &holes)
 {
-    int i;
-    struct point_rect r = m_r;
-    struct point *clipped;
-    int total_count_in;
-    int count_out;
-    int count_used;
-    int found_hole_count;
-    int *found_ccount;
-    struct point **found_holes;
-    int need_free;
-    /* get total node count for polygon plus all holes */
-    total_count_in = count_in;
-
-    for (QVector<LayoutCoord *> hole : holes)
-    {
-        total_count_in += hole.size();
-    }
-    count_out = total_count_in * 8 + 1 + holes.size();
-
-    /* prepare buffer for outer and all holes!*/
-    if (count_out < ALLOCA_COORD_LIMIT)
-    {
-        /* use on stack buffer */
-        clipped = (point *)g_alloca(sizeof(struct point) * count_out);
-        /* no need to free on stack buffer */
-        need_free = 0;
-    }
-    else
-    {
-        /* too big. allocate buffer (slower) */
-        clipped = (point *)g_new(struct point, count_out);
-        /* remember to free this, as we change count_out soon */
-        need_free = 1;
-    }
-    count_used = 0;
-
-    /* prepare arrays for new holes */
-    if (holes.size() < ALLOCA_COORD_LIMIT)
-    {
-        found_ccount = (int *)g_alloca(sizeof(int) * holes.size());
-        found_holes = (point **)g_alloca(sizeof(struct point *) * holes.size());
-    }
-    else
-    {
-        found_ccount = (int *)g_malloc(sizeof(int) * holes.size());
-        found_holes = (point **)g_malloc(sizeof(struct point *) * holes.size());
-    }
-    found_hole_count = 0;
+    QVector<LayoutCoord *> clipped;
+    QVector<QVector<LayoutCoord *>> found_holes;
 
     /* clip outer polygon */
-    clip_polygon(&r, pin, count_in, clipped, &count_out);
-    count_used += count_out;
+    clip_polygon(&m_r, pin, clipped);
     /* clip the holes */
     for (QVector<LayoutCoord *> hole : holes)
     {
-        struct point *buffer = clipped + count_used;
-        int count = total_count_in * 8 + 1 + hole_count - count_used;
-        clip_polygon(&r, hole, buffer, &count);
-        count_used += count;
-        if (count > 0)
+        QVector<LayoutCoord *> buffer;
+        clip_polygon(&m_r, hole, buffer);
+        if (buffer.size() > 0)
         {
-            /* only if there are points left after clipping */
-            found_ccount[found_hole_count] = count;
-            found_holes[found_hole_count] = buffer;
-            found_hole_count++;
+            found_holes.append(buffer);
         }
     }
     /* call drawing function */
-    draw_polygon_with_holes(gc, clipped, count_out, found_hole_count, found_ccount, found_holes);
-    if (holes.size() >= ALLOCA_COORD_LIMIT)
-    {
-        g_free(found_ccount);
-        g_free(found_holes);
-    }
+    draw_polygon_with_holes(gc, clipped, found_holes);
+
     /* if we had to allocate buffer, free it */
-    if (need_free)
-    {
-        g_free(clipped);
-    }
+
+    qDeleteAll(clipped);
 }
 
 void Graphics::display_context_free(struct display_context *dc)
@@ -2298,7 +2224,7 @@ struct graphics_font *Graphics::get_font(int size)
     return m_font[size];
 }
 
-void Graphics::draw_text_std(int text_size, char *text, struct point *p)
+void Graphics::draw_text_std(int text_size, QString &text, LayoutCoord *p)
 {
     struct graphics_font *font = get_font(text_size);
     struct point bbox[4];
@@ -2307,19 +2233,20 @@ void Graphics::draw_text_std(int text_size, char *text, struct point *p)
     get_text_bbox(font, text, 0x10000, 0, bbox, 0);
     for (i = 0; i < 4; i++)
     {
-        bbox[i].x += p->x;
-        bbox[i].y += p->y;
+        bbox[i].x += p->getX();
+        bbox[i].y += p->getY();
     }
-    draw_rectangle(&m_gcForeground, &bbox[1], bbox[2].x - bbox[0].x, bbox[0].y - bbox[1].y + 5);
+    LayoutCoord c(&bbox[1]);
+    draw_rectangle(&m_gcForeground, &c, bbox[2].x - bbox[0].x, bbox[0].y - bbox[1].y + 5);
     draw_text(&m_gcMiddground, &m_gcForeground, font, text, p, 0x10000, 0);
 }
 
 QString Graphics::icon_path(QString icon)
 {
     static char *navit_sharedir;
-    QString ret;
+    QString ret("%s/icons/%s");
     struct file_wordexp *wordexp = NULL;
-    dbg(lvl_debug, "enter %s", icon);
+    // dbg(lvl_debug, "enter %s", icon);
     if (icon.contains("$"))
     {
         wordexp = file_wordexp_new(icon.toLocal8Bit().data());
@@ -2335,7 +2262,7 @@ QString Graphics::icon_path(QString icon)
 #else
         if (!navit_sharedir)
             navit_sharedir = getenv("NAVIT_SHAREDIR");
-        ret = g_strdup_printf("%s/icons/%s", navit_sharedir, icon);
+        ret = ret.arg(navit_sharedir).arg(icon);
 #endif
     }
     if (wordexp)
@@ -2343,31 +2270,25 @@ QString Graphics::icon_path(QString icon)
     return ret;
 }
 
-char *Graphics::texture_path(const char *texture)
+QString Graphics::texture_path(QString &texture)
 {
     static char *navit_sharedir;
-    char *ret = NULL;
+    QString ret;
     struct file_wordexp *wordexp = NULL;
-    dbg(lvl_debug, "enter %s", texture);
-    if (strchr(texture, '$'))
+    // dbg(lvl_debug, "enter %s", texture);
+    if (texture.contains("$"))
     {
-        wordexp = file_wordexp_new(texture);
+        wordexp = file_wordexp_new(texture.toLocal8Bit().data());
         if (file_wordexp_get_count(wordexp))
             texture = file_wordexp_get_array(wordexp)[0];
     }
-    if (strchr(texture, '/'))
-        ret = g_strdup(texture);
+    if (texture.contains("/"))
+        ret = texture;
     else
     {
-#ifdef HAVE_API_ANDROID
-        // TODO: Fix path for textures on android. Leave the same as for icons for now
-        //
-        ret = g_strdup_printf("res/drawable/%s", texture);
-#else
         if (!navit_sharedir)
             navit_sharedir = getenv("NAVIT_SHAREDIR");
-        ret = g_strdup_printf("%s/textures/%s", navit_sharedir, texture);
-#endif
+        ret = QString("%s/textures/%s").arg(navit_sharedir, texture);
     }
     if (wordexp)
         file_wordexp_destroy(wordexp);
@@ -2396,50 +2317,33 @@ int Graphics::limit_count(QVector<LayoutCoord *> &coords, int count)
  * @param label The text to draw (may contain '\n' for multiline text, if so lines will be stacked vertically)
  * @param line_spacing The delta between each line (set its value at to least the font text size, to be readable)
  */
-void Graphics::multiline_label_draw(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, struct point pref, const char *label, int line_spacing)
+void Graphics::multiline_label_draw(GraphicsContext *fg, GraphicsContext *bg, struct graphics_font *font, struct point pref, QString &label, int line_spacing)
 {
+    QStringList label_lines;
+    int max_lines = 10;
 
-    char *input_label = g_strdup(label);
-    char *label_lines[10]; /* Max 10 lines of text */
-    unsigned int label_nblines = 0;
-    unsigned int label_linepos = 0;
-    char *startline = input_label;
-    char *endline = startline;
-    while (endline && *endline != '\0')
+    for (QString nl : label.split("\n"))
     {
-        while (*endline != '\0' && *endline != '\n')
-        { /* Search for new line */
-            endline = g_utf8_next_char(endline);
+        for (QString nl2 : nl.split("\0"))
+        {
+            label_lines.append(nl2);
         }
-        if (*endline == '\0')
-            endline = NULL;  /* This means we reached the end of string */
-        if (endline)         /* Test if we got a new line character ('\n') */
-            *endline = '\0'; /* Terminate string at line ('\n') and print this line */
-        label_lines[label_nblines++] = startline;
-        if (endline == NULL) /* endline is NULL, this was the last line of the multi-line string */
-            break;
-        endline++;           /* No need for g_utf8_next_char() here, as we know '\n' is a single byte UTF-8 char */
-        startline = endline; /* Start processing next line, by setting startline to its first character */
     }
-    if (label_nblines > (sizeof(label_lines) / sizeof(char *)))
+    if (label_lines.size() > max_lines)
     { /* Does label_nblines overflows the number of entries in array label_lines? */
-        dbg(lvl_warning, "Too many lines (%d) in label \"%s\", truncating to %lu", label_nblines, label,
-            sizeof(label_lines) / sizeof(char *));
-        label_nblines = sizeof(label_lines) / sizeof(char *);
+        dbg(lvl_warning, "Too many lines (%d) in label, truncating to %d", label_lines.size(), max_lines);
+        label_lines = QStringList(label_lines.begin(), label_lines.begin() + max_lines);
     }
     /* Horizontally, we position the label next to the specified point (on the right handside) */
-    pref.x += 1;
     /* Vertically, we center the text with respect to specified point */
-    pref.y -= (label_nblines * line_spacing) / 2;
+    LayoutCoord p(pref.x + 1, pref.y - (label_lines.size() * line_spacing) / 2);
 
     /* Parse all stored lines, and display them */
-    for (label_linepos = 0; label_linepos < label_nblines; label_linepos++)
+    for (QString line : label_lines)
     {
-        draw_text(fg, bg, font, label_lines[label_linepos],
-                  &pref, 0x10000, 0);
-        pref.y += line_spacing;
+        draw_text(fg, bg, font, line, &p, 0x10000, 0);
+        p.set(p.getX(), p.getY() + line_spacing);
     }
-    g_free(input_label);
 }
 
 /**
@@ -2480,65 +2384,62 @@ void Graphics::displayitem_free_holes(DisplayitemPolyHoles &holes)
     holes.clear();
 }
 
-void Graphics::displayitem_draw_polygon(struct display_context *dc, struct point *pa, int count, DisplayitemPolyHoles &holes)
+void Graphics::displayitem_draw_polygon(struct display_context *dc, QVector<LayoutCoord *> &pa, DisplayitemPolyHoles &holes)
 {
 
     LayoutPolygon *contextPolygon = static_cast<LayoutPolygon *>(dc->element);
     /* Set texture if any, and supported by graphics */
     if (!contextPolygon->getSrc().isEmpty())
     {
-        char *path;
         struct graphics_image *texture;
-        path = texture_path(contextPolygon->getSrc().toLocal8Bit().data());
-        texture = image_new_scaled_rotated(path, contextPolygon->getW(), contextPolygon->getH(),
-                                           contextPolygon->getRotation());
-        g_free(path);
+        QString path = texture_path(contextPolygon->getSrc());
+        texture = image_new_scaled_rotated(path, contextPolygon->getW(), contextPolygon->getH(), contextPolygon->getRotation());
         if (texture != NULL)
             dc->gc->set_texture(texture);
     }
     if (holes.size() > 0)
-        draw_polygon_with_holes_clipped(dc->gc, pa, count, holes);
+        draw_polygon_with_holes_clipped(dc->gc, pa, holes);
     else
-        draw_polygon_clipped(dc->gc, pa, count);
+        draw_polygon_clipped(dc->gc, pa);
 }
 
-void Graphics::displayitem_draw_polyline(struct display_context *dc, LayoutPolyline *element, struct point *pa, int count, int *width)
+void Graphics::displayitem_draw_polyline(struct display_context *dc, LayoutPolyline *element, QVector<LayoutCoord *> &pa, QVector<int> &widths)
 {
     int i;
     dc->gc->set_linewidth(1);
     if (element->getWidth() > 0 && element->getDash().size() > 0)
         dc->gc->set_dashes(element->getWidth(), element->getOffset(), element->getDash());
-    for (i = 0; i < count; i++)
+    for (i = 0; i < pa.size(); i++)
     {
-        if (width[i] < 2)
-            width[i] = 2;
+        if (widths[i] < 2)
+            widths[i] = 2;
     }
-    draw_polyline_clipped(dc->gc, pa, count, width, element->getWidth() > 1);
+    draw_polyline_clipped(dc->gc, pa, widths, element->getWidth() > 1);
 }
 
-void Graphics::displayitem_draw_circle(struct displayitem *di, struct display_context *dc, LayoutCircle *element, struct point *pa, int count)
+void Graphics::displayitem_draw_circle(struct displayitem *di, struct display_context *dc, LayoutCircle *element, LayoutCoord *pa)
 {
-    if (count)
+    if (pa)
     {
         if (element->getWidth() > 1)
             dc->gc->set_linewidth(element->getWidth());
         draw_circle(dc->gc, pa, element->getRadius());
-        if (di->label && element->getTextSize())
+        if (element->getTextSize())
         {
             struct graphics_font *font = get_font(element->getTextSize());
             GraphicsContext *gc_background = dc->gc_background;
             if (!gc_background && element->getBackgroundColor().isValid())
             {
                 gc_background = new GraphicsContext(m_contextInterface, this);
-                gc_background->set_foreground(&element->getBackgroundColor());
+                gc_background->set_foreground(element->getBackgroundColor());
                 dc->gc_background = gc_background;
             }
             if (font)
             {
                 struct point p;
                 /* Set p to the center of the circle */
-                p.x = pa[0].x + (element->getRadius() / 2);
-                p.y = pa[0].y + (element->getRadius() / 2);
+                p.x = pa->getX() + (element->getRadius() / 2);
+                p.y = pa->getY() + (element->getRadius() / 2);
                 multiline_label_draw(dc->gc, gc_background, font, p, di->label, element->getTextSize() + 1);
             }
             else
@@ -2556,12 +2457,11 @@ void Graphics::displayitem_draw_text(struct displayitem *di, struct display_cont
         if (!gc_background && element->getBackgroundColor().isValid())
         {
             gc_background = new GraphicsContext(m_contextInterface, this);
-            gc_background->set_foreground(&element->getBackgroundColor());
+            gc_background->set_foreground(element->getBackgroundColor());
             dc->gc_background = gc_background;
         }
         if (font)
         {
-            int a;
             label_line(dc->gc, gc_background, font, coords, di->label);
 
             for (QVector<LayoutCoord *> hole : holes)
@@ -2574,9 +2474,9 @@ void Graphics::displayitem_draw_text(struct displayitem *di, struct display_cont
     }
 }
 
-void Graphics::displayitem_draw_icon(struct displayitem *di, struct display_context *dc, LayoutIcon *element, struct point *pa, int count, Layout *layout)
+void Graphics::displayitem_draw_icon(struct displayitem *di, struct display_context *dc, LayoutIcon *element, LayoutCoord *pa, Layout *layout)
 {
-    if (count)
+    if (pa)
     {
         struct graphics_image *img = dc->img;
         if (!img || item_is_custom_poi(di->item))
@@ -2594,7 +2494,7 @@ void Graphics::displayitem_draw_icon(struct displayitem *di, struct display_cont
             }
             if (item_is_custom_poi(di->item))
             {
-                char *icon;
+                QString icon;
                 QString src;
 
                 if (img)
@@ -2602,13 +2502,16 @@ void Graphics::displayitem_draw_icon(struct displayitem *di, struct display_cont
                 src = element->getSrc();
                 if (src.isEmpty())
                     src = QString("%s");
-                icon = g_strdup_printf(src.toLocal8Bit().data(), di->label + strlen(di->label) + 1);
-                path = icon_path(QString(icon));
-                g_free(icon);
+
+                // Second element should be the src
+                // TODO: add struct for label...
+                assert(di->label.size() > 0);
+                icon = src.arg(di->label[1]);
+                path = icon_path(icon);
             }
             else
                 path = icon_path(element->getSrc());
-            img = image_new_scaled_rotated(path.toLocal8Bit().data(), icon_width, icon_height, element->getRotation());
+            img = image_new_scaled_rotated(path, icon_width, icon_height, element->getRotation());
             if (img)
                 dc->img = img;
             else
@@ -2619,26 +2522,27 @@ void Graphics::displayitem_draw_icon(struct displayitem *di, struct display_cont
             struct point p;
             if (element->getX() != -1 || element->getY() != -1)
             {
-                p.x = pa[0].x - element->getX();
-                p.y = pa[0].y - element->getY();
+                p.x = pa->getX() - element->getX();
+                p.y = pa->getY() - element->getY();
             }
             else
             {
-                p.x = pa[0].x - img->hot.x;
-                p.y = pa[0].y - img->hot.y;
+                p.x = pa->getX() - img->hot.x;
+                p.y = pa->getY() - img->hot.y;
             }
             draw_image(&m_gcBackground, &p, img);
         }
     }
 }
 
-void Graphics::displayitem_draw_image(struct displayitem *di, struct display_context *dc, struct point *pa, int count)
+void Graphics::displayitem_draw_image(struct displayitem *di, struct display_context *dc, LayoutCoord *pa)
 {
-    dbg(lvl_debug, "image: '%s'", di->label);
+    // dbg(lvl_debug, "image: '%s'", di->label);
     struct graphics_image *img = dc->img;
+    // The first one should be the image path???
     img = image_new_scaled_rotated(di->label, IMAGE_W_H_UNSET, IMAGE_W_H_UNSET, 0);
     if (img)
-        draw_image_warp(&m_gcBackground, pa, count, img);
+        draw_image_warp(&m_gcBackground, pa, img);
 }
 
 /**
@@ -2652,27 +2556,15 @@ void Graphics::displayitem_draw_image(struct displayitem *di, struct display_con
  */
 void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct display_context *dc)
 {
-    int *width;
-    int limit = 0;
-    struct point *pa;
+    QVector<int> width;
+
     LayoutItemGraphElement *element = dc->element;
     int draw_underground = 0;
-    long pa_buf_size = sizeof(struct point) * dc->maxlen;
-
-    if (dc->maxlen < ALLOCA_COORD_LIMIT)
-    {
-        width = (int *)g_alloca(sizeof(int) * dc->maxlen);
-        pa = (point *)g_alloca(pa_buf_size);
-    }
-    else
-    {
-        width = (int *)g_malloc(sizeof(int) * dc->maxlen);
-        pa = (point *)g_malloc(pa_buf_size);
-    }
 
     while (di)
     {
-        int count = di->count, mindist = dc->mindist;
+        // int count = di->count;
+        int mindist = dc->mindist;
         DisplayitemPolyHoles t_holes;
         QVector<LayoutCoord *> t_coords;
 
@@ -2690,7 +2582,7 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
         {
             GraphicsContext *gc = new GraphicsContext(m_contextInterface, this);
             dc->gc = gc;
-            dc->gc->set_foreground(&element->getColor());
+            dc->gc->set_foreground(element->getColor());
         }
 
         /* If the element id flagged AF_UNDERGROUND, we apply predefined transparenc to it if
@@ -2701,7 +2593,7 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
             {
                 QColor fg_color = element->getColor();
                 fg_color.setAlpha(layout ? layout->getUndergroundAlpha() : UNDERGROUND_ALPHA_);
-                dc->gc->set_foreground(&fg_color);
+                dc->gc->set_foreground(fg_color);
                 draw_underground = 1;
             }
         }
@@ -2709,22 +2601,23 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
         {
             if (draw_underground)
             {
-                dc->gc->set_foreground(&element->getColor());
+                dc->gc->set_foreground(element->getColor());
                 draw_underground = 0;
             }
         }
-        if (
-            item_type_is_area(dc->type) &&
-            (dc->element->getType() == LayoutElementType::LayoutElementPolyline ||
-             dc->element->getType() == LayoutElementType::LayoutElementText))
-            limit = 0;
+        // if (
+        //     item_type_is_area(dc->type) &&
+        //     (dc->element->getType() == LayoutElementType::LayoutElementPolyline ||
+        //      dc->element->getType() == LayoutElementType::LayoutElementText))
+        // limit = 0;
 
         displayitem_transform_holes(dc->trans, dc->pro, di->holes, t_holes, mindist);
 
-        if (limit)
-            count = limit_count(di->coords, count);
+        // if (limit)
+        // count = limit_count(di->coords, count);
 
-        di->coords = QVector<LayoutCoord *>(di->coords.begin(), di->coords.begin() + count);
+        // di->coords = QVector<LayoutCoord *>(di->coords.begin(), di->coords.begin() + count);
+
         if (dc->type == type_poly_water_tiled)
             mindist = 0;
 
@@ -2732,56 +2625,54 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
         {
         case LayoutElementType::LayoutElementPolygon:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
-            displayitem_draw_polygon(dc, pa, count, t_holes);
+            transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
+            displayitem_draw_polygon(dc, t_coords, t_holes);
             break;
         }
         case LayoutElementType::LayoutElementPolyline:
         {
             LayoutPolyline *polyline = static_cast<LayoutPolyline *>(element);
-            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, polyline->getWidth(),
-                                        width);
-            displayitem_draw_polyline(dc, static_cast<LayoutPolyline *>(element), pa, count, width);
+            transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, polyline->getWidth(),
+                                &width);
+            displayitem_draw_polyline(dc, static_cast<LayoutPolyline *>(element), t_coords, width);
             break;
         }
         case LayoutElementType::LayoutElementCircle:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
-            displayitem_draw_circle(di, dc, static_cast<LayoutCircle *>(element), pa, count);
+            transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0);
+            displayitem_draw_circle(di, dc, static_cast<LayoutCircle *>(element), t_coords.first());
             break;
         }
         case LayoutElementType::LayoutElementText:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
-            displayitem_draw_text(di, dc, static_cast<LayoutText *>(element), pa, count, t_holes);
+            transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0);
+            displayitem_draw_text(di, dc, static_cast<LayoutText *>(element), t_coords, t_holes);
             break;
         }
         case LayoutElementType::LayoutElementIcon:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
-            displayitem_draw_icon(di, dc, static_cast<LayoutIcon *>(element), pa, count, layout);
+            transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0);
+            displayitem_draw_icon(di, dc, static_cast<LayoutIcon *>(element), t_coords.first(), layout);
             break;
         }
         case LayoutElementType::LayoutElementImage:
         {
-            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0, NULL);
-            displayitem_draw_image(di, dc, pa, count);
+            transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, 0);
+            displayitem_draw_image(di, dc, t_coords.first());
             break;
         }
         case LayoutElementType::LayoutElementArrows:
         {
             LayoutArrows *arrows = static_cast<LayoutArrows *>(element);
-            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, arrows->getWidth(),
-                                        width);
-            display_draw_arrows(dc, pa, count, width, arrows->getOneway());
+            transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, arrows->getWidth(), &width);
+            display_draw_arrows(dc, t_coords, width, arrows->getOneway());
             break;
         }
         case LayoutElementType::LayoutElementSpikes:
         {
             LayoutSpikes *spikes = static_cast<LayoutSpikes *>(element);
-            count = transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, spikes->getWidth(),
-                                        width);
-            display_draw_spikes(dc, pa, count, width, spikes->getDistance());
+            transform_point_buf(dc->trans, dc->pro, di->coords, t_coords, mindist, spikes->getWidth(), &width);
+            display_draw_spikes(dc, t_coords, width, spikes->getDistance());
             break;
         }
         case LayoutElementType::LayoutElementPoint:
@@ -2792,11 +2683,6 @@ void Graphics::displayitem_draw(struct displayitem *di, Layout *layout, struct d
         qDeleteAll(t_coords);
 
         di = di->next;
-    }
-    if (dc->maxlen >= ALLOCA_COORD_LIMIT)
-    {
-        g_free(width);
-        g_free(pa);
     }
 }
 
@@ -2822,8 +2708,9 @@ void Graphics::draw_itemgra(LayoutItemGraph *itemGraph, struct transformation *t
     di->item.id_lo = 0;
     di->item.map = NULL;
     di->z_order = 0;
-    di->label = label;
+    di->label = QString(label);
     di->holes.clear();
+    di->coords.clear();
     dc.gra = this;
     dc.gc = NULL;
     dc.gc_background = NULL;
@@ -2835,7 +2722,6 @@ void Graphics::draw_itemgra(LayoutItemGraph *itemGraph, struct transformation *t
     dc.maxlen = max_coord;
     for (LayoutItemGraphElement *element : itemGraph->getElements())
     {
-        di->coords.clear();
         QVector<LayoutCoord *> coords = element->getCoords();
         if (coords.size() > 0)
         {
@@ -2890,7 +2776,7 @@ int Graphics::displayitem_get_z_order(struct displayitem *di)
 
 int Graphics::displayitem_get_coord_count(struct displayitem *di)
 {
-    return di->count;
+    return di->coords.size();
 }
 
 /**
@@ -2899,7 +2785,7 @@ int Graphics::displayitem_get_coord_count(struct displayitem *di)
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-char *Graphics::displayitem_get_label(struct displayitem *di)
+QString Graphics::displayitem_get_label(struct displayitem *di)
 {
     return di->label;
 }
@@ -2945,7 +2831,7 @@ GraphicsContext::~GraphicsContext()
  * @param c color to set
  * @author Martin Schaller (04/2008)
  */
-void GraphicsContext::set_foreground(QColor *c)
+void GraphicsContext::set_foreground(const QColor &c)
 {
     m_contextInterface.set_foreground(c);
 }
@@ -2956,7 +2842,7 @@ void GraphicsContext::set_foreground(QColor *c)
  * @returns <>
  * @author Martin Schaller (04/2008)
  */
-void GraphicsContext::set_background(QColor *c)
+void GraphicsContext::set_background(const QColor &c)
 {
     m_contextInterface.set_background(c);
 }
@@ -2992,12 +2878,13 @@ void GraphicsContext::set_linewidth(int width)
  */
 void GraphicsContext::set_dashes(int width, int offset, QVector<int> &dashes)
 {
-    QVector<int> scaled_dashes;
-    for (int i = 0; i < dashes.size(); i++)
+    int a;
+    unsigned char *scaled_dashes = (unsigned char *)g_alloca(sizeof(unsigned char) * dashes.size());
+    for (a = 0; a < dashes.size(); a++)
     {
-        scaled_dashes.append(m_graphics->dpi_scale(dashes[i]));
+        scaled_dashes[a] = m_graphics->dpi_scale(dashes[a]);
     }
-    m_contextInterface.set_dashes(m_graphics->dpi_scale(width), m_graphics->dpi_scale(offset), scaled_dashes);
+    m_contextInterface.set_dashes(m_graphics->dpi_scale(width), m_graphics->dpi_scale(offset), scaled_dashes, dashes.size());
 }
 
 NavitGraphicsContextInterface &GraphicsContext::get_context_interface()

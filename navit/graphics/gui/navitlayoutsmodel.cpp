@@ -69,29 +69,25 @@ void NavitLayoutsModel::update()
     if (m_navitInstance)
     {
         NavitInterface &navit = m_navitInstance->getNavit();
-        struct attr attr;
-        struct attr_iter *iter;
 
         beginResetModel();
         m_layouts.clear();
         endResetModel();
 
-        iter = navit.attr_iter_new();
-        navit.get_attr(attr_layout, &attr, nullptr);
+        Layout *activeLayout = navit.getCurrentLayout();
 
-        if (!attr.u.layout)
-        {
-            return;
-        }
-
-        QString activeLayout = QString::fromLocal8Bit(attr.u.layout->name);
-        while (navit.get_attr(attr_layout, &attr, iter))
+        for (Layout *layout : navit.getLayouts())
         {
             QVariantMap layouts;
-            QString layout = QString::fromLocal8Bit(attr.u.layout->name);
-            layouts.insert("name", layout);
+            if (!layout)
+            {
+                qWarning() << "Got an invalid layout";
+                continue;
+            }
+
+            layouts.insert("name", layout->getName());
             layouts.insert("action", "setLayout");
-            if (layout == activeLayout)
+            if (activeLayout && activeLayout->getName() == layout->getName())
             {
                 layouts.insert("imageUrl", "qrc:/NavitGUI/assets/ionicons/md-checkmark-circle-outline.svg");
             }
@@ -104,7 +100,6 @@ void NavitLayoutsModel::update()
             m_layouts.append(layouts);
             endInsertRows();
         }
-        navit.attr_iter_destroy(iter);
         emit layoutChanged();
     }
 }

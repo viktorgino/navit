@@ -59,8 +59,8 @@ public:
     ~GraphicsContextQt5();
     void set_linewidth(int width) override;
     void set_dashes(int width, int offset, unsigned char dash_list[], int n) override;
-    void set_foreground(QColor *c) override;
-    void set_background(QColor *c) override;
+    void set_foreground(const QColor &c) override;
+    void set_background(const QColor &c) override;
     void set_texture(struct graphics_image *img) override;
 
     QPen &pen();
@@ -96,16 +96,16 @@ public:
     void draw_polygon(NavitGraphicsContextInterface *gc, struct point *p, int count) override;
     void draw_rectangle(NavitGraphicsContextInterface *gc, struct point *p, int w, int h) override;
     void draw_circle(NavitGraphicsContextInterface *gc, struct point *p, int r) override;
-    void draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsContextInterface *bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy) override;
+    void draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsContextInterface *bg, struct graphics_font_priv *font, QString &text, struct point *p, int dx, int dy) override;
     void draw_image(NavitGraphicsContextInterface *fg, struct point *p, struct graphics_image_priv *img) override;
     void draw_image_warp(NavitGraphicsContextInterface *fg, struct point *p, int count, struct graphics_image_priv *img) override;
     void draw_polygon_with_holes(NavitGraphicsContextInterface *gc, struct point *p, int count, int hole_count, int *ccount, struct point **holes) override;
     void draw_drag(struct point *p) override;
     void background_gc(NavitGraphicsContextInterface *gc) override;
-    struct graphics_image_priv *image_new(struct graphics_image_methods *meth, char *path, int *w, int *h, struct point *hot, int rotation) override;
+    struct graphics_image_priv *image_new(struct graphics_image_methods *meth, QString &path, int *w, int *h, struct point *hot, int rotation) override;
     void image_free(struct graphics_image_priv *priv) override;
     void *get_data(const char *type) override;
-    void get_text_bbox(struct graphics_font_priv *font, char *text, int dx, int dy, struct point *ret, int estimate) override;
+    void get_text_bbox(struct graphics_font_priv *font, QString &text, int dx, int dy, struct point *ret, int estimate) override;
     int set_attr(struct attr *attr) override;
     int show_native_keyboard(struct graphics_keyboard *kbd) override;
     void hide_native_keyboard(struct graphics_keyboard *kbd) override;

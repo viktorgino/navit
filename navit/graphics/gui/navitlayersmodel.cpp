@@ -65,28 +65,25 @@ void NavitLayersModel::setNavitLayers(NavitLayoutsModel *navitLayouts)
     update();
     connect(m_navitLayoutsInstance, &NavitLayoutsModel::layoutChanged, this, &NavitLayersModel::update);
 }
+
 void NavitLayersModel::update()
 {
     if (m_navitLayoutsInstance && m_navitLayoutsInstance->m_navitInstance)
     {
         NavitInterface &navit = m_navitLayoutsInstance->m_navitInstance->getNavit();
-        struct attr attr;
 
         beginResetModel();
         m_layers.clear();
         endResetModel();
 
-        navit.get_attr(attr_layout, &attr, nullptr);
-        GList *layers = attr.u.layout->layers;
+        Layout *layout = navit.getCurrentLayout();
 
-        while (layers)
+        for (LayoutLayer *layer : layout->getLayers())
         {
             QVariantMap layerMap;
-            GList *next = layers->next;
-            struct layer *layer = (struct layer *)layers->data;
-            layerMap.insert("name", layer->name);
+            layerMap.insert("name", layer->getName());
             layerMap.insert("action", "toggleLayer");
-            if (layer->active)
+            if (layer->getActive())
             {
                 layerMap.insert("imageUrl", "qrc:/NavitGUI/assets/ionicons/md-checkmark-circle-outline.svg");
             }
@@ -97,7 +94,6 @@ void NavitLayersModel::update()
             beginInsertRows(QModelIndex(), rowCount(), rowCount());
             m_layers.append(layerMap);
             endInsertRows();
-            layers = next;
         }
     }
 }
@@ -107,20 +103,17 @@ void NavitLayersModel::toggleLayer(QString name)
     if (m_navitLayoutsInstance && m_navitLayoutsInstance->m_navitInstance)
     {
         NavitInterface &navit = m_navitLayoutsInstance->m_navitInstance->getNavit();
-        struct attr attr;
-        char *layerName = name.toUtf8().data();
 
-        navit.get_attr(attr_layout, &attr, nullptr);
-        GList *layers = attr.u.layout->layers;
-        while (layers)
+        Layout *layout = navit.getCurrentLayout();
+
+        for (LayoutLayer *layer : layout->getLayers())
         {
-            struct layer *l = (struct layer *)layers->data;
-            if (l && !strcmp(l->name, layerName))
+            if (layer->getName() == name)
             {
-                l->active ^= 1;
+                // TODO: implement layer toggling
+                qWarning() << "Layter toggling is not implemented";
                 navit.draw();
             }
-            layers = g_list_next(layers);
         }
 
         update();

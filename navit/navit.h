@@ -75,34 +75,56 @@ class Navit : public QObject, public NavitInterface
     Q_OBJECT
 public:
     Navit(NavitConfig &navitConfig, QObject *parent = nullptr);
+    ~Navit();
+
     void add_mapset(struct mapset *ms);
+
+    // Interfaces
+    int set_vehicleprofile_name(const QString &name) override;
+    struct vehicleprofile *get_vehicleprofile() override;
+    int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter) override;
     struct mapset *get_mapset() override;
-    struct map *get_search_results_map();
-    int populate_search_results_map(GList *search_results, struct coord_rect *r) override;
     struct tracking *get_tracking() override;
-    void draw_async(int async);
+    void set_center(struct pcoord *center, int set_timeout_) override;
+    int populate_search_results_map(GList *search_results, struct coord_rect *r) override;
+    int set_attr(struct attr *attr) override;
+    void add_callback(struct callback *cb) override;
+    struct navigation *get_navigation() override;
+    struct route *get_route() override;
+    void zoom_level(int level, struct point *p) override;
+    void set_destination(struct pcoord *c, const char *description, int async) override;
+    int get_width() override;
+    int get_height() override;
+    struct transformation *get_trans() override;
     void draw() override;
+    void set_position(struct pcoord *c) override;
+    int get_destination_count() override;
+    int get_destinations(struct pcoord *pc, int count) override;
+    void add_destination_description(struct pcoord *c, const char *description) override;
+    void set_destinations(struct pcoord *c, int count, const char *description, int async) override;
+    void drag_map(struct point *origin, struct point *destination) override;
+    void zoom_in(int factor, struct point *p) override;
+    void zoom_out(int factor, struct point *p) override;
+    void zoom_to_route(int orientation) override;
+    void set_center_cursor_draw() override;
+
+    int set_layout_by_name(const QString &name) override;
+    Layout *getCurrentLayout() override;
+    const QVector<Layout *> &getLayouts() override;
+
+    // Other public functions
+    struct map *get_search_results_map();
+    void draw_async(int async);
     int get_ready();
     void draw_displaylist();
     void handle_resize(int w, int h);
-    int get_width() override;
-    int get_height() override;
     void set_timeout();
     void handle_motion(struct point *p);
-    void zoom_level(int level, struct point *p) override;
-    void zoom_in(int factor, struct point *p) override;
-    void zoom_out(int factor, struct point *p) override;
     void zoom_in_cursor(int factor);
     void zoom_out_cursor(int factor);
     void add_message(const char *message);
     struct message *get_messages();
-    struct vehicleprofile *get_vehicleprofile() override;
     GList *get_vehicleprofiles();
-    void set_destination(struct pcoord *c, const char *description, int async) override;
-    void set_destinations(struct pcoord *c, int count, const char *description, int async) override;
-    void add_destination_description(struct pcoord *c, const char *description) override;
-    int get_destinations(struct pcoord *pc, int count);
-    int get_destination_count();
     char *get_destination_description(int n);
     void remove_nth_waypoint(int n);
     void remove_waypoint();
@@ -116,67 +138,58 @@ public:
     void window_roadbook_new();
     int init();
     void zoom_to_rect(struct coord_rect *r);
-    void zoom_to_route(int orientation) override;
-    void set_center(struct pcoord *center, int set_timeout_) override;
     void set_center_cursor(int autozoom_, int keep_orientation);
     void set_center_screen(struct point *p, int set_timeout_);
-    void drag_map(struct point *origin, struct point *destination) override;
-    void set_center_cursor_draw() override;
-    int set_attr(struct attr *attr) override;
-    int get_attr(enum attr_type type, struct attr *attr, struct attr_iter *iter) override;
     Layout *get_layout_by_name(const QString &name);
     LayoutCursor *get_layout_cursor(const QString &name);
     void update_current_layout(Layout *layout);
     int add_attr(struct attr *attr);
     int remove_attr(struct attr *attr);
-    void add_callback(struct callback *cb) override;
     void remove_callback(struct callback *cb);
-    void set_position(struct pcoord *c) override;
     struct gui *get_gui();
-    struct transformation *get_trans() override;
-    struct route *get_route() override;
-    struct navigation *get_navigation() override;
     void layout_switch();
     int set_vehicle_by_name(const QString &name);
-    int set_vehicleprofile_name(const QString &name) override;
-    int set_layout_by_name(const QString &name) override;
     int block(int block);
     int get_blocked();
-    void destroy();
     void motion_timeout();
     void predraw();
     void window_roadbook_update();
     void map_progress();
     void redraw_route(struct route *route, struct attr *attr);
-    void vehicle_update_status(struct navit_vehicle *nv, enum attr_type type);
 
     static char *get_user_data_directory(int create);
 
+signals:
+    void positionValidChanged(const bool &isValid);
+    void positionChanged(const coord_geo &position);
+    void fixTypeChanged(double &hdop);
+    void hdopChanged(double &hdop);
+    void satellitesChanged(int satellites);
+
 private slots:
-    void onVehiclePositionUpdated(struct navit_vehicle *nv);
+    void onVehiclePositionUpdated(const coord_geo &position);
 
 private:
     NavitConfig &m_config;
     PluginLoader m_pluginLoader;
     Graphics m_graphics;
     GraphicsDisplayList m_displaylist;
-    QVector<Layout *> m_layouts;
-
-    QList<LayoutLayer *> m_layers;
-
     Vehicle *m_vehicle;
+    Layout *m_layout_current; /*!< The current layout theme used to display the map */
+
+    QVector<Layout *> m_layouts;
+    QList<LayoutLayer *> m_layers;
+    QVector<Vehicle *> m_vehicles;
 
     struct attr m_self;
 
     GList *m_mapsets;
-    Layout *m_layout_current; /*!< The current layout theme used to display the map */
     struct action *m_action;
     struct transformation *m_trans, *m_trans_cursor;
     struct compass *m_compass;
     struct speech *m_speech;
     int m_ready;
     struct window *m_win;
-    GList *m_vehicles;
     GList *m_windows_items;
     struct callback_list *m_attr_cbl;
     struct callback *m_nav_speech_cb, *m_roadbook_callback, *m_route_cb;
@@ -209,7 +222,7 @@ private:
     struct coord_geo m_center;
     QString m_layout_before_tunnel;
 
-    void draw_vehicle(struct navit_vehicle *nv, point *pnt);
+    void draw_vehicle(Vehicle *nv, point *pnt);
 
     int add_vehicle(Vehicle *v);
     int add_layout(Layout *layout);
@@ -218,7 +231,7 @@ private:
     int set_attr_do(struct attr *attr, int init);
     int get_cursor_pnt(struct point *p, int keep_orientation, int *dir);
     void set_cursors();
-    void set_vehicle(struct navit_vehicle *nv);
+    void set_vehicle(Vehicle *nv);
     int set_vehicleprofile(struct vehicleprofile *vp);
 
     int restrict_to_range(int value, int min, int max);
@@ -233,6 +246,14 @@ private:
     int former_destinations_active();
     void add_former_destinations_from_file();
     void set_center_coord_screen(struct coord *c, struct point *p, int set_timeout_);
+
+    coord get_vehicle_cursor_coords(Vehicle *vehicle);
+
+    void get_tracking_attr(attr *_attr, const enum attr_type &type);
+    bool isPositionValid(Vehicle *vehicle);
+    coord_geo getPosition(Vehicle *vehicle);
+    double getSpeed(Vehicle *vehicle);
+    double getDirection(Vehicle *vehicle);
 };
 /* end of prototypes */
 

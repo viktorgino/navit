@@ -20,6 +20,7 @@ extern "C"
 #include "graphics.h"
 #include <QList>
 #include "config_loader_layout.h"
+#include "transform_2.h"
 
 #define HASH_SIZE 1024
 struct hash_entry
@@ -36,6 +37,8 @@ class GraphicsDisplayList
 {
 public:
     GraphicsDisplayList(Graphics &graphics);
+    ~GraphicsDisplayList();
+
     void update_layers(QVector<LayoutLayer *> layers, int order);
     void update_hash();
     void clear_hash();
@@ -61,11 +64,10 @@ public:
      * @param radius radius of clicked area
      * @returns GList of displayitems
      */
-    GList *get_clicked_list(struct point *p, int radius);
+    GList *get_clicked_list(LayoutCoord *p, int radius);
     struct displaylist_handle *open();
     struct displayitem *next(struct displaylist_handle *dlh);
     void close(struct displaylist_handle *dlh);
-    void destroy();
     void draw(struct transformation *trans, Layout *layout, int flags);
     void do_draw(int cancel, int flags);
     void load_mapset(struct mapset *mapset, struct transformation *trans, Layout *layout, int async, struct callback *cb, int flags);
@@ -98,11 +100,11 @@ private:
     std::array<hash_entry, HASH_SIZE> m_hash_entries;
     GList *m_selection;
 
-    int displayitem_within_dist(struct displayitem *di, struct point *p, int dist);
-    int within_dist_line(struct point *p, struct point *line_p0, struct point *line_p1, int dist);
-    int within_dist_point(struct point *p0, struct point *p1, int dist);
-    int within_dist_polyline(struct point *p, struct point *line_pnt, int count, int dist, int close);
-    int within_dist_polygon(struct point *p, struct point *poly_pnt, int count, int dist);
+    int displayitem_within_dist(struct displayitem *di, LayoutCoord *p, int dist);
+    int within_dist_line(LayoutCoord *p, LayoutCoord *line_p0, LayoutCoord *line_p1, int dist);
+    int within_dist_point(LayoutCoord *p0, LayoutCoord *p1, int dist);
+    int within_dist_polyline(LayoutCoord *p, QVector<LayoutCoord *> &line_pnt, int dist, int close);
+    int within_dist_polygon(LayoutCoord *p, QVector<LayoutCoord *> &poly_pnt, int dist);
 
     void process_selection();
     void process_selection_item(struct item *item);
@@ -110,7 +112,7 @@ private:
     void remove_selection(struct item *item, enum item_type type);
     void add_selection(struct item *item, enum item_type type);
 
-    struct displayitem_poly_holes *display_add_holes(struct item *item, int hole_count, char **p);
+    void display_add_holes(struct displayitem *di, struct item *item, char **p);
     void display_add(struct hash_entry *entry, struct item *item, int count, struct coord *c, char **label, int label_count);
 };
 #endif

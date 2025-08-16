@@ -114,7 +114,7 @@ typedef void *xml_context;
                                                                                                   *  default behavior, can be NULL for some object types */
     };
 
-    extern struct object_func map_func, mapset_func, navit_func, tracking_func, vehicle_func, maps_func,
+    extern struct object_func map_func, mapset_func, tracking_func, maps_func,
         layout_func, roadprofile_func, vehicleprofile_func, layer_func, config_func, profile_option_func, log_func,
         speech_func, navigation_func, route_func, traffic_func;
 

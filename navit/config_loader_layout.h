@@ -31,6 +31,11 @@ public:
     LayoutCoord(int x, int y, QObject *parent = nullptr) : QObject(parent), m_x(x), m_y(y) {}
     LayoutCoord(point *p, QObject *parent = nullptr) : QObject(parent), m_x(p->x), m_y(p->y) {}
     LayoutCoord(coord *c, QObject *parent = nullptr) : QObject(parent), m_x(c->x), m_y(c->y) {}
+    void set(LayoutCoord *c)
+    {
+        m_x = c->getX();
+        m_y = c->getY();
+    }
     void set(point *p)
     {
         m_x = p->x;

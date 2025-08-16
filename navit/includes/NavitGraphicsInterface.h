@@ -13,8 +13,8 @@
 class NavitGraphicsContextInterface
 {
 public:
-    virtual void set_foreground(QColor *c) = 0;
-    virtual void set_background(QColor *c) = 0;
+    virtual void set_foreground(const QColor &c) = 0;
+    virtual void set_background(const QColor &c) = 0;
     virtual void set_texture(struct graphics_image *img) = 0;
     virtual void set_linewidth(int width) = 0;
     virtual void set_dashes(int width, int offset, unsigned char dash_list[], int n) = 0;
@@ -31,7 +31,7 @@ public:
     virtual void draw_polygon(NavitGraphicsContextInterface *gc, struct point *p, int count) = 0;
     virtual void draw_rectangle(NavitGraphicsContextInterface *gc, struct point *p, int w, int h) = 0;
     virtual void draw_circle(NavitGraphicsContextInterface *gc, struct point *p, int r) = 0;
-    virtual void draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsContextInterface *bg, struct graphics_font_priv *font, char *text, struct point *p, int dx, int dy) = 0;
+    virtual void draw_text(NavitGraphicsContextInterface *fg, NavitGraphicsContextInterface *bg, struct graphics_font_priv *font, QString &text, struct point *p, int dx, int dy) = 0;
     virtual void draw_image(NavitGraphicsContextInterface *fg, struct point *p, struct graphics_image_priv *img) = 0;
     virtual void draw_image_warp(NavitGraphicsContextInterface *fg, struct point *p, int count, struct graphics_image_priv *img) = 0;
     virtual void draw_polygon_with_holes(NavitGraphicsContextInterface *gc, struct point *p, int count, int hole_count, int *ccount, struct point **holes) = 0;
@@ -41,10 +41,10 @@ public:
     virtual void background_gc(NavitGraphicsContextInterface *gc) = 0;
     virtual void overlay_disable(int disable) = 0;
     virtual void overlay_resize(struct point *p, int w, int h, int wraparound) = 0;
-    virtual struct graphics_image_priv *image_new(struct graphics_image_methods *meth, char *path, int *w, int *h, struct point *hot, int rotation) = 0;
+    virtual struct graphics_image_priv *image_new(struct graphics_image_methods *meth, QString &path, int *w, int *h, struct point *hot, int rotation) = 0;
     virtual void image_free(struct graphics_image_priv *priv) = 0;
     virtual void *get_data(const char *type) = 0;
-    virtual void get_text_bbox(struct graphics_font_priv *font, char *text, int dx, int dy, struct point *ret, int estimate) = 0;
+    virtual void get_text_bbox(struct graphics_font_priv *font, QString &text, int dx, int dy, struct point *ret, int estimate) = 0;
     virtual int set_attr(struct attr *attr) = 0;
     virtual int show_native_keyboard(struct graphics_keyboard *kbd) = 0;
     virtual void hide_native_keyboard(struct graphics_keyboard *kbd) = 0;

@@ -95,7 +95,6 @@ extern "C"
     void transform_geo_to_cart(struct coord_geo *geo, navit_float a, navit_float b, struct coord_geo_cart *cart);
     void transform_cart_to_geo(struct coord_geo_cart *cart, navit_float a, navit_float b, struct coord_geo *geo);
     void transform_utm_to_geo(const double UTMEasting, const double UTMNorthing, int ZoneNumber, int NorthernHemisphere, struct coord_geo *geo);
-    void transform_datum(struct coord_geo *from, enum map_datum from_datum, struct coord_geo *to, enum map_datum to_datum);
     int transform_reverse(struct transformation *t, struct point *p, struct coord *c);
     double transform_pixels_to_map_distance(struct transformation *transformation, int pixels);
     enum projection transform_get_projection(struct transformation *this_);
@@ -116,7 +115,6 @@ extern "C"
     void transform_set_screen_selection(struct transformation *t, struct map_selection *sel);
     void transform_set_screen_center(struct transformation *t, struct point *p);
     void transform_get_size(struct transformation *t, int *width, int *height);
-    void transform_setup(struct transformation *t, struct pcoord *c, int scale, int yaw);
     void transform_setup_source_rect(struct transformation *t);
     long transform_get_scale(struct transformation *t);
     void transform_set_scale(struct transformation *t, long scale);

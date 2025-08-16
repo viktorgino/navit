@@ -34,6 +34,7 @@
 
 #include "graphics.h"
 #include "navit.h"
+#include "transform_2.h"
 
 extern "C"
 {
@@ -94,22 +95,6 @@ extern "C"
  * - a navigation object
  * @{
  */
-
-//! The vehicle used for navigation.
-struct navit_vehicle
-{
-    int follow;
-    /*! Limit of the follow counter. See navit_add_vehicle */
-    int follow_curr;
-    /*! Deprecated : follow counter itself. When it reaches 'update' counts, map is recentered*/
-    struct coord coord;
-    int dir;
-    int speed;
-    struct coord last; /*< Position of the last update of this vehicle */
-    struct vehicle *vehicle;
-    struct attr callback;
-    int animate_cursor;
-};
 
 GraphicsFunctions &getGraphicsFunctions()
 {
@@ -402,11 +387,10 @@ void Navit::map_progress()
     struct mapset *ms;
     struct mapset_handle *msh;
     struct attr attr;
-    struct point p;
+    LayoutCoord p(10, 32);
+
     if (m_ready != 3)
         return;
-    p.x = 10;
-    p.y = 32;
 
     ms = (struct mapset *)m_mapsets->data;
     msh = mapset_open(ms);
@@ -414,11 +398,10 @@ void Navit::map_progress()
     {
         if (map_get_attr(map, attr_progress, &attr, NULL))
         {
-            char *str = g_strdup_printf("%s           ", attr.u.str);
+            QString str = QString("%s           ").arg(attr.u.str);
             m_graphics.draw_mode(draw_mode_begin);
             m_graphics.draw_text_std(16, str, &p);
-            g_free(str);
-            p.y += 32;
+            p.set(p.getX(), p.getY() + 32);
             m_graphics.draw_mode(draw_mode_end);
         }
     }
@@ -437,10 +420,10 @@ void Navit::redraw_route(struct route *route, struct attr *attr)
         return;
     if (m_vehicle)
     {
-        if (m_vehicle->follow_curr == 1)
+        if (m_vehicle->getFollowCursor() == 1)
             return;
-        if (m_vehicle->follow_curr <= m_vehicle->follow)
-            m_vehicle->follow_curr = m_vehicle->follow;
+        if (m_vehicle->getFollowCursor() <= m_vehicle->getFollow())
+            m_vehicle->setFollowCursor(m_vehicle->getFollow());
     }
     draw();
 }
@@ -643,9 +626,11 @@ void Navit::scale(long scale, struct point *p, int draw_)
  * @param speed The vehicles speed in meters per second
  * @param dir The direction into which the vehicle moves
  */
-void Navit::autozoom(struct coord *center, int speed)
+void Navit::autozoom(struct coord *c, int speed)
 {
     struct point pc;
+    LayoutCoord centerTrans;
+    LayoutCoord center(c);
     int distance, w, h;
     double new_scale;
     long scale_;
@@ -664,7 +649,10 @@ void Navit::autozoom(struct coord *center, int speed)
     distance = speed * m_config.autozoom_secs;
 
     transform_get_size(m_trans, &w, &h);
-    transform_point(m_trans, transform_get_projection(m_trans), center, &pc);
+    transform_point(m_trans, transform_get_projection(m_trans), &center, &centerTrans);
+    pc.x = centerTrans.getX();
+    pc.y = centerTrans.getY();
+
     scale_ = transform_get_scale(m_trans);
 
     /* We make sure that the point we want to see is within a certain range
@@ -763,10 +751,10 @@ void Navit::zoom_out(int factor, struct point *p)
 void Navit::zoom_in_cursor(int factor)
 {
     struct point p;
-    if (m_vehicle && m_vehicle->follow_curr <= 1 && get_cursor_pnt(&p, 0, NULL))
+    if (m_vehicle && m_vehicle->getFollowCursor() <= 1 && get_cursor_pnt(&p, 0, NULL))
     {
         zoom_in(factor, &p);
-        m_vehicle->follow_curr = m_vehicle->follow;
+        m_vehicle->setFollowCursor(m_vehicle->getFollow());
     }
     else
         zoom_in(factor, NULL);
@@ -775,10 +763,10 @@ void Navit::zoom_in_cursor(int factor)
 void Navit::zoom_out_cursor(int factor)
 {
     struct point p;
-    if (m_vehicle && m_vehicle->follow_curr <= 1 && get_cursor_pnt(&p, 0, NULL))
+    if (m_vehicle && m_vehicle->getFollowCursor() <= 1 && get_cursor_pnt(&p, 0, NULL))
     {
         zoom_out(2, &p);
-        m_vehicle->follow_curr = m_vehicle->follow;
+        m_vehicle->setFollowCursor(m_vehicle->getFollow());
     }
     else
         zoom_out(2, NULL);
@@ -796,15 +784,10 @@ struct message *Navit::get_messages()
 
 void Navit::predraw()
 {
-    GList *l;
-    struct navit_vehicle *nv;
     transform_copy(m_trans, m_trans_cursor);
-    l = m_vehicles;
-    while (l)
+    for (Vehicle *vehicle : m_vehicles)
     {
-        nv = (struct navit_vehicle *)l->data;
-        draw_vehicle(nv, NULL);
-        l = g_list_next(l);
+        draw_vehicle(vehicle, NULL);
     }
 }
 
@@ -1204,8 +1187,9 @@ void Navit::textfile_debug_log(const char *fmt, ...)
     va_start(ap, fmt);
     if (m_textfile_debug_log && m_vehicle)
     {
+        coord position = get_vehicle_cursor_coords(m_vehicle);
         str1 = g_strdup_vprintf(fmt, ap);
-        str2 = g_strdup_printf("0x%x 0x%x%s%s\n", m_vehicle->coord.x, m_vehicle->coord.y, strlen(str1) ? " " : "",
+        str2 = g_strdup_printf("0x%x 0x%x%s%s\n", position.x, position.y, strlen(str1) ? " " : "",
                                str1);
         log_write(m_textfile_debug_log, str2, strlen(str2), (log_flags)0);
         g_free(str2);
@@ -1629,14 +1613,16 @@ void Navit::zoom_to_rect(struct coord_rect *r)
     dbg(lvl_debug, "%x,%x-%x,%x", r->lu.x, r->lu.y, r->rl.x, r->rl.y);
     while (scale < 1 << 20)
     {
-        struct point p1, p2;
+        LayoutCoord p1, p2;
+        LayoutCoord lu(&r->lu);
+        LayoutCoord rl(&r->rl);
         transform_set_scale(m_trans, scale);
         transform_setup_source_rect(m_trans);
-        transform_point(m_trans, transform_get_projection(m_trans), &r->lu, &p1);
-        transform_point(m_trans, transform_get_projection(m_trans), &r->rl, &p2);
-        dbg(lvl_debug, "%d,%d-%d,%d", p1.x, p1.y, p2.x, p2.y);
-        if (p1.x < 0 || p2.x < 0 || p1.x > w || p2.x > w ||
-            p1.y < 0 || p2.y < 0 || p1.y > h || p2.y > h)
+        transform_point(m_trans, transform_get_projection(m_trans), &lu, &p1);
+        transform_point(m_trans, transform_get_projection(m_trans), &rl, &p2);
+        dbg(lvl_debug, "%d,%d-%d,%d", p1.getX(), p1.getY(), p2.getX(), p2.getY());
+        if (p1.getX() < 0 || p2.getX() < 0 || p1.getX() > w || p2.getX() > w ||
+            p1.getY() < 0 || p2.getY() < 0 || p1.getY() > h || p2.getY() > h)
             scale *= 2;
         else
             break;
@@ -1748,28 +1734,15 @@ LayoutCursor *Navit::get_layout_cursor(const QString &name)
  */
 void Navit::set_cursors()
 {
-    struct attr name;
-    struct navit_vehicle *nv;
     LayoutCursor *cursor = nullptr;
-    GList *v;
-
-    v = g_list_first(m_vehicles); // GList of navit_vehicles
-    while (v)
+    for (Vehicle *vehicle : m_vehicles)
     {
-        nv = (struct navit_vehicle *)v->data;
-        if (vehicle_get_attr(nv->vehicle, attr_cursorname, &name, NULL))
-        {
-            if (!strcmp(name.u.str, "none"))
-                cursor = nullptr;
-            else
-                cursor = get_layout_cursor(name.u.str);
-        }
+
+        if (vehicle->getCursorName() == "none")
+            cursor = nullptr;
         else
-        {
-            cursor = get_layout_cursor("");
-        }
-        vehicle_set_cursor(nv->vehicle, cursor, 0);
-        v = g_list_next(v);
+            cursor = get_layout_cursor(vehicle->getCursorName());
+        vehicle->set_cursor(cursor, 0);
     }
     return;
 }
@@ -1791,25 +1764,12 @@ void Navit::set_cursors()
  */
 int Navit::get_cursor_pnt(struct point *p, int keep_orientation, int *dir)
 {
+    assert(m_vehicle);
+
     int width, height;
-    struct navit_vehicle *nv = m_vehicle;
     struct padding *padding = NULL;
 
     float offset = m_config.radius; // Cursor offset from the center of the screen (percent).
-#if 0                               /* Better improve track.c to get that issue resolved or make it configurable with being off the default, the jumping back to the center is a bit annoying */
-    float min_offset = 0.;      // Percent offset at min_offset_speed.
-    float max_offset = 30.;     // Percent offset at max_offset_speed.
-    int min_offset_speed = 2;   // Speed in km/h
-    int max_offset_speed = 50;  // Speed in km/h
-    // Calculate cursor offset from the center of the screen, upon speed.
-    if (nv->speed <= min_offset_speed) {
-        offset = min_offset;
-    } else if (nv->speed > max_offset_speed) {
-        offset = max_offset;
-    } else {
-        offset = (max_offset - min_offset) / (max_offset_speed - min_offset_speed) * (nv->speed - min_offset_speed);
-    }
-#endif
 
     padding = (struct padding *)m_graphics.get_data("padding");
 
@@ -1828,7 +1788,7 @@ int Navit::get_cursor_pnt(struct point *p, int keep_orientation, int *dir)
         p->x = 50 * width / 100;
         p->y = (50 + offset) * height / 100;
         if (dir)
-            *dir = keep_orientation ? m_config.orientation : nv->dir;
+            *dir = keep_orientation ? m_config.orientation : getDirection(m_vehicle);
     }
     else
     {
@@ -1839,7 +1799,7 @@ int Navit::get_cursor_pnt(struct point *p, int keep_orientation, int *dir)
         }
         else
         {
-            mdir = nv->dir - m_config.orientation;
+            mdir = getDirection(m_vehicle) - m_config.orientation;
         }
 
         p->x = (50 - offset * sin(M_PI * mdir / 180.)) * width / 100;
@@ -1859,6 +1819,13 @@ int Navit::get_cursor_pnt(struct point *p, int keep_orientation, int *dir)
     return 1;
 }
 
+coord Navit::get_vehicle_cursor_coords(Vehicle *vehicle)
+{
+    coord cursorPosition;
+    coord_geo position = getPosition(vehicle);
+    transform_from_geo(transform_get_projection(m_trans), &position, &cursorPosition);
+    return cursorPosition;
+}
 /**
  * @brief Recalculates the map view so that the vehicle cursor is visible
  *
@@ -1877,19 +1844,21 @@ void Navit::set_center_cursor(int autozoom_, int keep_orientation)
 {
     int dir;
     struct point pn;
-    struct navit_vehicle *nv = m_vehicle;
-    struct attr attr;
-    if (!nv || !nv->vehicle)
+    if (!m_vehicle)
     {
         return;
     }
-    if (vehicle_get_attr(nv->vehicle, attr_position_valid, &attr, NULL) && (attr.u.num == attr_position_valid_invalid))
+    if (!isPositionValid(m_vehicle))
         return;
+
+    coord cursorPosition = get_vehicle_cursor_coords(m_vehicle);
     get_cursor_pnt(&pn, keep_orientation, &dir);
     transform_set_yaw(m_trans, dir);
-    set_center_coord_screen(&nv->coord, &pn, 0);
+    set_center_coord_screen(&cursorPosition, &pn, 0);
     if (autozoom_)
-        autozoom(&nv->coord, nv->speed);
+    {
+        autozoom(&cursorPosition, getSpeed(m_vehicle));
+    }
 }
 
 /**
@@ -1944,11 +1913,6 @@ int Navit::set_attr_do(struct attr *attr, int init)
     int dir = 0, orient_old = 0, attr_updated = 0;
     struct coord co;
     long zoom;
-    GList *l;
-    struct navit_vehicle *nv;
-    struct attr active;
-    active.type = attr_active;
-    active.u.num = 0;
 
     dbg(lvl_debug, "enter, this_=%p, attr=%p (%s), init=%d", this, attr, attr_to_name(attr->type), init);
 
@@ -1980,11 +1944,8 @@ int Navit::set_attr_do(struct attr *attr, int init)
         m_graphics_flags = attr->u.num;
         break;
     case attr_follow:
-        if (!m_vehicle)
-            return 0;
-        attr_updated = (m_vehicle->follow_curr != attr->u.num);
-        m_vehicle->follow_curr = attr->u.num;
-        break;
+        m_vehicle->setFollowCursor(attr->u.num);
+        return 0;
     case attr_default_layout:
         if (!attr->u.str)
             return 0;
@@ -2017,7 +1978,7 @@ int Navit::set_attr_do(struct attr *attr, int init)
             {
                 if (m_vehicle)
                 {
-                    dir = m_vehicle->dir;
+                    dir = getDirection(m_vehicle);
                 }
             }
             transform_set_yaw(m_trans, dir);
@@ -2078,35 +2039,8 @@ int Navit::set_attr_do(struct attr *attr, int init)
         m_config.use_mousewheel = !!attr->u.num;
         break;
     case attr_vehicle:
-        if (!attr->u.vehicle)
-        {
-            if (m_vehicle)
-            {
-                vehicle_set_attr(m_vehicle->vehicle, &active);
-                set_vehicle(NULL);
-                attr_updated = 1;
-            }
-            break;
-        }
-        l = m_vehicles;
-        while (l)
-        {
-            nv = (struct navit_vehicle *)l->data;
-            if (nv->vehicle == attr->u.vehicle)
-            {
-                if (!m_vehicle || m_vehicle->vehicle != attr->u.vehicle)
-                {
-                    if (m_vehicle)
-                        vehicle_set_attr(m_vehicle->vehicle, &active);
-                    active.u.num = 1;
-                    vehicle_set_attr(nv->vehicle, &active);
-                    attr_updated = 1;
-                }
-                set_vehicle(nv);
-            }
-            l = g_list_next(l);
-        }
-        break;
+        qDebug() << "Can't set vehicle";
+        return 0;
     case attr_vehicleprofile:
         attr_updated = set_vehicleprofile(attr->u.vehicleprofile);
         break;
@@ -2239,7 +2173,7 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
     case attr_follow:
         if (!m_vehicle)
             return 0;
-        attr->u.num = m_vehicle->follow_curr;
+        attr->u.num = m_vehicle->getFollowCursor();
         break;
     case attr_former_destination_map:
         attr->u.map = m_former_destination;
@@ -2320,32 +2254,8 @@ int Navit::get_attr(enum attr_type type, struct attr *attr, struct attr_iter *it
         attr->u.transformation = m_trans;
         break;
     case attr_vehicle:
-        if (iter)
-        {
-            if (iter->u.list)
-            {
-                iter->u.list = g_list_next(iter->u.list);
-            }
-            else
-            {
-                iter->u.list = m_vehicles;
-            }
-            if (!iter->u.list)
-                return 0;
-            attr->u.vehicle = ((struct navit_vehicle *)iter->u.list->data)->vehicle;
-        }
-        else
-        {
-            if (m_vehicle)
-            {
-                attr->u.vehicle = m_vehicle->vehicle;
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        break;
+        qDebug() << "Cant get vehicle";
+        return 0;
     case attr_vehicleprofile:
         if (iter)
         {
@@ -2420,6 +2330,16 @@ Layout *Navit::get_layout_by_name(const QString &name)
         }
     }
     return result;
+}
+
+Layout *Navit::getCurrentLayout()
+{
+    return m_layout_current;
+}
+
+const QVector<Layout *> &Navit::getLayouts()
+{
+    return m_layouts;
 }
 
 /**
@@ -2613,23 +2533,29 @@ static int coord_not_set(struct coord c)
  * @returns nothing
  */
 
-void Navit::draw_vehicle(struct navit_vehicle *nv, struct point *pnt)
+void Navit::draw_vehicle(Vehicle *vehicle, struct point *pnt)
 {
     struct point cursor_pnt;
     enum projection pro;
 
-    if (m_blocked || coord_not_set(nv->coord))
+    coord cursorCoord = get_vehicle_cursor_coords(vehicle);
+
+    if (m_blocked || coord_not_set(cursorCoord))
         return;
     if (pnt)
         cursor_pnt = *pnt;
     else
     {
+        LayoutCoord c(&cursorCoord);
+        LayoutCoord pnt;
         pro = transform_get_projection(m_trans_cursor);
         if (!pro)
             return;
-        transform_point(m_trans_cursor, pro, &nv->coord, &cursor_pnt);
+        transform_point(m_trans_cursor, pro, &c, &pnt);
+        cursor_pnt.x = pnt.getX();
+        cursor_pnt.y = pnt.getY();
     }
-    vehicle_draw(nv->vehicle, static_cast<void *>(&m_graphics), &cursor_pnt, nv->dir - transform_get_yaw(m_trans_cursor), nv->speed);
+    vehicle->draw(&m_graphics, &cursor_pnt, getDirection(vehicle) - transform_get_yaw(m_trans_cursor), getSpeed(vehicle));
 }
 
 /**
@@ -2641,7 +2567,7 @@ void Navit::draw_vehicle(struct navit_vehicle *nv, struct point *pnt)
  * <li>Switching between day and night layout (based on the new position timestamp)</li>
  * <li>Updating position, bearing and speed of {@code nv} with the data of the active vehicle
  * (which may be different from the vehicle reporting the update)</li>
- * <li>Invoking callbacks for {@code navit}'s {@code attr_position} and {@code attr_position_coord_geo}
+ * <li>Invoking callbacks for {@code navit}'s {@code attr_position_coord_geo}
  * attributes</li>
  * <li>Triggering an update of the vehicle's position on the map and, if needed, an update of the
  * visible map area ad orientation</li>
@@ -2651,19 +2577,17 @@ void Navit::draw_vehicle(struct navit_vehicle *nv, struct point *pnt)
  * </ul>
  *
  * @param this_ The navit object
- * @param nv The {@code navit_vehicle} which reported a new position
  */
 void Navit::onVehiclePositionUpdated(const coord_geo &position)
 {
-    struct attr attr_valid, attr_dir, attr_speed, attr_pos;
     struct pcoord cursor_pc;
     struct point cursor_pnt, *pnt = &cursor_pnt;
     struct tracking *tracking = NULL;
     struct pcoord *pc;
+
     enum projection pro = transform_get_projection(m_trans_cursor);
     int count;
-    int (*get_attr)(void *, enum attr_type, struct attr *, struct attr_iter *);
-    void *attr_object;
+
     char *destination_file;
     char *description;
 
@@ -2677,37 +2601,23 @@ void Navit::onVehiclePositionUpdated(const coord_geo &position)
         tracking = m_pluginLoader.getTracking();
     if (tracking)
     {
-        tracking_update(tracking, nv->vehicle, m_vehicleprofile, pro);
-        attr_object = tracking;
-        get_attr = (int (*)(void *, enum attr_type, struct attr *, struct attr_iter *))tracking_get_attr;
+        tracking_update(tracking, vehicle, m_vehicleprofile, pro);
     }
-    else
-    {
-        attr_object = nv->vehicle;
-        get_attr = (int (*)(void *, enum attr_type, struct attr *, struct attr_iter *))vehicle_get_attr;
-    }
-    if (get_attr(attr_object, attr_position_valid, &attr_valid, NULL))
-        if (!attr_valid.u.num != attr_position_valid_invalid)
-            return;
-    if (!get_attr(attr_object, attr_position_direction, &attr_dir, NULL) ||
-        !get_attr(attr_object, attr_position_speed, &attr_speed, NULL) ||
-        !get_attr(attr_object, attr_position_coord_geo, &attr_pos, NULL))
-    {
-        // profile(0, "return 2\n");
+
+    if (!isPositionValid(vehicle))
         return;
-    }
-    nv->dir = *attr_dir.u.numd;
-    nv->speed = *attr_speed.u.numd;
-    transform_from_geo(pro, attr_pos.u.coord_geo, &nv->coord);
-    if (nv != m_vehicle)
+
+    if (vehicle != m_vehicle)
     {
         if (m_ready == 3)
-            draw_vehicle(nv, NULL);
+            draw_vehicle(vehicle, NULL);
         // profile(0, "return 3\n");
         return;
     }
-    cursor_pc.x = nv->coord.x;
-    cursor_pc.y = nv->coord.y;
+    coord cursorCoord = get_vehicle_cursor_coords(vehicle);
+
+    cursor_pc.x = cursorCoord.x;
+    cursor_pc.y = cursorCoord.y;
     cursor_pc.pro = pro;
     if (m_pluginLoader.getRoute())
     {
@@ -2716,23 +2626,25 @@ void Navit::onVehiclePositionUpdated(const coord_geo &position)
         else
             route_set_position(m_pluginLoader.getRoute(), &cursor_pc);
     }
-    callback_list_call_attr_0(m_attr_cbl, attr_position);
+    // callback_list_call_attr_0(m_attr_cbl, attr_position);
     textfile_debug_log("type=trackpoint_tracked");
     if (m_ready == 3)
     {
-        transform_point(m_trans_cursor, pro, &nv->coord, &cursor_pnt);
-        if (m_config.follow_cursor && nv->follow_curr <= nv->follow &&
-            (nv->follow_curr == 1 || !transform_within_border(m_trans_cursor, &cursor_pnt, m_config.border)))
+        LayoutCoord c(&cursorCoord);
+        LayoutCoord p(&cursor_pnt);
+        transform_point(m_trans_cursor, pro, &c, &p);
+        if (m_config.follow_cursor && vehicle->getFollowCursor() <= vehicle->getFollow() &&
+            (vehicle->getFollowCursor() == 1 || !transform_within_border(m_trans_cursor, &cursor_pnt, m_config.border)))
             set_center_cursor_draw();
         else
-            draw_vehicle(nv, pnt);
+            draw_vehicle(vehicle, pnt);
 
-        if (nv->follow_curr > 1)
-            nv->follow_curr--;
+        if (vehicle->getFollowCursor() > 1)
+            vehicle->setFollowCursor(vehicle->getFollowCursor() - 1);
         else
-            nv->follow_curr = nv->follow;
+            vehicle->setFollowCursor(vehicle->getFollow());
     }
-    callback_list_call_attr_2(m_attr_cbl, attr_position_coord_geo, this, nv->vehicle);
+    emit positionChanged(getPosition(vehicle));
 
     /* Finally, if we reached our destination, stop navigation. */
     if (m_pluginLoader.getRoute())
@@ -2762,37 +2674,6 @@ void Navit::onVehiclePositionUpdated(const coord_geo &position)
     }
     // profile(0, "return 5\n");
 }
-/**
- * @brief Called when a status attribute of a vehicle changes.
- *
- * This function is called when the {@code position_fix_type}, {@code position_sats_used} or {@code position_hdop}
- * attribute of any configured vehicle changes.
- *
- * The function checks if {@code nv} refers to the active vehicle and if {@code type} is one of the above types.
- * If this is the case, it invokes the callback functions for {@code navit}'s respective attributes.
- *
- * Future actions that need to happen when one of these three attribute changes for any vehicle should be
- * implemented here.
- *
- * @param this_ The navit object
- * @param nv The {@code navit_vehicle} which reported a new status attribute
- * @param type The type of attribute with has changed
- */
-void Navit::vehicle_update_status(struct navit_vehicle *nv, enum attr_type type)
-{
-    if (m_vehicle != nv)
-        return;
-    switch (type)
-    {
-    case attr_position_fix_type:
-    case attr_position_sats_used:
-    case attr_position_hdop:
-        callback_list_call_attr_2(m_attr_cbl, type, this, nv->vehicle);
-        break;
-    default:
-        return;
-    }
-}
 
 /**
  * Set the position of the vehicle
@@ -2807,7 +2688,6 @@ void Navit::set_position(struct pcoord *c)
     if (m_pluginLoader.getRoute())
     {
         route_set_position(m_pluginLoader.getRoute(), c);
-        callback_list_call_attr_0(m_attr_cbl, attr_position);
     }
     if (m_ready == 3)
         draw();
@@ -2843,13 +2723,12 @@ int Navit::set_vehicleprofile_name(const QString &name)
     return 0;
 }
 
-void Navit::set_vehicle(struct navit_vehicle *nv)
+void Navit::set_vehicle(Vehicle *vehicle)
 {
-    struct attr attr;
-    m_vehicle = nv;
-    if (nv && vehicle_get_attr(nv->vehicle, attr_profilename, &attr, NULL))
+    m_vehicle = vehicle;
+    if (vehicle != nullptr)
     {
-        if (set_vehicleprofile_name(QString(attr.u.str)))
+        if (set_vehicleprofile_name(vehicle->getProfileName()))
             return;
     }
     if (!m_vehicleprofile)
@@ -2875,16 +2754,6 @@ void Navit::set_vehicle(struct navit_vehicle *nv)
     }
 }
 
-static void navit_vehicle_update_status(void *data, struct navit_vehicle *nv, enum attr_type type)
-{
-    if (data == nullptr)
-    {
-        return;
-    }
-    Navit *navit = static_cast<Navit *>(data);
-    navit->vehicle_update_status(nv, type);
-}
-
 /**
  * @brief Registers a new vehicle.
  *
@@ -2894,33 +2763,13 @@ static void navit_vehicle_update_status(void *data, struct navit_vehicle *nv, en
  */
 int Navit::add_vehicle(Vehicle *vehicle)
 {
-    // struct navit_vehicle *nv = g_new0(struct navit_vehicle, 1);
-    // struct attr follow, active, animate;
-    // nv->vehicle = v;
-    // nv->follow = 0;
-    // nv->last.x = 0;
-    // nv->last.y = 0;
-    // nv->animate_cursor = 0;
-    // if ((vehicle_get_attr(v, attr_follow, &follow, NULL)))
-    //     nv->follow = follow.u.num;
-    // nv->follow_curr = nv->follow;
-    // m_vehicles = g_list_append(m_vehicles, nv);
-    // if ((vehicle_get_attr(v, attr_active, &active, NULL)) && active.u.num)
-    //     set_vehicle(nv);
-    // if ((vehicle_get_attr(v, attr_animate, &animate, NULL)))
-    //     nv->animate_cursor = animate.u.num;
-    vehicle->connect(vehicle, &Vehicle::positionChanged, this, &Navit::onVehiclePositionUpdated);
+    m_vehicles.append(vehicle);
 
-    nv->callback.u.callback = callback_new_attr_3(callback_cast(navit_vehicle_update_status), attr_position_fix_type, this,
-                                                  nv, attr_position_fix_type);
-    vehicle_add_attr(nv->vehicle, &nv->callback);
-    nv->callback.u.callback = callback_new_attr_3(callback_cast(navit_vehicle_update_status), attr_position_sats_used, this,
-                                                  nv, attr_position_sats_used);
-    vehicle_add_attr(nv->vehicle, &nv->callback);
-    nv->callback.u.callback = callback_new_attr_3(callback_cast(navit_vehicle_update_status), attr_position_hdop, this, nv,
-                                                  attr_position_hdop);
-    vehicle_add_attr(nv->vehicle, &nv->callback);
-    vehicle_set_attr(nv->vehicle, &m_self);
+    vehicle->connect(vehicle, &Vehicle::positionValidChanged, this, &Navit::positionValidChanged);
+    vehicle->connect(vehicle, &Vehicle::positionChanged, this, &Navit::onVehiclePositionUpdated);
+    vehicle->connect(vehicle, &Vehicle::fixTypeChanged, this, &Navit::fixTypeChanged);
+    vehicle->connect(vehicle, &Vehicle::hdopChanged, this, &Navit::hdopChanged);
+    vehicle->connect(vehicle, &Vehicle::satellitesChanged, this, &Navit::satellitesChanged);
     return 1;
 }
 
@@ -2947,7 +2796,6 @@ struct navigation *Navit::get_navigation()
 void Navit::layout_switch()
 {
     int currTs = 0;
-    struct attr iso8601_attr, geo_attr, valid_attr;
     double trise, tset;
     int year, month, day;
     int after_sunrise = FALSE;
@@ -2962,11 +2810,8 @@ void Navit::layout_switch()
         // Ok, we know that we have profile to switch
 
         // Check that we aren't calculating too fast
-        if (vehicle_get_attr(m_vehicle->vehicle, attr_position_time_iso8601, &iso8601_attr, NULL) == 1)
-        {
-            currTs = iso8601_to_secs(iso8601_attr.u.str);
-            dbg(lvl_debug, "currTs: %02u:%02u", currTs % 86400 / 3600, ((currTs % 86400) % 3600) / 60);
-        }
+        currTs = iso8601_to_secs(m_vehicle->getIso8601Time().toLocal8Bit().data());
+        dbg(lvl_debug, "currTs: %02u:%02u", currTs % 86400 / 3600, ((currTs % 86400) % 3600) / 60);
         dbg(lvl_debug, "prevTs: %02u:%02u", m_prevTs % 86400 / 3600, ((m_prevTs % 86400) % 3600) / 60);
 
         if (m_config.auto_switch == FALSE)
@@ -3006,21 +2851,22 @@ void Navit::layout_switch()
             return;
         }
 
-        if (sscanf(iso8601_attr.u.str, "%d-%02d-%02dT", &year, &month, &day) != 3)
+        if (sscanf(m_vehicle->getIso8601Time().toLocal8Bit().data(), "%d-%02d-%02dT", &year, &month, &day) != 3)
             return;
-        if (vehicle_get_attr(m_vehicle->vehicle, attr_position_valid, &valid_attr, NULL) && valid_attr.u.num == attr_position_valid_invalid)
+        if (!isPositionValid(m_vehicle))
         {
             return; // No valid fix yet
         }
 
-        if (vehicle_get_attr(m_vehicle->vehicle, attr_position_coord_geo, &geo_attr, NULL) != 1)
-        {
-            // No position - no sun
-            return;
-        }
+        // if (vehicle_get_attr(m_vehicle->vehicle, attr_position_coord_geo, &geo_attr, NULL) != 1)
+        // {
+        //     // No position - no sun
+        //     return;
+        // }
+        coord_geo position = m_vehicle->getPosition();
 
         // We calculate sunrise anyway, cause it is needed both for day and for night
-        if (__sunriset__(year, month, day, geo_attr.u.coord_geo->lng, geo_attr.u.coord_geo->lat, m_config.sunrise_degrees, 1, &trise,
+        if (__sunriset__(year, month, day, position.lng, position.lat, m_config.sunrise_degrees, 1, &trise,
                          &tset) != 0)
         {
             dbg(lvl_debug, "near the pole sun never rises/sets, so we should never switch profiles");
@@ -3087,27 +2933,13 @@ void Navit::layout_switch()
 
 int Navit::set_vehicle_by_name(const QString &name)
 {
-    struct vehicle *v;
-    struct attr_iter *iter;
-    struct attr vehicle_attr, name_attr;
-
-    iter = attr_iter_new();
-
-    while (get_attr(attr_vehicle, &vehicle_attr, iter))
+    for (Vehicle *vehicle : m_vehicles)
     {
-        v = vehicle_attr.u.vehicle;
-        vehicle_get_attr(v, attr_name, &name_attr, NULL);
-        if (name_attr.type == attr_name)
+        if (vehicle->getName() == name)
         {
-            if (!strcmp(name.toLocal8Bit().data(), name_attr.u.str))
-            {
-                set_attr(&vehicle_attr);
-                attr_iter_destroy(iter);
-                return 1;
-            }
+            set_vehicle(vehicle);
         }
     }
-    attr_iter_destroy(iter);
     return 0;
 }
 
@@ -3133,6 +2965,73 @@ int Navit::set_layout_by_name(const QString &name)
         }
     }
     return 0;
+}
+bool Navit::isPositionValid(Vehicle *vehicle)
+{
+    struct tracking *tracking;
+    if (m_vehicle == vehicle && m_config.tracking_flag)
+        tracking = m_pluginLoader.getTracking();
+    if (tracking)
+    {
+        struct attr attr;
+        tracking_get_attr(tracking, attr_position_valid, &attr, nullptr);
+        return attr.u.num == attr_position_valid_valid;
+    }
+    else
+    {
+        return vehicle->isPositionValid();
+    }
+}
+coord_geo Navit::getPosition(Vehicle *vehicle)
+{
+    struct tracking *tracking;
+    if (m_vehicle == vehicle && m_config.tracking_flag)
+        tracking = m_pluginLoader.getTracking();
+    if (tracking)
+    {
+        struct attr attr;
+        tracking_get_attr(tracking, attr_position_valid, &attr, nullptr);
+        coord_geo ret = *attr.u.coord_geo;
+        return ret;
+    }
+    else
+    {
+        return vehicle->getPosition();
+    }
+}
+double Navit::getSpeed(Vehicle *vehicle)
+{
+    struct tracking *tracking;
+    if (m_vehicle == vehicle && m_config.tracking_flag)
+        tracking = m_pluginLoader.getTracking();
+    if (tracking)
+    {
+        struct attr attr;
+        tracking_get_attr(tracking, attr_position_speed, &attr, nullptr);
+        double ret = *attr.u.numd;
+        return ret;
+    }
+    else
+    {
+        return vehicle->getSpeed();
+    }
+}
+double Navit::getDirection(Vehicle *vehicle)
+{
+    struct tracking *tracking;
+    if (m_vehicle == vehicle && m_config.tracking_flag)
+        tracking = m_pluginLoader.getTracking();
+    if (tracking)
+    {
+        struct attr attr;
+        tracking_get_attr(tracking, attr_position_direction, &attr, nullptr);
+        double ret = *attr.u.numd;
+        return ret;
+    }
+    else
+    {
+        return vehicle->getDirection();
+    }
 }
 
 /**
@@ -3180,7 +3079,7 @@ int Navit::get_blocked()
     return m_blocked;
 }
 
-void Navit::destroy()
+Navit::~Navit()
 {
     dbg(lvl_debug, "enter %p", this);
     GList *mapsets;
@@ -3245,8 +3144,7 @@ void Navit::destroy()
 
     map_destroy(m_former_destination);
 
-    m_displaylist.destroy();
-    // g_free();
+    // delete m_displaylist;
 }
 
 /** @} */

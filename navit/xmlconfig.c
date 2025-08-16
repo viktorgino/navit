@@ -259,15 +259,11 @@ static int xmlconfig_announce(struct xmlstate *state)
 struct object_func *
 object_func_lookup(enum attr_type type)
 {
-    int i;
+    // int i;
     switch (type)
     {
     case attr_config:
         return &config_func;
-    case attr_layer:
-        return &layer_func;
-    case attr_layout:
-        return &layout_func;
     case attr_log:
         return &log_func;
     case attr_map:
@@ -278,8 +274,6 @@ object_func_lookup(enum attr_type type)
         return &mapset_func;
     case attr_navigation:
         return &navigation_func;
-    case attr_navit:
-        return &navit_func;
     case attr_profile_option:
         return &profile_option_func;
     case attr_roadprofile:
@@ -292,8 +286,6 @@ object_func_lookup(enum attr_type type)
         return &speech_func;
     case attr_traffic:
         return &traffic_func;
-    case attr_vehicle:
-        return &vehicle_func;
     case attr_vehicleprofile:
         return &vehicleprofile_func;
     default:
